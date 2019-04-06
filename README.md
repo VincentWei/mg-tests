@@ -1,6 +1,6 @@
 # Test code for MiniGUI APIs.
 
-Since MiniGUI 3.4.0, we orgnize the test code of MiniGUI API in this repository.
+Since MiniGUI 3.4.0, we orgnize the test code of MiniGUI APIs in this repository.
 
 ## Prerequisites
 
