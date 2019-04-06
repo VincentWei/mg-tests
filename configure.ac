@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.60)
-AC_INIT(mg-tests,3.4.0)
+AC_INIT(mg-tests,4.0.0)
 AC_CONFIG_SRCDIR(src/helloworld.c)
 
 dnl ========================================================================
@@ -38,11 +38,7 @@ fi
 dnl ========================================================================
 dnl check for installation of MiniGUI
 dnl ========================================================================
-PKG_CHECK_MODULES([MINIGUI], [minigui >= 3.4.0])
-PKG_CHECK_MODULES([MGUTILS], [mgutils >= 1.2.0])
-PKG_CHECK_MODULES([MGPLUS], [mgplus >= 1.4.0])
-PKG_CHECK_MODULES([MGEFF], [mgeff >= 1.2.0])
-PKG_CHECK_MODULES([MGNCS], [mgncs >= 1.2.0])
+PKG_CHECK_MODULES([MINIGUI], [minigui >= 4.0.0])
 
 LIBS="$LIBS $MINIGUI_LIBS -lefence"
 
@@ -56,5 +52,5 @@ AC_OUTPUT(
     Makefile
     m4/Makefile
     src/Makefile
-    3.4/Makefile
+    4.0/Makefile
 )

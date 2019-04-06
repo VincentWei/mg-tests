@@ -1,3 +1,3 @@
-SUBDIRS = src 3.4 m4
+SUBDIRS = src 4.0 m4
 
 EXTRA_DIST = ltmain.sh README.md LICENSE
