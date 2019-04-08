@@ -1,7 +1,7 @@
 /*
 ** sliceallocator.c
 **
-**  Test code for Slice Allocator of MiniGUI 3.4.0
+**  Test code for Slice Allocator of MiniGUI 4.0.0
 **  The following APIs are covered:
 **
 **      mg_slice_alloc (mg_slice_new)
@@ -33,7 +33,7 @@
 #include <minigui/window.h>
 #include <minigui/control.h>
 
-#if (_MINIGUI_VERSION_CODE >= _VERSION_CODE(3,4,0))
+#if (_MINIGUI_VERSION_CODE >= _VERSION_CODE(4,0,0))
 
 #include "helpers.h"
 
@@ -576,6 +576,6 @@ int MiniGUIMain (int argc, const char* argv[])
 }
 
 #else
-#error "To test Slice Allocator, please use MiniGUI 3.4.0"
+#error "To test Slice Allocator, please use MiniGUI 4.0.0"
 #endif /* checking version */
 

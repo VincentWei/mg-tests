@@ -1,6 +1,6 @@
 /*
 ** helpers.h:
-**  Helpers for test code of MiniGUI 3.4.0
+**  Helpers for test code of MiniGUI 4.0.0
 **
 ** Copyright (C) 2019 FMSoft (http://www.fmsoft.cn).
 **

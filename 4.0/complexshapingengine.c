@@ -1,7 +1,7 @@
 /*
 ** complexshapingengine.c:
 **
-**  Test code for Complex Shaping Engine of MiniGUI 3.4.0.
+**  Test code for Complex Shaping Engine of MiniGUI 4.0.0.
 **  The following APIs are covered:
 **
 **      CreateLogFontForMChar2UChar
@@ -42,7 +42,7 @@
 #include <minigui/gdi.h>
 #include <minigui/window.h>
 
-#if (_MINIGUI_VERSION_CODE >= _VERSION_CODE(3,4,0)) \
+#if (_MINIGUI_VERSION_CODE >= _VERSION_CODE(4,0,0)) \
         && defined(_MGCHARSET_UNICODE)
 
 #include "helpers.h"
@@ -1269,5 +1269,5 @@ int MiniGUIMain (int argc, const char* argv[])
 
 
 #else
-#error "To test Complex Shaping Engine, please use MiniGUI 3.4.0 and enable support for UNICODE"
+#error "To test Complex Shaping Engine, please use MiniGUI 4.0.0 and enable support for UNICODE"
 #endif /* checking version and features */

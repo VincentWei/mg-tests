@@ -1,7 +1,7 @@
 /*
 ** ustrgetbreaks.c:
 **
-**  Test code for UStrGetBreaks of MiniGUI 3.4.0
+**  Test code for UStrGetBreaks of MiniGUI 4.0.0
 **  The following APIs are covered:
 **
 **      UStrGetBreaks
@@ -34,7 +34,7 @@
 #include <minigui/window.h>
 #include <minigui/control.h>
 
-#if (_MINIGUI_VERSION_CODE >= _VERSION_CODE(3,4,0)) \
+#if (_MINIGUI_VERSION_CODE >= _VERSION_CODE(4,0,0)) \
         && defined(_MGCHARSET_UNICODE)
 
 #include "helpers.h"
@@ -480,5 +480,5 @@ error:
 }
 
 #else
-#error "To test GetUCharsAndBreaks, please use MiniGUI 3.4.0 and enable support for UNICODE"
+#error "To test GetUCharsAndBreaks, please use MiniGUI 4.0.0 and enable support for UNICODE"
 #endif /* checking version and features */

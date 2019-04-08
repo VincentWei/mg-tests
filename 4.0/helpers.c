@@ -1,6 +1,6 @@
 /*
 ** getglyphsbyrules.c:
-**  test code for GetGlyphsAndBreaks of MiniGUI 3.4.0
+**  test code for GetGlyphsAndBreaks of MiniGUI 4.0.0
 **
 ** Copyright (C) 2019 FMSoft (http://www.fmsoft.cn).
 **
@@ -137,7 +137,7 @@ BOOL get_charset_from_filename(const char* pattern, char* buff)
     return TRUE;
 }
 
-#if (_MINIGUI_VERSION_CODE >= _VERSION_CODE(3,4,0)) \
+#if (_MINIGUI_VERSION_CODE >= _VERSION_CODE(4,0,0)) \
         && defined(_MGCHARSET_UNICODE)
 
 static const char* _gc_names[] = {
@@ -230,5 +230,5 @@ const char* get_break_type_name(UCharBreakType bt)
 }
 
 #else
-#error "To build this file, please use MiniGUI 3.4.0 and enable support for UNICODE"
+#error "To build this file, please use MiniGUI 4.0.0 and enable support for UNICODE"
 #endif /* checking version and features */

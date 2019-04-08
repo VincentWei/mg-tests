@@ -1,7 +1,7 @@
 /*
 ** bidicharactertest.c
 **
-**  Test code for UBA implementation of MiniGUI 3.4.0
+**  Test code for UBA implementation of MiniGUI 4.0.0
 **  The following APIs are covered:
 **
 **      UStrGetBidiTypes
@@ -35,7 +35,7 @@
 #include <minigui/window.h>
 #include <minigui/control.h>
 
-#if (_MINIGUI_VERSION_CODE >= _VERSION_CODE(3,4,0)) \
+#if (_MINIGUI_VERSION_CODE >= _VERSION_CODE(4,0,0)) \
         && defined(_MGCHARSET_UNICODE)
 
 #include "helpers.h"
@@ -556,6 +556,6 @@ int MiniGUIMain (int argc, const char* argv[])
 }
 
 #else
-#error "To test UBA implementation, please use MiniGUI 3.4.0 and enable support for UNICODE"
+#error "To test UBA implementation, please use MiniGUI 4.0.0 and enable support for UNICODE"
 #endif /* checking version */
 

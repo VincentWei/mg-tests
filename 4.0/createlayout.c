@@ -1,7 +1,7 @@
 /*
 ** createtextrunsinfo.c
 **
-**  Test code for Layout of MiniGUI 3.4.0
+**  Test code for Layout of MiniGUI 4.0.0
 **  The following APIs are covered:
 **
 **      CreateTextRuns
@@ -38,7 +38,7 @@
 #include <minigui/window.h>
 #include <minigui/control.h>
 
-#if (_MINIGUI_VERSION_CODE >= _VERSION_CODE(3,4,0)) \
+#if (_MINIGUI_VERSION_CODE >= _VERSION_CODE(4,0,0)) \
         && defined(_MGCHARSET_UNICODE) && defined(_MGDEVEL_MODE)
 
 #include "helpers.h"
@@ -1184,6 +1184,6 @@ int MiniGUIMain (int argc, const char* argv[])
 }
 
 #else
-#error "To test APIs related to text runs, please use MiniGUI 3.4.0, enable support for UNICODE, and enable developer mode."
+#error "To test APIs related to text runs, please use MiniGUI 4.0.0, enable support for UNICODE, and enable developer mode."
 #endif /* checking version */
 
