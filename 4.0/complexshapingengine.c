@@ -577,8 +577,8 @@ static void create_layout(ParagraphInfo* p)
             _font_cases[_curr_font], MakeRGB(0, 0, 0), 0, p->bos + 1);
 
     if (p->textruns) {
-        if (!InitBasicShapingEngine(p->textruns)) {
-            _ERR_PRINTF("%s: InitBasicShapingEngine returns FALSE\n",
+        if (!InitComplexShapingEngine(p->textruns)) {
+            _ERR_PRINTF("%s: InitComplexShapingEngine returns FALSE\n",
                     __FUNCTION__);
             exit(1);
         }
