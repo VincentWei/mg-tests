@@ -771,7 +771,7 @@ static void create_paragraphs(void)
 
                 int len_bos;
                 bos = NULL;
-                len_bos = UStrGetBreaks (SCRIPT_LATIN,
+                len_bos = UStrGetBreaks (LANGCODE_unknown,
                     (Uint8)_ctr_cases[_curr_ctr].rule,
                     (Uint8)_wbr_cases[_curr_wbr].rule,
                     (Uint8)_lbp_cases[_curr_lbp].rule,

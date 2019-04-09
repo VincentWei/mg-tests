@@ -474,7 +474,7 @@ static void do_test(const struct test_case* tc)
         int bos_len;
         BreakOppo* bos = NULL;
 
-        bos_len = UStrGetBreaks(SCRIPT_LATIN,
+        bos_len = UStrGetBreaks(LANGCODE_unknown,
                 CTR_CAPITALIZE, WBR_NORMAL, LBP_NORMAL,
                 tc->ucs, tc->nr_ucs, &bos);
         if (bos_len <= 0) {
@@ -599,7 +599,7 @@ static void do_test_persist(const struct test_case* tc)
         int bos_len;
         BreakOppo* bos = NULL;
 
-        bos_len = UStrGetBreaks(SCRIPT_LATIN,
+        bos_len = UStrGetBreaks(LANGCODE_unknown,
                 CTR_CAPITALIZE, WBR_NORMAL, LBP_NORMAL,
                 tc->ucs, tc->nr_ucs, &bos);
         if (bos_len <= 0) {
@@ -871,7 +871,7 @@ static void do_test_reorder(const struct test_case* tc)
         int bos_len;
         BreakOppo* bos = NULL;
 
-        bos_len = UStrGetBreaks(SCRIPT_LATIN,
+        bos_len = UStrGetBreaks(LANGCODE_unknown,
                 CTR_CAPITALIZE, WBR_NORMAL, LBP_NORMAL,
                 tc->ucs, tc->nr_ucs, &bos);
         if (bos_len <= 0) {
@@ -1003,7 +1003,7 @@ static void do_test_ellipsis(const struct test_case* tc)
         int bos_len;
         BreakOppo* bos = NULL;
 
-        bos_len = UStrGetBreaks(SCRIPT_LATIN,
+        bos_len = UStrGetBreaks(LANGCODE_unknown,
                 CTR_CAPITALIZE, WBR_NORMAL, LBP_NORMAL,
                 tc->ucs, tc->nr_ucs, &bos);
         if (bos_len <= 0) {
