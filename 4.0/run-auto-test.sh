@@ -83,6 +83,12 @@ if test ! $? -eq 0; then
     exit 1
 fi
 
+./complexshapingengine 3600
+if test ! $? -eq 0; then
+    echo "complexshapingengine 3600 not passed"
+    exit 1
+fi
+
 end_epoch=$(date +%s)
 time=$(($end_epoch - $start_epoch))
 

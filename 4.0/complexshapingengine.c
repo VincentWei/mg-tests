@@ -48,6 +48,11 @@
 #include "helpers.h"
 
 static const char* _text_cases[] = {
+    "这是一些汉字 and some Latin و کمی خط عربی และตัวอย่างการเขียนภาษาไทย\n"
+    "$89.00 (￥50.00); 80,000.00; 90.2%\n"
+    "窓ぎわのトットちゃん\n"
+    "각 줄의 마지막에 한글이 올 때 줄 나눔 기준을 “글자” 또는 “어절” 단위로 한다.",
+
     "file:res/en-iso8859-1.txt",
 
     "1234567890",
@@ -71,11 +76,6 @@ static const char* _text_cases[] = {
     "     (12) '345'\n \"67890\"  　　",
 
     "   12345678，\n123456789。",
-
-    "这是一些汉字 and some Latin و کمی خط عربی และตัวอย่างการเขียนภาษาไทย\n"
-    "$89.00 (￥50.00); 80,000.00; 90.2%\n"
-    "窓ぎわのトットちゃん\n"
-    "각 줄의 마지막에 한글이 올 때 줄 나눔 기준을 “글자” 또는 “어절” 단위로 한다.",
 
     "　登鹳雀楼　\n"
     "\n"
@@ -508,10 +508,10 @@ static void output_rules(HDC hdc)
 
 static int _curr_font = 0;
 static char* _font_cases [] = {
-    "ttf-SansSerif,KacstScreen,Loma,Lohit,Saab-rrnnns-*-12-UTF-8",
-    "ttf-SansSerif,KacstScreen,Loma,Lohit,Saab-rrnnns-*-14-UTF-8",
-    "ttf-SansSerif,KacstScreen,Loma,Lohit,Saab-rrnnns-*-16-UTF-8",
-    "ttf-SansSerif,KacstScreen,Loma,Lohit,Saab-rrnnns-*-20-UTF-8",
+    "ttf-SansSerif,KacstBook,Loma,Lohit,Saab-rrnnns-*-12-UTF-8",
+    "ttf-SansSerif,KacstBook,Loma,Lohit,Saab-rrnnns-*-14-UTF-8",
+    "ttf-SansSerif,KacstBook,Loma,Lohit,Saab-rrnnns-*-16-UTF-8",
+    "ttf-SansSerif,KacstBook,Loma,Lohit,Saab-rrnnns-*-20-UTF-8",
 };
 
 typedef struct _ParagraphInfo {
