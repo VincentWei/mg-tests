@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <strings.h>
 
 #include <minigui/common.h>
 #include <minigui/minigui.h>

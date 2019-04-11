@@ -32,7 +32,7 @@ AC_HEADER_TIME
 AC_CHECK_HEADERS(sys/time.h unistd.h)
 
 if test "$ac_cv_prog_gcc" = "yes"; then
-    CFLAGS="$CFLAGS -Wall -Werror -Wstrict-prototypes -pipe"
+    CFLAGS="$CFLAGS -D_DEFAULT_SOURCE -std=c99 -Wall -Werror -Wstrict-prototypes -pipe"
 fi
 
 dnl ========================================================================
