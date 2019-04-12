@@ -41,39 +41,39 @@ if test ! $? -eq 0; then
     exit 1
 fi
 
-./createtextrunsinfo 1
+./createtextruns 1
 if test ! $? -eq 0; then
-    echo "createtextrunsinfo 1 not passed"
+    echo "createtextruns 1 not passed"
     exit 1
 fi
 
-./createtextrunsinfo 2
+./createtextruns 2
 if test ! $? -eq 0; then
-    echo "createtextrunsinfo 2 not passed"
+    echo "createtextruns 2 not passed"
     exit 1
 fi
 
-./createlayoutinfo
+./createlayout
 if test ! $? -eq 0; then
-    echo "createlayoutinfo not passed"
+    echo "createlayout not passed"
     exit 1
 fi
 
-./createlayoutinfo 1
+./createlayout 1
 if test ! $? -eq 0; then
-    echo "createlayoutinfo 1 not passed"
+    echo "createlayout 1 not passed"
     exit 1
 fi
 
-./createlayoutinfo 2
+./createlayout 2
 if test ! $? -eq 0; then
-    echo "createlayoutinfo 2 not passed"
+    echo "createlayout 2 not passed"
     exit 1
 fi
 
-./createlayoutinfo 3
+./createlayout 3
 if test ! $? -eq 0; then
-    echo "createlayoutinfo 3 not passed"
+    echo "createlayout 3 not passed"
     exit 1
 fi
 
