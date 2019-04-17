@@ -1,4 +1,4 @@
-# Test code for MiniGUI 4.0.0 APIs.
+# Test code for MiniGUI 4.0.x APIs.
 
 Before running the test program, please run
 
