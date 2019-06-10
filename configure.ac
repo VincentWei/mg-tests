@@ -53,4 +53,5 @@ AC_OUTPUT(
     m4/Makefile
     src/Makefile
     4.0/Makefile
+    drm/Makefile
 )

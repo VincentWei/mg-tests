@@ -1,4 +1,4 @@
-EXTRA_DIST = README.md fetch-ucd-test.sh run-auto-test.sh res
+EXTRA_DIST = README.md MiniGUI.cfg fetch-ucd-test.sh run-auto-test.sh res
 
 noinst_PROGRAMS = \
     sliceallocator \
