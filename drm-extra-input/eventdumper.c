@@ -31,10 +31,14 @@
 static char welcome_text [512];
 static char mouse_msg_text [512];
 static char timer_msg_text [512];
+static char key_msg_text [512];
+static char char_msg_text [512];
 
 static RECT welcome_rc;
 static RECT mouse_msg_rc;
 static RECT timer_msg_rc;
+static RECT key_msg_rc;
+static RECT char_msg_rc;
 
 static void make_welcome_text (void)
 {
@@ -58,6 +62,16 @@ static void make_welcome_text (void)
             10, mouse_msg_rc.bottom + 5,
             g_rcScr.right - 10, mouse_msg_rc.bottom + 5 + 20);
     timer_msg_text[0] = 0;
+
+    SetRect (&key_msg_rc,
+            10, timer_msg_rc.bottom + 5,
+            g_rcScr.right - 10, timer_msg_rc.bottom + 5 + 20);
+    key_msg_text[0] = 0;
+
+    SetRect (&char_msg_rc,
+            10, key_msg_rc.bottom + 5,
+            g_rcScr.right - 10, key_msg_rc.bottom + 5 + 20);
+    char_msg_text[0] = 0;
 }
 
 static void on_mouse_message(HWND hwnd, UINT message, int x, int y, DWORD flags)
@@ -74,6 +88,22 @@ static void on_timer_message(HWND hwnd, UINT message, LINT id, DWORD tick_count)
 
     sprintf (timer_msg_text, format, Message2Str(message), id, tick_count);
     InvalidateRect(hwnd, &timer_msg_rc, TRUE);
+}
+
+static void on_key_message(HWND hwnd, UINT message, int scancode, DWORD flags)
+{
+    static const char* format = "%s: scancode (%ld), flags (0x%08x)";
+
+    sprintf (key_msg_text, format, Message2Str(message), scancode, flags);
+    InvalidateRect(hwnd, &key_msg_rc, TRUE);
+}
+
+static void on_char_message(HWND hwnd, UINT message, const unsigned char* mchar, DWORD flags)
+{
+    static const char* format = "%s: char (%s), flags (0x%08x)";
+
+    sprintf (char_msg_text, format, Message2Str(message), mchar, flags);
+    InvalidateRect(hwnd, &char_msg_rc, TRUE);
 }
 
 static LRESULT EventDumperProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -99,6 +129,55 @@ static LRESULT EventDumperProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
         break;
     }
 
+    case MSG_FIRSTKEYMSG ... MSG_LASTKEYMSG: {
+        DWORD flags = (DWORD)lParam;
+        if (message == MSG_CHAR) {
+            unsigned char mchar[5];
+            mchar[0] = FIRSTBYTE(wParam);
+            mchar[1] = SECONDBYTE(wParam);
+            mchar[2] = THIRDBYTE(wParam);
+            mchar[3] = FOURTHBYTE(wParam);
+            mchar[4] = 0;
+            on_char_message(hWnd, message, mchar, flags);
+        }
+        else if (message == MSG_SYSCHAR) {
+            unsigned char mchar[2];
+            mchar[0] = (unsigned char)wParam;
+            mchar[1] = 0;
+            on_char_message(hWnd, message, mchar, flags);
+        }
+        else if (message == MSG_KEYSYM) {
+            static unsigned char symbols[8];
+            int index = HIBYTE (wParam);
+            int keysym = LOBYTE (wParam);
+
+            if (index >= 0 && index < 8)
+                symbols[index] = (unsigned char)keysym;
+            else {
+                _WRN_PRINTF("Got a bad MSG_KEYSYM message");
+            }
+
+            if (keysym == 0)
+                on_char_message(hWnd, message, symbols, flags);
+        }
+        else if (message == MSG_UTF8CHAR) {
+            unsigned char ch_utf8 [7];
+            ch_utf8 [0] = FIRSTBYTE(wParam);
+            ch_utf8 [1] = SECONDBYTE(wParam);
+            ch_utf8 [2] = THIRDBYTE(wParam);
+            ch_utf8 [3] = FOURTHBYTE(wParam);
+            ch_utf8 [4] = FIRSTBYTE(lParam);
+            ch_utf8 [5] = SECONDBYTE(lParam);
+            ch_utf8 [6] = 0;
+
+            on_char_message(hWnd, message, ch_utf8, flags);
+        }
+        else {
+            int scancode = (int)wParam;
+            on_key_message(hWnd, message, scancode, flags);
+        }
+    }
+
     case MSG_PAINT: {
         HDC hdc;
 
@@ -106,6 +185,8 @@ static LRESULT EventDumperProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
         DrawText (hdc, welcome_text, -1, &welcome_rc, DT_LEFT | DT_WORDBREAK);
         DrawText (hdc, mouse_msg_text, -1, &mouse_msg_rc, DT_LEFT | DT_WORDBREAK);
         DrawText (hdc, timer_msg_text, -1, &timer_msg_rc, DT_LEFT | DT_WORDBREAK);
+        DrawText (hdc, key_msg_text, -1, &key_msg_rc, DT_LEFT | DT_WORDBREAK);
+        DrawText (hdc, char_msg_text, -1, &char_msg_rc, DT_LEFT | DT_WORDBREAK);
         EndPaint (hWnd, hdc);
         return 0;
     }
