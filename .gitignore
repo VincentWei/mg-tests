@@ -85,6 +85,6 @@ src/helloworld
 4.0/drawglyphstringex
 4.0/sliceallocator
 4.0/ustrgetbreaks
-drm/drm
+drm-extra-input/eventdumper
 
 
