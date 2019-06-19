@@ -34,7 +34,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 In particular, the above open source license does not apply to any
-entity in the Exception List published by
+entity on the Exception List published by
 Beijing FMSoft Technologies Co., Ltd.
 
 If you or the entity you represent is listed on the Exception List,
