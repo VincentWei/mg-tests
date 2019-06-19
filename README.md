@@ -37,8 +37,8 @@ In particular, the above open source license does not apply to any
 entity in the Exception List published by
 Beijing FMSoft Technologies Co., Ltd.
 
-If you or the company you represent is listed on the Exception List,
-the above open source license does not apply to you or the company
+If you or the entity you represent is listed on the Exception List,
+the above open source license does not apply to you or the entity
 you represent. Regardless of the purpose, you should not use the
 software in any way whatsoever, including but not limited to downloading,
 viewing, copying, distributing, compiling, and running. If you have
