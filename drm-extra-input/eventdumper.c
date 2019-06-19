@@ -1,6 +1,17 @@
+///////////////////////////////////////////////////////////////////////////////
+//
+//                        IMPORTANT LEGAL NOTICE
+//
+// The following open source license statement does not apply to any
+// entity on the Exception List published by FMSoft.
+//
+// For more information, please visit:
+//
+// https://www.fmsoft.cn/exception-list
+//
+//////////////////////////////////////////////////////////////////////////////
 /*
-** helloworld.c: Sample program for MiniGUI Programming Guide
-**      The first MiniGUI application.
+** eventdumper.c: A test program for MiniGUI input messages.
 **
 ** Copyright (C) 2019 FMSoft (http://www.fmsoft.cn).
 **
