@@ -3,7 +3,7 @@
 //                        IMPORTANT LEGAL NOTICE
 //
 // The following open source license statement does not apply to any
-// entity on the Exception List published by FMSoft.
+// entity in the Exception List published by FMSoft.
 //
 // For more information, please visit:
 //
