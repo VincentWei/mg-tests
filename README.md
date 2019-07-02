@@ -45,7 +45,7 @@ viewing, copying, distributing, compiling, and running. If you have
 already downloaded it, you MUST destroy all of its copies.
 
 The Exception List is published by FMSoft
-on the following webpage and may be updated from time to time:
+in the following webpage and may be updated from time to time:
 
 https://www.fmsoft.cn/exception-list
 

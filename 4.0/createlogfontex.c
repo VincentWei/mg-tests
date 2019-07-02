@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <time.h>
 
 #include <minigui/common.h>
 #include <minigui/minigui.h>
