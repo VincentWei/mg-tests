@@ -35,10 +35,16 @@ if test "$ac_cv_prog_gcc" = "yes"; then
     CFLAGS="$CFLAGS -D_DEFAULT_SOURCE -std=c99 -Wall -Werror -Wstrict-prototypes -pipe"
 fi
 
-dnl ========================================================================
-dnl check for installation of MiniGUI
-dnl ========================================================================
 PKG_CHECK_MODULES([MINIGUI], [minigui >= 4.0.0])
+
+PKG_CHECK_MODULES(DRM, [libudev >= 200, libdrm >= 2.4], video_drm="yes",
+    video_drm="no; the test code requires libdrm 2.4+ and libudev 200+")
+if test "x$video_drm" = "xyes"; then
+    DRM_INC_DIR="`$PKG_CONFIG --variable includedir libdrm`/drm"
+    AC_SUBST(DRM_INC_DIR)
+else
+    AC_MSG_WARN([$video_drm])
+fi
 
 LIBS="$LIBS $MINIGUI_LIBS -lefence"
 
