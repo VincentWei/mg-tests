@@ -1,3 +1,3 @@
 noinst_PROGRAMS=helloworld
 
-helloworld_SOURCES=helloworld.c
+helloworld_SOURCES=helloworld.c exstubs-null.c

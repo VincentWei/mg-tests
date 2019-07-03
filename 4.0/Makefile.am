@@ -12,7 +12,8 @@ noinst_PROGRAMS = \
     basicshapingengine \
     complexshapingengine
 
-COMMFILES = helpers.c helpers.h
+COMMFILES = helpers.c helpers.h exstubs-null.c
+
 sliceallocator_SOURCES = sliceallocator.c $(COMMFILES)
 ustrgetbreaks_SOURCES = ustrgetbreaks.c $(COMMFILES)
 drawglyphstringex_SOURCES = drawglyphstringex.c $(COMMFILES)

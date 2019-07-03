@@ -36,7 +36,6 @@
 ** Written by: Ray Strode <rstrode@redhat.com>
 */
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,7 +43,7 @@
 
 #include <minigui/common.h>
 
-#if defined(__TARGET_EXTERNAL__) && defined(_MGGAL_DRM)
+#if defined(__TARGET_EXTERNAL__) && defined(_MGGAL_DRM) && defined(HAVE_DRM_INTEL)
 
 #include <minigui/minigui.h>
 #include <minigui/gdi.h>
@@ -388,4 +387,11 @@ DrmDriverOps* __drm_ex_driver_get(const char* driver_name)
     return NULL;
 }
 
-#endif /* defined(__TARGET_EXTERNAL__) && defined(_MGGAL_DRM) */
+#else /* defined(__TARGET_EXTERNAL__) && defined(_MGGAL_DRM) && defined(HAVE_DRM_INTEL) */
+
+DrmDriverOps* __drm_ex_driver_get(const char* driver_name)
+{
+    return NULL;
+}
+
+#endif /* not (defined(__TARGET_EXTERNAL__) && defined(_MGGAL_DRM) && defined(HAVE_DRM_INTEL)) */

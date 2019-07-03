@@ -31,10 +31,6 @@ AC_HEADER_SYS_WAIT
 AC_HEADER_TIME
 AC_CHECK_HEADERS(sys/time.h unistd.h)
 
-if test "$ac_cv_prog_gcc" = "yes"; then
-    CFLAGS="$CFLAGS -D_DEFAULT_SOURCE -std=c99 -Wall -Werror -Wstrict-prototypes -pipe"
-fi
-
 PKG_CHECK_MODULES([MINIGUI], [minigui >= 4.0.0])
 
 PKG_CHECK_MODULES(DRM, [libudev >= 200, libdrm >= 2.4], video_drm="yes",
@@ -46,7 +42,20 @@ else
     AC_MSG_WARN([$video_drm])
 fi
 
+PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4], video_drm_intel="yes",
+    video_drm_intel="no; the test code requires libdrm_intel 2.4+")
+if test "x$video_drm_intel" = "xyes"; then
+    CPPFLAGS="$CPPFLAGS -DHAVE_DRM_INTEL"
+else
+    AC_MSG_WARN([$video_drm_intel])
+fi
+
 LIBS="$LIBS $MINIGUI_LIBS -lefence"
+
+if test "$ac_cv_prog_gcc" = "yes"; then
+    CPPFLAGS="$CPPFLAGS -D_DEFAULT_SOURCE -D_GNU_SOURCE"
+    CFLAGS="$CFLAGS -std=c99 -Wall -Werror -Wstrict-prototypes -pipe"
+fi
 
 dnl ========================================================================
 dnl Write Output
