@@ -391,6 +391,7 @@ DrmDriverOps* __drm_ex_driver_get(const char* driver_name)
 
 DrmDriverOps* __drm_ex_driver_get(const char* driver_name)
 {
+    _WRN_PRINTF("This external DRM driver is a NULL implementation!");
     return NULL;
 }
 
