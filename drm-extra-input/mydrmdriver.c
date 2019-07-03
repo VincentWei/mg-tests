@@ -43,11 +43,15 @@
 
 #include <minigui/common.h>
 
-#if defined(__TARGET_EXTERNAL__) && defined(_MGGAL_DRM) && defined(HAVE_DRM_INTEL)
+#ifdef __TARGET_EXTERNAL__
 
 #include <minigui/minigui.h>
 #include <minigui/gdi.h>
 #include <minigui/exstubs.h>
+
+#ifdef _MGGAL_DRM
+
+#ifdef HAVE_DRM_INTEL
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -387,7 +391,7 @@ DrmDriverOps* __drm_ex_driver_get(const char* driver_name)
     return NULL;
 }
 
-#else /* defined(__TARGET_EXTERNAL__) && defined(_MGGAL_DRM) && defined(HAVE_DRM_INTEL) */
+#else /* HAVE_DRM_INTEL */
 
 DrmDriverOps* __drm_ex_driver_get(const char* driver_name)
 {
@@ -395,4 +399,8 @@ DrmDriverOps* __drm_ex_driver_get(const char* driver_name)
     return NULL;
 }
 
-#endif /* not (defined(__TARGET_EXTERNAL__) && defined(_MGGAL_DRM) && defined(HAVE_DRM_INTEL)) */
+#endif /* !HAVE_DRM_INTEL */
+
+#endif /* _MGGAL_DRM */
+
+#endif /* __TARGET_EXTERNAL__ */

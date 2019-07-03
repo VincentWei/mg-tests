@@ -11,7 +11,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 /*
-** exstubs.c: the default (nil) implementation of external stubs.
+** exstubs.c: the default (null) implementation of some external stubs.
 **
 ** Copyright (C) 2019 FMSoft (http://www.fmsoft.cn).
 **
