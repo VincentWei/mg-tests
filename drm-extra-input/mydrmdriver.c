@@ -222,8 +222,9 @@ static drm_buffer_t *get_buffer_from_id (DrmDriver *driver,
 }
 
 static uint32_t i915_create_buffer (DrmDriver *driver,
+            int depth, int bpp,
             unsigned int width, unsigned int height,
-            unsigned int *pitch, BOOL as_fb)
+            unsigned int *pitch)
 {
     drm_intel_bo *buffer_object;
     drm_buffer_t *buffer;
@@ -240,8 +241,8 @@ static uint32_t i915_create_buffer (DrmDriver *driver,
         return 0;
     }
 
-    if (as_fb && drmModeAddFB (driver->device_fd, width, height,
-                24, 32, *pitch, buffer_object->handle,
+    if (drmModeAddFB (driver->device_fd, width, height,
+                depth, bpp, *pitch, buffer_object->handle,
                 &buffer_id) != 0) {
         _ERR_PRINTF ("Could not set up GEM object as frame buffer: %m");
         drm_intel_bo_unreference (buffer_object);
@@ -249,8 +250,7 @@ static uint32_t i915_create_buffer (DrmDriver *driver,
     }
 
     buffer = drm_buffer_new (driver,
-            buffer_object, buffer_id,
-            width, height, *pitch);
+            buffer_object, buffer_id, width, height, *pitch);
     buffer->added_fb = TRUE;
     ply_hashtable_insert (driver->buffers,
             (void *) (uintptr_t) buffer_id,
@@ -298,7 +298,7 @@ static BOOL i915_fetch_buffer (DrmDriver *driver,
     return TRUE;
 }
 
-static BOOL i915_map_buffer (DrmDriver *driver,
+static uint8_t* i915_map_buffer (DrmDriver *driver,
             uint32_t buffer_id)
 {
     drm_buffer_t *buffer;
@@ -308,7 +308,7 @@ static BOOL i915_map_buffer (DrmDriver *driver,
     assert (buffer != NULL);
     drm_intel_gem_bo_map_gtt (buffer->object);
 
-    return TRUE;
+    return buffer->object->virtual;
 }
 
 static void i915_unmap_buffer (DrmDriver *driver,
@@ -322,7 +322,7 @@ static void i915_unmap_buffer (DrmDriver *driver,
     drm_intel_gem_bo_unmap_gtt (buffer->object);
 }
 
-static char * i915_begin_flush (DrmDriver *driver,
+static uint8_t * i915_begin_flush (DrmDriver *driver,
             uint32_t buffer_id)
 {
     drm_buffer_t *buffer;
