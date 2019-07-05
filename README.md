@@ -25,7 +25,7 @@ Most programs of mg-tests are licensed under the Apache License,
 Version 2.0. Some programs of mg-tests are licensed under GPL,
 because the programs uses some code from other GPL'd programs.
 
-For more information, please see the `README.md` file in individual
+For more information, please see the `README.md` files in individual
 directories.
 
 In particular, the above open source license(s) does not apply to any
