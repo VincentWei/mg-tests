@@ -8,7 +8,7 @@ to fetch test case files from www.unicode.org.
 
 ## Copying
 
-Copyright (C) 22019, Beijing FMSoft Technologies Co., Ltd.
+Copyright (C) 2019, Beijing FMSoft Technologies Co., Ltd.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

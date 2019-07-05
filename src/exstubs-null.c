@@ -33,15 +33,15 @@
 
 #include <minigui/common.h>
 
-#if defined(__TARGET_EXTERNAL__) && defined(_MGGAL_DRM)
+#if defined(__TARGET_EXTERNAL__) && defined(_MGGAL_DRI)
 
 #include <minigui/minigui.h>
 #include <minigui/gdi.h>
 #include <minigui/exstubs.h>
 
-DrmDriverOps* __drm_ex_driver_get(const char* driver_name)
+DriDriverOps* __dri_ex_driver_get(const char* driver_name)
 {
     return NULL;
 }
 
-#endif /* defined(__TARGET_EXTERNAL__) && defined(_MGGAL_DRM) */
+#endif /* defined(__TARGET_EXTERNAL__) && defined(_MGGAL_DRI) */

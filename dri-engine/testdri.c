@@ -11,7 +11,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 /*
-** eventdumper.c: A test program for MiniGUI input messages.
+** testdri.c: A test program for MiniGUI dri NEWGAL engine.
 **
 ** Copyright (C) 2019 FMSoft (http://www.fmsoft.cn).
 **

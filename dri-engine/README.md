@@ -1,13 +1,12 @@
-# Test code for DRM and Extra Input.
+# Test code for DRI engine
 
 ## Introduction
 
-This test program covers the `drm` NEWGAL engine of MiniGUI 4.0.0,
-and the new messages for various input events.
+This test program covers the `dri` NEWGAL engine of MiniGUI 4.0.0.
 
 ## Copying
 
-Copyright (C) 22019, Beijing FMSoft Technologies Co., Ltd.
+Copyright (C) 2019, Beijing FMSoft Technologies Co., Ltd.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License

@@ -11,7 +11,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 /*
-** mydrmdriver.c: A sample DRM driver for MiniGUI 4.0.
+** mydridriver.c: A sample DRM driver for MiniGUI 4.0.
 **
 ** This driver is derived from early version of plymouth and Mesa3D.
 **
@@ -49,7 +49,7 @@
 #include <minigui/gdi.h>
 #include <minigui/exstubs.h>
 
-#ifdef _MGGAL_DRM
+#ifdef _MGGAL_DRI
 
 #ifdef HAVE_DRM_INTEL
 
@@ -71,19 +71,19 @@
 #include "ply-hashtable.h"
 
 /* the driver data struct */
-struct _DrmDriver {
+struct _DriDriver {
     int device_fd;
     drm_intel_bufmgr *manager;
 
     ply_hashtable_t *buffers;
 };
 
-static DrmDriver* i915_create_driver (int device_fd)
+static DriDriver* i915_create_driver (int device_fd)
 {
-    DrmDriver *driver;
+    DriDriver *driver;
     int page_size;
 
-    driver = calloc (1, sizeof (DrmDriver));
+    driver = calloc (1, sizeof (DriDriver));
     driver->device_fd = device_fd;
 
     page_size = (int) sysconf (_SC_PAGE_SIZE);
@@ -102,7 +102,7 @@ static DrmDriver* i915_create_driver (int device_fd)
     return driver;
 }
 
-static void i915_destroy_driver (DrmDriver *driver)
+static void i915_destroy_driver (DriDriver *driver)
 {
     _DBG_PRINTF ("%s: destroying intel buffer manager\n",
             __FUNCTION__);
@@ -127,7 +127,7 @@ struct _drm_buffer
 
 #define ROUND_TO_MULTIPLE(n, m) (((n) + (((m) - 1))) & ~((m) - 1))
 
-static drm_buffer_t * drm_buffer_new (DrmDriver *driver,
+static drm_buffer_t * drm_buffer_new (DriDriver *driver,
         drm_intel_bo *buffer_object,
         uint32_t id,
         unsigned long width,
@@ -149,7 +149,7 @@ static drm_buffer_t * drm_buffer_new (DrmDriver *driver,
     return buffer;
 }
 
-static drm_intel_bo * create_intel_bo_from_handle (DrmDriver *driver,
+static drm_intel_bo * create_intel_bo_from_handle (DriDriver *driver,
         uint32_t handle)
 {
     struct drm_gem_flink flink_request;
@@ -181,7 +181,7 @@ static drm_intel_bo * create_intel_bo_from_handle (DrmDriver *driver,
     return buffer_object;
 }
 
-static drm_buffer_t* drm_buffer_new_from_id (DrmDriver *driver,
+static drm_buffer_t* drm_buffer_new_from_id (DriDriver *driver,
         uint32_t buffer_id)
 {
     drm_buffer_t *buffer;
@@ -213,7 +213,7 @@ static drm_buffer_t* drm_buffer_new_from_id (DrmDriver *driver,
     return buffer;
 }
 
-static drm_buffer_t *get_buffer_from_id (DrmDriver *driver,
+static drm_buffer_t *get_buffer_from_id (DriDriver *driver,
         uint32_t buffer_id)
 {
     static drm_buffer_t *buffer;
@@ -224,7 +224,7 @@ static drm_buffer_t *get_buffer_from_id (DrmDriver *driver,
     return buffer;
 }
 
-static uint32_t i915_create_buffer (DrmDriver *driver,
+static uint32_t i915_create_buffer (DriDriver *driver,
             int depth, int bpp,
             unsigned int width, unsigned int height,
             unsigned int *pitch)
@@ -262,7 +262,7 @@ static uint32_t i915_create_buffer (DrmDriver *driver,
     return buffer_id;
 }
 
-static BOOL i915_fetch_buffer (DrmDriver *driver,
+static BOOL i915_fetch_buffer (DriDriver *driver,
             uint32_t  buffer_id,
             unsigned int *width, unsigned int *height,
             unsigned int *pitch)
@@ -301,7 +301,7 @@ static BOOL i915_fetch_buffer (DrmDriver *driver,
     return TRUE;
 }
 
-static uint8_t* i915_map_buffer (DrmDriver *driver,
+static uint8_t* i915_map_buffer (DriDriver *driver,
             uint32_t buffer_id)
 {
     drm_buffer_t *buffer;
@@ -314,7 +314,7 @@ static uint8_t* i915_map_buffer (DrmDriver *driver,
     return buffer->object->virtual;
 }
 
-static void i915_unmap_buffer (DrmDriver *driver,
+static void i915_unmap_buffer (DriDriver *driver,
             uint32_t buffer_id)
 {
     drm_buffer_t *buffer;
@@ -325,7 +325,7 @@ static void i915_unmap_buffer (DrmDriver *driver,
     drm_intel_gem_bo_unmap_gtt (buffer->object);
 }
 
-static uint8_t * i915_begin_flush (DrmDriver *driver,
+static uint8_t * i915_begin_flush (DriDriver *driver,
             uint32_t buffer_id)
 {
     drm_buffer_t *buffer;
@@ -336,7 +336,7 @@ static uint8_t * i915_begin_flush (DrmDriver *driver,
     return buffer->object->virtual;
 }
 
-static void i915_end_flush (DrmDriver *driver,
+static void i915_end_flush (DriDriver *driver,
             uint32_t buffer_id)
 {
     drm_buffer_t *buffer;
@@ -345,7 +345,7 @@ static void i915_end_flush (DrmDriver *driver,
     assert (buffer != NULL);
 }
 
-static void i915_destroy_buffer (DrmDriver *driver,
+static void i915_destroy_buffer (DriDriver *driver,
             uint32_t buffer_id)
 {
     drm_buffer_t *buffer;
@@ -365,12 +365,12 @@ static void i915_destroy_buffer (DrmDriver *driver,
     free (buffer);
 }
 
-DrmDriverOps* __drm_ex_driver_get(const char* driver_name)
+DriDriverOps* __dri_ex_driver_get(const char* driver_name)
 {
     _MG_PRINTF("%s called with driver name: %s\n", __FUNCTION__, driver_name);
 
     if (strcmp(driver_name, "i915") == 0) {
-        static DrmDriverOps i915_driver = {
+        static DriDriverOps i915_driver = {
             .create_driver = i915_create_driver,
             .destroy_driver = i915_destroy_driver,
             .create_buffer = i915_create_buffer,
@@ -393,7 +393,7 @@ DrmDriverOps* __drm_ex_driver_get(const char* driver_name)
 
 #else /* HAVE_DRM_INTEL */
 
-DrmDriverOps* __drm_ex_driver_get(const char* driver_name)
+DriDriverOps* __dri_ex_driver_get(const char* driver_name)
 {
     _WRN_PRINTF("This external DRM driver is a NULL implementation!");
     return NULL;
@@ -401,6 +401,6 @@ DrmDriverOps* __drm_ex_driver_get(const char* driver_name)
 
 #endif /* !HAVE_DRM_INTEL */
 
-#endif /* _MGGAL_DRM */
+#endif /* _MGGAL_DRI */
 
 #endif /* __TARGET_EXTERNAL__ */
