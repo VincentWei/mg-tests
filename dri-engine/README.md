@@ -3,6 +3,15 @@
 ## Introduction
 
 This test program covers the `dri` NEWGAL engine of MiniGUI 4.0.0.
+It implements a sub driver of `dir` engine for `i915` GPU, and
+gives an example to exploit the GPU's accelerated rendering
+capabilities:
+
+* Allocating and freeing memory from GPU for a hardware accelerated
+  MiniGUI surface.
+* Filling a rectangle in the hardware surface with a solid pixel value.
+* Bliting pixels on a source surface to a destination surface with
+  alpha or color-key enabled.
 
 ## Copying
 

@@ -13,9 +13,12 @@
 /*
 ** mydridriver.c: A sample DRM driver for MiniGUI 4.0.
 **
-** This driver is derived from early version of plymouth and Mesa3D.
+** This driver is derived from early version of Plymouth and Mesa.
 **
 ** Copyright (C) 2019 FMSoft (http://www.fmsoft.cn).
+**
+** Copyright notice of Plymouth:
+**
 ** Copyright (C) 2009 Red Hat, Inc.
 **
 ** This program is free software; you can redistribute it and/or modify
@@ -34,6 +37,32 @@
 ** 02111-1307, USA.
 **
 ** Written by: Ray Strode <rstrode@redhat.com>
+**
+** Copyright notice of Mesa:
+**
+** Copyright 2003 VMware, Inc.
+** All Rights Reserved.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and associated documentation files (the
+** "Software"), to deal in the Software without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sub license, and/or sell copies of the Software, and to
+** permit persons to whom the Software is furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice (including the
+** next paragraph) shall be included in all copies or substantial portions
+** of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+** OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+** IN NO EVENT SHALL VMWARE AND/OR ITS SUPPLIERS BE LIABLE FOR
+** ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+**
 */
 
 #include <stdio.h>
@@ -325,6 +354,7 @@ static void i915_unmap_buffer (DriDriver *driver,
     drm_intel_gem_bo_unmap_gtt (buffer->object);
 }
 
+#if 0
 static uint8_t * i915_begin_flush (DriDriver *driver,
             uint32_t buffer_id)
 {
@@ -344,6 +374,7 @@ static void i915_end_flush (DriDriver *driver,
     buffer = get_buffer_from_id (driver, buffer_id);
     assert (buffer != NULL);
 }
+#endif
 
 static void i915_destroy_buffer (DriDriver *driver,
             uint32_t buffer_id)
@@ -377,9 +408,11 @@ DriDriverOps* __dri_ex_driver_get(const char* driver_name)
             .fetch_buffer = i915_fetch_buffer,
             .map_buffer = i915_map_buffer,
             .unmap_buffer = i915_unmap_buffer,
+            .destroy_buffer = i915_destroy_buffer,
+#if 0
             .begin_flush = i915_begin_flush,
             .end_flush = i915_end_flush,
-            .destroy_buffer = i915_destroy_buffer,
+#endif
         };
 
         return &i915_driver;
