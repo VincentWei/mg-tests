@@ -97,15 +97,9 @@
 #include <i915_drm.h>
 #include <libdrm/intel_bufmgr.h>
 
-#include "ply-hashtable.h"
-
-/* the driver data struct */
-struct _DriDriver {
-    int device_fd;
-    drm_intel_bufmgr *manager;
-
-    ply_hashtable_t *buffers;
-};
+#include "intel_reg.h"
+#include "intel_context.h"
+#include "intel_batchbuffer.h"
 
 static DriDriver* i915_create_driver (int device_fd)
 {
@@ -145,12 +139,15 @@ typedef struct _drm_buffer drm_buffer_t;
 
 struct _drm_buffer
 {
-    drm_intel_bo *object;
+    drm_intel_bo *bo;
     uint32_t id;
     unsigned long width;
     unsigned long height;
     unsigned long pitch;
 
+    uint32_t pixel_format : 4;
+    uint32_t cpp : 4;
+    uint32_t depth: 4;
     uint32_t added_fb : 1;
 };
 
@@ -166,7 +163,7 @@ static drm_buffer_t * drm_buffer_new (DriDriver *driver,
     drm_buffer_t *buffer;
 
     buffer = calloc (1, sizeof (drm_buffer_t));
-    buffer->object = buffer_object;
+    buffer->bo = buffer_object;
     buffer->id = id;
     buffer->width = width;
     buffer->height = height;
@@ -338,9 +335,9 @@ static uint8_t* i915_map_buffer (DriDriver *driver,
     buffer = get_buffer_from_id (driver, buffer_id);
 
     assert (buffer != NULL);
-    drm_intel_gem_bo_map_gtt (buffer->object);
+    drm_intel_gem_bo_map_gtt (buffer->bo);
 
-    return buffer->object->virtual;
+    return buffer->bo->virtual;
 }
 
 static void i915_unmap_buffer (DriDriver *driver,
@@ -351,7 +348,7 @@ static void i915_unmap_buffer (DriDriver *driver,
     buffer = get_buffer_from_id (driver, buffer_id);
     assert (buffer != NULL);
 
-    drm_intel_gem_bo_unmap_gtt (buffer->object);
+    drm_intel_gem_bo_unmap_gtt (buffer->bo);
 }
 
 #if 0
@@ -363,7 +360,7 @@ static uint8_t * i915_begin_flush (DriDriver *driver,
     buffer = get_buffer_from_id (driver, buffer_id);
     assert (buffer != NULL);
 
-    return buffer->object->virtual;
+    return buffer->bo->virtual;
 }
 
 static void i915_end_flush (DriDriver *driver,
@@ -388,12 +385,101 @@ static void i915_destroy_buffer (DriDriver *driver,
     if (buffer->added_fb)
         drmModeRmFB (driver->device_fd, buffer->id);
 
-    drm_intel_bo_unreference (buffer->object);
+    drm_intel_bo_unreference (buffer->bo);
 
     ply_hashtable_remove (driver->buffers,
             (void *) (uintptr_t) buffer_id);
 
     free (buffer);
+}
+
+static inline uint32_t br13_for_cpp(int cpp)
+{
+   switch (cpp) {
+   case 4:
+      return BR13_8888;
+      break;
+   case 2:
+      return BR13_565;
+      break;
+   case 1:
+      return BR13_8;
+      break;
+   default:
+      assert(0);
+      return 0;
+   }
+}
+
+static int i915_clear_buffer (DriDriver *driver,
+            uint32_t buffer_id, const GAL_Rect* rc, uint32_t clear_value)
+{
+    drm_buffer_t *buffer;
+    drm_intel_bo *aper_array[2];
+    uint32_t BR13, CMD;
+    int x1, y1, x2, y2;
+
+    buffer = get_buffer_from_id (driver, buffer_id);
+    assert (buffer != NULL);
+
+    BR13 = 0xf0 << 16;
+    CMD = XY_COLOR_BLT_CMD;
+
+    /* Setup the blit command */
+    if (buffer->cpp == 4) {
+        /* clearing RGBA */
+        CMD |= XY_BLT_WRITE_ALPHA | XY_BLT_WRITE_RGB;
+    }
+
+    BR13 |= buffer->pitch;
+    BR13 |= br13_for_cpp(buffer->cpp);
+
+    x1 = rc->x;
+    y1 = rc->y;
+    x2 = rc->x + rc->w;
+    y2 = rc->y + rc->h;
+
+    assert(x1 < x2);
+    assert(y1 < y2);
+
+    /* do space check before going any further */
+    aper_array[0] = driver->batch.bo;
+    aper_array[1] = buffer->bo;
+
+    if (drm_intel_bufmgr_check_aperture_space(aper_array,
+                TABLESIZE(aper_array)) != 0) {
+        intel_batchbuffer_flush(driver);
+    }
+
+    BEGIN_BATCH(6);
+    OUT_BATCH(CMD | (6 - 2));
+    OUT_BATCH(BR13);
+    OUT_BATCH((y1 << 16) | x1);
+    OUT_BATCH((y2 << 16) | x2);
+    OUT_RELOC_FENCED(buffer->bo,
+            I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER,
+            0);
+    OUT_BATCH(clear_value);
+    ADVANCE_BATCH();
+
+    if (driver->always_flush_cache)
+        intel_batchbuffer_emit_mi_flush(driver);
+
+    return 0;
+}
+
+static int i915_check_blit (DriDriver *driver,
+            uint32_t src_id, uint32_t dst_id)
+{
+    return -1;
+}
+
+
+static int i915_copy_blit (DriDriver *driver,
+            uint32_t src_id, const GAL_Rect* src_rc,
+            uint32_t dst_id, const GAL_Rect* dst_rc)
+{
+    return -1;
 }
 
 DriDriverOps* __dri_ex_driver_get(const char* driver_name)
@@ -409,6 +495,9 @@ DriDriverOps* __dri_ex_driver_get(const char* driver_name)
             .map_buffer = i915_map_buffer,
             .unmap_buffer = i915_unmap_buffer,
             .destroy_buffer = i915_destroy_buffer,
+            .clear_buffer = i915_clear_buffer,
+            .check_blit = i915_check_blit,
+            .copy_blit = i915_copy_blit,
 #if 0
             .begin_flush = i915_begin_flush,
             .end_flush = i915_end_flush,
