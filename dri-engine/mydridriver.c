@@ -127,7 +127,7 @@ static DriDriver* i915_create_driver (int device_fd)
 
 static void i915_destroy_driver (DriDriver *driver)
 {
-    _DBG_PRINTF ("%s: destroying intel buffer manager\n",
+    _DBG_PRINTF ("%s: destroying driver buffer manager\n",
             __FUNCTION__);
 
     ply_hashtable_free (driver->buffers);
@@ -135,9 +135,7 @@ static void i915_destroy_driver (DriDriver *driver)
     free (driver);
 }
 
-typedef struct _drm_buffer drm_buffer_t;
-
-struct _drm_buffer
+typedef struct _drm_surface_buffer
 {
     drm_intel_bo *bo;
     uint32_t id;
@@ -145,24 +143,25 @@ struct _drm_buffer
     unsigned long height;
     unsigned long pitch;
 
-    uint32_t pixel_format : 4;
-    uint32_t cpp : 4;
-    uint32_t depth: 4;
-    uint32_t added_fb : 1;
-};
+    uint32_t pixel_format:8;
+    uint32_t depth:8;
+    uint32_t bpp:8;
+    uint32_t cpp:4;
+    uint32_t added_fb:1;
+} drm_surface_buffer;
 
 #define ROUND_TO_MULTIPLE(n, m) (((n) + (((m) - 1))) & ~((m) - 1))
 
-static drm_buffer_t * drm_buffer_new (DriDriver *driver,
+static drm_surface_buffer * drm_buffer_new (DriDriver *driver,
         drm_intel_bo *buffer_object,
         uint32_t id,
         unsigned long width,
         unsigned long height,
         unsigned long pitch)
 {
-    drm_buffer_t *buffer;
+    drm_surface_buffer *buffer;
 
-    buffer = calloc (1, sizeof (drm_buffer_t));
+    buffer = calloc (1, sizeof (drm_surface_buffer));
     buffer->bo = buffer_object;
     buffer->id = id;
     buffer->width = width;
@@ -207,10 +206,10 @@ static drm_intel_bo * create_intel_bo_from_handle (DriDriver *driver,
     return buffer_object;
 }
 
-static drm_buffer_t* drm_buffer_new_from_id (DriDriver *driver,
+static drm_surface_buffer* drm_buffer_new_from_id (DriDriver *driver,
         uint32_t buffer_id)
 {
-    drm_buffer_t *buffer;
+    drm_surface_buffer *buffer;
     drmModeFB *fb;
     drm_intel_bo *buffer_object;
 
@@ -239,10 +238,10 @@ static drm_buffer_t* drm_buffer_new_from_id (DriDriver *driver,
     return buffer;
 }
 
-static drm_buffer_t *get_buffer_from_id (DriDriver *driver,
+static drm_surface_buffer *get_buffer_from_id (DriDriver *driver,
         uint32_t buffer_id)
 {
-    static drm_buffer_t *buffer;
+    static drm_surface_buffer *buffer;
 
     buffer = ply_hashtable_lookup (driver->buffers,
             (void *) (uintptr_t) buffer_id);
@@ -251,13 +250,57 @@ static drm_buffer_t *get_buffer_from_id (DriDriver *driver,
 }
 
 static uint32_t i915_create_buffer (DriDriver *driver,
-            int depth, int bpp,
+            enum DriPixelFormat pixel_format,
             unsigned int width, unsigned int height,
             unsigned int *pitch)
 {
     drm_intel_bo *buffer_object;
-    drm_buffer_t *buffer;
+    drm_surface_buffer *buffer;
+    int depth, bpp, cpp;
     uint32_t buffer_id;
+
+    switch (pixel_format) {
+    case PIXEL_FORMAT_A8B8G8R8_UNORM:
+    case PIXEL_FORMAT_X8B8G8R8_UNORM:
+    case PIXEL_FORMAT_R8G8B8A8_UNORM:
+    case PIXEL_FORMAT_R8G8B8X8_UNORM:
+    case PIXEL_FORMAT_B8G8R8A8_UNORM:
+    case PIXEL_FORMAT_B8G8R8X8_UNORM:
+    case PIXEL_FORMAT_A8R8G8B8_UNORM:
+    case PIXEL_FORMAT_X8R8G8B8_UNORM:
+        depth = 24;
+        bpp = 32;
+        cpp = 4;
+        break;
+    case PIXEL_FORMAT_B5G6R5_UNORM:
+    case PIXEL_FORMAT_R5G6B5_UNORM:
+    case PIXEL_FORMAT_B4G4R4A4_UNORM:
+    case PIXEL_FORMAT_B4G4R4X4_UNORM:
+    case PIXEL_FORMAT_A4R4G4B4_UNORM:
+    case PIXEL_FORMAT_A1B5G5R5_UNORM:
+    case PIXEL_FORMAT_X1B5G5R5_UNORM:
+    case PIXEL_FORMAT_B5G5R5A1_UNORM:
+    case PIXEL_FORMAT_B5G5R5X1_UNORM:
+    case PIXEL_FORMAT_A1R5G5B5_UNORM:
+    case PIXEL_FORMAT_A4B4G4R4_UNORM:
+    case PIXEL_FORMAT_R4G4B4A4_UNORM:
+    case PIXEL_FORMAT_R5G5B5A1_UNORM:
+        depth = 16;
+        bpp = 16;
+        cpp = 2;
+        break;
+
+    case PIXEL_FORMAT_B2G3R3_UNORM:
+    case PIXEL_FORMAT_R3G3B2_UNORM:
+        depth = 8;
+        bpp = 8;
+        cpp = 1;
+        break;
+
+    default:
+        _ERR_PRINTF ("NEWGAL>DRI>I915: Not supported pixel format: %d\n", pixel_format);
+        return 0;
+    }
 
     *pitch = ROUND_TO_MULTIPLE (width * 4, 256);
 
@@ -280,7 +323,11 @@ static uint32_t i915_create_buffer (DriDriver *driver,
 
     buffer = drm_buffer_new (driver,
             buffer_object, buffer_id, width, height, *pitch);
-    buffer->added_fb = TRUE;
+    buffer->depth = depth;
+    buffer->bpp = bpp;
+    buffer->cpp = cpp;
+    buffer->added_fb = 1;
+
     ply_hashtable_insert (driver->buffers,
             (void *) (uintptr_t) buffer_id,
             buffer);
@@ -289,11 +336,11 @@ static uint32_t i915_create_buffer (DriDriver *driver,
 }
 
 static BOOL i915_fetch_buffer (DriDriver *driver,
-            uint32_t  buffer_id,
+            uint32_t buffer_id,
             unsigned int *width, unsigned int *height,
             unsigned int *pitch)
 {
-    drm_buffer_t *buffer;
+    drm_surface_buffer *buffer;
 
     buffer = get_buffer_from_id (driver, buffer_id);
 
@@ -330,7 +377,7 @@ static BOOL i915_fetch_buffer (DriDriver *driver,
 static uint8_t* i915_map_buffer (DriDriver *driver,
             uint32_t buffer_id)
 {
-    drm_buffer_t *buffer;
+    drm_surface_buffer *buffer;
 
     buffer = get_buffer_from_id (driver, buffer_id);
 
@@ -343,7 +390,7 @@ static uint8_t* i915_map_buffer (DriDriver *driver,
 static void i915_unmap_buffer (DriDriver *driver,
             uint32_t buffer_id)
 {
-    drm_buffer_t *buffer;
+    drm_surface_buffer *buffer;
 
     buffer = get_buffer_from_id (driver, buffer_id);
     assert (buffer != NULL);
@@ -355,7 +402,7 @@ static void i915_unmap_buffer (DriDriver *driver,
 static uint8_t * i915_begin_flush (DriDriver *driver,
             uint32_t buffer_id)
 {
-    drm_buffer_t *buffer;
+    drm_surface_buffer *buffer;
 
     buffer = get_buffer_from_id (driver, buffer_id);
     assert (buffer != NULL);
@@ -366,7 +413,7 @@ static uint8_t * i915_begin_flush (DriDriver *driver,
 static void i915_end_flush (DriDriver *driver,
             uint32_t buffer_id)
 {
-    drm_buffer_t *buffer;
+    drm_surface_buffer *buffer;
 
     buffer = get_buffer_from_id (driver, buffer_id);
     assert (buffer != NULL);
@@ -376,7 +423,7 @@ static void i915_end_flush (DriDriver *driver,
 static void i915_destroy_buffer (DriDriver *driver,
             uint32_t buffer_id)
 {
-    drm_buffer_t *buffer;
+    drm_surface_buffer *buffer;
 
     buffer = get_buffer_from_id (driver, buffer_id);
 
@@ -391,6 +438,11 @@ static void i915_destroy_buffer (DriDriver *driver,
             (void *) (uintptr_t) buffer_id);
 
     free (buffer);
+}
+
+static unsigned int translate_raster_op(enum DriColorLogicOp logicop)
+{
+   return logicop | (logicop << 4);
 }
 
 static inline uint32_t br13_for_cpp(int cpp)
@@ -414,7 +466,7 @@ static inline uint32_t br13_for_cpp(int cpp)
 static int i915_clear_buffer (DriDriver *driver,
             uint32_t buffer_id, const GAL_Rect* rc, uint32_t clear_value)
 {
-    drm_buffer_t *buffer;
+    drm_surface_buffer *buffer;
     drm_intel_bo *aper_array[2];
     uint32_t BR13, CMD;
     int x1, y1, x2, y2;
@@ -479,6 +531,106 @@ static int i915_copy_blit (DriDriver *driver,
             uint32_t src_id, const GAL_Rect* src_rc,
             uint32_t dst_id, const GAL_Rect* dst_rc)
 {
+    drm_surface_buffer *buffer;
+    unsigned int cpp;
+    int src_pitch;
+    drm_intel_bo *src_buffer;
+    unsigned int src_offset = 0;
+    int dst_pitch;
+    drm_intel_bo *dst_buffer;
+    unsigned int dst_offset = 0;
+    int src_x = src_rc->x, src_y = src_rc->y;
+    int dst_x = dst_rc->x, dst_y = dst_rc->x;
+    int w = src_rc->w, h = src_rc->w;
+    enum DriColorLogicOp logic_op = COLOR_LOGICOP_COPY;
+
+    unsigned int CMD, BR13, pass;
+    int dst_x2 = dst_x + w;
+    int dst_y2 = dst_y + h;
+    drm_intel_bo *aper_array[3];
+    BATCH_LOCALS;
+
+    buffer = get_buffer_from_id (driver, src_id);
+    assert (buffer != NULL);
+    src_buffer = buffer->bo;
+    src_pitch = buffer->pitch;
+    cpp = buffer->cpp;
+
+    buffer = get_buffer_from_id (driver, dst_id);
+    assert (buffer != NULL);
+    dst_buffer = buffer->bo;
+    dst_pitch = buffer->pitch;
+
+    /* do space check before going any further */
+    pass = 0;
+    do {
+        aper_array[0] = driver->batch.bo;
+        aper_array[1] = dst_buffer;
+        aper_array[2] = src_buffer;
+
+        if (dri_bufmgr_check_aperture_space(aper_array, 3) != 0) {
+            intel_batchbuffer_flush(driver);
+            pass++;
+        } else
+            break;
+    } while (pass < 2);
+
+    if (pass >= 2)
+        return -1;
+
+    intel_batchbuffer_require_space(driver, 8 * 4);
+    _DBG_PRINTF("%s src:buf(%p)/%d+%d %d,%d dst:buf(%p)/%d+%d %d,%d sz:%dx%d\n",
+            __func__,
+            src_buffer, src_pitch, src_offset, src_x, src_y,
+            dst_buffer, dst_pitch, dst_offset, dst_x, dst_y, w, h);
+
+    /* Blit pitch must be dword-aligned.  Otherwise, the hardware appears to drop
+     * the low bits.  Offsets must be naturally aligned.
+     */
+    if (src_pitch % 4 != 0 || src_offset % cpp != 0 ||
+            dst_pitch % 4 != 0 || dst_offset % cpp != 0)
+        return false;
+
+    BR13 = br13_for_cpp(cpp) | translate_raster_op(logic_op) << 16;
+
+    switch (cpp) {
+        case 1:
+        case 2:
+            CMD = XY_SRC_COPY_BLT_CMD;
+            break;
+        case 4:
+            CMD = XY_SRC_COPY_BLT_CMD | XY_BLT_WRITE_ALPHA | XY_BLT_WRITE_RGB;
+            break;
+        default:
+            return false;
+    }
+
+    if (dst_y2 <= dst_y || dst_x2 <= dst_x) {
+        return true;
+    }
+
+    assert(dst_x < dst_x2);
+    assert(dst_y < dst_y2);
+
+    BEGIN_BATCH(8);
+
+    OUT_BATCH(CMD | (8 - 2));
+    OUT_BATCH(BR13 | (uint16_t)dst_pitch);
+    OUT_BATCH((dst_y << 16) | dst_x);
+    OUT_BATCH((dst_y2 << 16) | dst_x2);
+    OUT_RELOC_FENCED(dst_buffer,
+            I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER,
+            dst_offset);
+    OUT_BATCH((src_y << 16) | src_x);
+    OUT_BATCH((uint16_t)src_pitch);
+    OUT_RELOC_FENCED(src_buffer,
+            I915_GEM_DOMAIN_RENDER, 0,
+            src_offset);
+
+    ADVANCE_BATCH();
+
+    intel_batchbuffer_emit_mi_flush(driver);
+
     return -1;
 }
 
