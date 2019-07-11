@@ -93,6 +93,7 @@
 #include <sys/time.h>
 
 #include <drm.h>
+#include <drm_fourcc.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 #include <i915_drm.h>
@@ -398,56 +399,69 @@ static my_surface_buffer *get_buffer_from_id (DriDriver *driver,
 }
 
 static uint32_t i915_create_buffer (DriDriver *driver,
-            enum DriPixelFormat pixel_format,
+            uint32_t drm_format,
             unsigned int width, unsigned int height,
             unsigned int *pitch)
 {
     drm_intel_bo *buffer_object;
     my_surface_buffer *buffer;
-    int depth, bpp, cpp;
+    int bpp, cpp;
     uint32_t buffer_id;
+    uint32_t handles[4], pitches[4], offsets[4];
 
-    switch (pixel_format) {
-    case PIXEL_FORMAT_A8B8G8R8_UNORM:
-    case PIXEL_FORMAT_X8B8G8R8_UNORM:
-    case PIXEL_FORMAT_R8G8B8A8_UNORM:
-    case PIXEL_FORMAT_R8G8B8X8_UNORM:
-    case PIXEL_FORMAT_B8G8R8A8_UNORM:
-    case PIXEL_FORMAT_B8G8R8X8_UNORM:
-    case PIXEL_FORMAT_A8R8G8B8_UNORM:
-    case PIXEL_FORMAT_X8R8G8B8_UNORM:
-        depth = 24;
-        bpp = 32;
-        cpp = 4;
-        break;
-    case PIXEL_FORMAT_B5G6R5_UNORM:
-    case PIXEL_FORMAT_R5G6B5_UNORM:
-    case PIXEL_FORMAT_B4G4R4A4_UNORM:
-    case PIXEL_FORMAT_B4G4R4X4_UNORM:
-    case PIXEL_FORMAT_A4R4G4B4_UNORM:
-    case PIXEL_FORMAT_A1B5G5R5_UNORM:
-    case PIXEL_FORMAT_X1B5G5R5_UNORM:
-    case PIXEL_FORMAT_B5G5R5A1_UNORM:
-    case PIXEL_FORMAT_B5G5R5X1_UNORM:
-    case PIXEL_FORMAT_A1R5G5B5_UNORM:
-    case PIXEL_FORMAT_A4B4G4R4_UNORM:
-    case PIXEL_FORMAT_R4G4B4A4_UNORM:
-    case PIXEL_FORMAT_R5G5B5A1_UNORM:
-        depth = 16;
-        bpp = 16;
-        cpp = 2;
-        break;
-
-    case PIXEL_FORMAT_B2G3R3_UNORM:
-    case PIXEL_FORMAT_R3G3B2_UNORM:
-        depth = 8;
+    switch (drm_format) {
+    case DRM_FORMAT_RGB332:
+    case DRM_FORMAT_BGR233:
         bpp = 8;
         cpp = 1;
         break;
 
+    case DRM_FORMAT_XRGB4444:
+    case DRM_FORMAT_XBGR4444:
+    case DRM_FORMAT_RGBX4444:
+    case DRM_FORMAT_BGRX4444:
+    case DRM_FORMAT_ARGB4444:
+    case DRM_FORMAT_ABGR4444:
+    case DRM_FORMAT_RGBA4444:
+    case DRM_FORMAT_BGRA4444:
+    case DRM_FORMAT_XRGB1555:
+    case DRM_FORMAT_XBGR1555:
+    case DRM_FORMAT_RGBX5551:
+    case DRM_FORMAT_BGRX5551:
+    case DRM_FORMAT_ARGB1555:
+    case DRM_FORMAT_ABGR1555:
+    case DRM_FORMAT_RGBA5551:
+    case DRM_FORMAT_BGRA5551:
+    case DRM_FORMAT_RGB565:
+    case DRM_FORMAT_BGR565:
+        bpp = 16;
+        cpp = 2;
+        break;
+
+/* 24 bpp is not supported by i915 driver
+    case DRM_FORMAT_RGB888:
+    case DRM_FORMAT_BGR888:
+        bpp = 24;
+        cpp = 3;
+        break;
+*/
+
+    case DRM_FORMAT_XRGB8888:
+    case DRM_FORMAT_XBGR8888:
+    case DRM_FORMAT_RGBX8888:
+    case DRM_FORMAT_BGRX8888:
+    case DRM_FORMAT_ARGB8888:
+    case DRM_FORMAT_ABGR8888:
+    case DRM_FORMAT_RGBA8888:
+    case DRM_FORMAT_BGRA8888:
+        bpp = 32;
+        cpp = 4;
+        break;
+
     default:
-        _ERR_PRINTF ("NEWGAL>DRI>I915: Not supported pixel format: %d\n", pixel_format);
+        _ERR_PRINTF ("NEWGAL>DRI>I915: Not supported drm format: %d\n", drm_format);
         return 0;
+        break;
     }
 
     *pitch = ROUND_TO_MULTIPLE (width * cpp, 256);
@@ -460,17 +474,20 @@ static uint32_t i915_create_buffer (DriDriver *driver,
         return 0;
     }
 
-    if (drmModeAddFB (driver->device_fd, width, height,
-                depth, bpp, *pitch, buffer_object->handle,
-                &buffer_id) != 0) {
-        _ERR_PRINTF ("Could not set up GEM object as frame buffer: %m");
+    handles[0] = buffer_object->handle;
+    pitches[0] = *pitch;
+    offsets[0] = 0;
+
+    if (drmModeAddFB2(driver->device_fd, width, height, drm_format,
+            handles, pitches, offsets, &buffer_id, 0) != 0) {
+        _ERR_PRINTF ("Could not set up GEM object as frame buffer (%dx%d-%dbpp) 0x%08x: %m",
+            width, height, bpp, drm_format);
         drm_intel_bo_unreference (buffer_object);
         return 0;
     }
 
     buffer = drm_buffer_new (driver,
             buffer_object, buffer_id, width, height, *pitch);
-    buffer->base.depth = depth;
     buffer->base.bpp = bpp;
     buffer->base.cpp = cpp;
     buffer->added_fb = 1;
@@ -682,7 +699,7 @@ static int i915_clear_buffer (DriDriver *driver,
 static int i915_check_blit (DriDriver *driver,
             DriSurfaceBuffer* src_buf, DriSurfaceBuffer* dst_buf)
 {
-    if (src_buf->pixel_format == dst_buf->pixel_format)
+    if (src_buf->drm_format == dst_buf->drm_format)
         return 0;
 
     _DBG_PRINTF("%s: CANNOT blit src_buf(%p) to dst_buf(%p)\n",
@@ -692,7 +709,8 @@ static int i915_check_blit (DriDriver *driver,
 
 static int i915_copy_blit (DriDriver *driver,
             DriSurfaceBuffer* src_buf, const GAL_Rect* src_rc,
-            DriSurfaceBuffer* dst_buf, const GAL_Rect* dst_rc)
+            DriSurfaceBuffer* dst_buf, const GAL_Rect* dst_rc,
+            enum DriColorLogicOp logic_op)
 {
     my_surface_buffer *buffer;
     unsigned int cpp;
@@ -705,7 +723,6 @@ static int i915_copy_blit (DriDriver *driver,
     int src_x = src_rc->x, src_y = src_rc->y;
     int dst_x = dst_rc->x, dst_y = dst_rc->y;
     int w = src_rc->w, h = src_rc->h;
-    enum DriColorLogicOp logic_op = COLOR_LOGICOP_COPY;
 
     unsigned int CMD, BR13, pass;
     int dst_x2 = dst_x + w;
