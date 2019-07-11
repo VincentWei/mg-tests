@@ -46,7 +46,7 @@ intel_batchbuffer_space(struct _DriDriver *driver)
 static inline void
 intel_batchbuffer_emit_dword(struct _DriDriver *driver, GLuint dword)
 {
-#ifdef DEBUG
+#ifdef _DEBUG
    assert(intel_batchbuffer_space(driver) >= 4);
 #endif
    driver->batch.map[driver->batch.used++] = dword;
@@ -62,7 +62,7 @@ static inline void
 intel_batchbuffer_require_space(struct _DriDriver *driver,
                                 GLuint sz)
 {
-#ifdef DEBUG
+#ifdef _DEBUG
    assert(sz < driver->maxBatchSize - BATCH_RESERVED);
 #endif
    if (intel_batchbuffer_space(driver) < sz)
@@ -74,8 +74,8 @@ intel_batchbuffer_begin(struct _DriDriver *driver, int n)
 {
    intel_batchbuffer_require_space(driver, n * 4);
 
+#ifdef _DEBUG
    driver->batch.emit = driver->batch.used;
-#ifdef DEBUG
    driver->batch.total = n;
 #endif
 }
@@ -83,7 +83,7 @@ intel_batchbuffer_begin(struct _DriDriver *driver, int n)
 static inline void
 intel_batchbuffer_advance(struct _DriDriver *driver)
 {
-#ifdef DEBUG
+#ifdef _DEBUG
    struct intel_batchbuffer *batch = &driver->batch;
    unsigned int _n = batch->used - batch->emit;
    assert(batch->total != 0);

@@ -1,6 +1,7 @@
 /**************************************************************************
  * 
  * Copyright 2003 VMware, Inc.
+ * Copyright 2019 FMSoft (http://www.fmsoft.cn).
  * All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -58,25 +59,19 @@
 #endif
 
 struct intel_batchbuffer {
-   /** Current batchbuffer being queued up. */
-   drm_intel_bo *bo;
-   /** Last BO submitted to the hardware.  Used for glFinish(). */
-   drm_intel_bo *last_bo;
+    /** Current batchbuffer being queued up. */
+    drm_intel_bo *bo;
 
-   uint16_t emit, total;
-   uint16_t used, reserved_space;
-   uint32_t *map;
-   uint32_t *cpu_map;
+#ifdef _DEBUG
+    uint16_t emit, total;
+#endif
+    uint16_t used, reserved_space;
+    uint32_t *map;
+    uint32_t *cpu_map;
 #define BATCH_SZ (8192*sizeof(uint32_t))
 };
 
 #define GLuint unsigned int
-
-struct i915_hw_state
-{
-   GLuint active;               /* I915_UPLOAD_* */
-   GLuint emitted;              /* I915_UPLOAD_* */
-};
 
 /* the driver data struct */
 struct _DriDriver {
@@ -86,12 +81,13 @@ struct _DriDriver {
     struct intel_batchbuffer batch;
     unsigned int maxBatchSize;
 
+    ply_hashtable_t *buffers;
+    int nr_buffers;
+
 #if 0
     drm_intel_bo *first_post_swapbuffers_batch;
     uint32_t no_batch_wrap:1;
-#endif
 
-#if 0
     struct {
         drm_intel_bo *bo;
         GLuint offset;
@@ -99,13 +95,14 @@ struct _DriDriver {
         uint32_t buffer_offset;
         char buffer[4096];
     } upload;
-#endif
-
-    ply_hashtable_t *buffers;
 
     // i915-specific context
-    struct i915_hw_state state;
-#if 0
+    struct i915_hw_state
+    {
+       GLuint active;               /* I915_UPLOAD_* */
+       GLuint emitted;              /* I915_UPLOAD_* */
+    } state;
+
     drm_intel_bo *current_vb_bo;
     unsigned int current_vertex_size;
 

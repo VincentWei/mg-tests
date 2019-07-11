@@ -266,6 +266,7 @@ static DriDriver* i915_create_driver (int device_fd)
 
     driver->buffers = ply_hashtable_new (ply_hashtable_direct_hash,
             ply_hashtable_direct_compare);
+    driver->nr_buffers = 0;
 
     driver->maxBatchSize = BATCH_SIZE;
     intel_batchbuffer_init(driver);
@@ -275,7 +276,8 @@ static DriDriver* i915_create_driver (int device_fd)
 
 static void i915_destroy_driver (DriDriver *driver)
 {
-    _DBG_PRINTF ("%s: destroying driver buffer manager\n", __func__);
+    _DBG_PRINTF ("%s: destroying driver buffer manager: %d buffers left\n",
+            __func__, driver->nr_buffers);
 
     ply_hashtable_free (driver->buffers);
     intel_batchbuffer_free(driver);
@@ -314,7 +316,7 @@ static my_surface_buffer * drm_buffer_new (DriDriver *driver,
     buffer->base.pitch = pitch;
 
     buffer->bo = buffer_object;
-    _DBG_PRINTF ("returning %ux%u buffer with stride %u",
+    _DBG_PRINTF ("returning %ux%u buffer with stride %u\n",
             width, height, pitch);
 
     return buffer;
@@ -474,9 +476,11 @@ static uint32_t i915_create_buffer (DriDriver *driver,
     buffer->added_fb = 1;
 
     ply_hashtable_insert (driver->buffers,
-            (void *) (uintptr_t) buffer_id,
-            buffer);
+            (void *) (uintptr_t) buffer_id, buffer);
+    driver->nr_buffers++;
 
+    _DBG_PRINTF("%s: Buffer object (%u) created\n",
+            __func__, buffer_id);
     return buffer_id;
 }
 
@@ -491,18 +495,19 @@ static BOOL i915_fetch_buffer (DriDriver *driver,
 
     if (buffer == NULL)
     {
-        _DBG_PRINTF ("could not fetch buffer %u, creating one", buffer_id);
+        _DBG_PRINTF ("could not fetch buffer %u, creating one\n", buffer_id);
         buffer = drm_buffer_new_from_id (driver, buffer_id);
 
         if (buffer == NULL)
         {
-            _DBG_PRINTF ("could not create buffer either %u", buffer_id);
+            _DBG_PRINTF ("could not create buffer either %u\n", buffer_id);
             return FALSE;
         }
 
         ply_hashtable_insert (driver->buffers,
                 (void *) (uintptr_t) buffer_id,
                 buffer);
+        driver->nr_buffers++;
     }
 
     if (width != NULL)
@@ -514,7 +519,7 @@ static BOOL i915_fetch_buffer (DriDriver *driver,
     if (pitch != NULL)
         *pitch = buffer->base.pitch;
 
-    _DBG_PRINTF ("fetched %ux%u buffer with stride %u",
+    _DBG_PRINTF ("fetched %ux%u buffer with stride %u\n",
             buffer->base.width, buffer->base.height, buffer->base.pitch);
     return TRUE;
 }
@@ -533,15 +538,13 @@ static DriSurfaceBuffer* i915_map_buffer (DriDriver *driver,
 }
 
 static void i915_unmap_buffer (DriDriver *driver,
-            uint32_t buffer_id)
+            DriSurfaceBuffer* buffer)
 {
-    my_surface_buffer *buffer;
+    my_surface_buffer *my_buffer = (my_surface_buffer *)buffer;
+    assert (my_buffer != NULL);
 
-    buffer = get_buffer_from_id (driver, buffer_id);
-    assert (buffer != NULL);
-
-    drm_intel_gem_bo_unmap_gtt (buffer->bo);
-    buffer->base.pixels = NULL;
+    drm_intel_gem_bo_unmap_gtt (my_buffer->bo);
+    my_buffer->base.pixels = NULL;
 }
 
 #if 0
@@ -572,8 +575,15 @@ static void i915_destroy_buffer (DriDriver *driver,
     my_surface_buffer *buffer;
 
     buffer = get_buffer_from_id (driver, buffer_id);
+    if (buffer == NULL) {
+        _WRN_PRINTF("Buffer object (%u) has already been destroied!", buffer_id);
+        return;
+    }
 
-    assert (buffer != NULL);
+    if (buffer->base.pixels) {
+        drm_intel_gem_bo_unmap_gtt (buffer->bo);
+        buffer->base.pixels = NULL;
+    }
 
     if (buffer->added_fb)
         drmModeRmFB (driver->device_fd, buffer->base.buff_id);
@@ -582,8 +592,12 @@ static void i915_destroy_buffer (DriDriver *driver,
 
     ply_hashtable_remove (driver->buffers,
             (void *) (uintptr_t) buffer_id);
+    driver->nr_buffers--;
 
     free (buffer);
+
+    _DBG_PRINTF("%s: Buffer object (%u) destroied\n",
+            __func__, buffer_id);
 }
 
 static unsigned int translate_raster_op(enum DriColorLogicOp logicop)
@@ -777,8 +791,15 @@ static int i915_copy_blit (DriDriver *driver,
     return -1;
 }
 
+extern int dridriver_enabled;
+
 DriDriverOps* __dri_ex_driver_get(const char* driver_name)
 {
+    if (!dridriver_enabled) {
+        _MG_PRINTF("%s called with driver name: %s, but disabled\n", __func__, driver_name);
+        return NULL;
+    }
+
     _MG_PRINTF("%s called with driver name: %s\n", __func__, driver_name);
 
     if (strcmp(driver_name, "i915") == 0) {

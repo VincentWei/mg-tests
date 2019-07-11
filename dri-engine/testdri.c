@@ -267,13 +267,15 @@ static LRESULT EventDumperProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lP
     switch (message) {
     case MSG_CREATE:
         make_welcome_text ();
-        SetTimer (hwnd, 100, 200);
+        SetTimer (hwnd, 100, 100);
         break;
 
     case MSG_TIMER: {
         int timer_id = (int)wParam;
         DWORD tick_count = (DWORD)lParam;
         on_timer_message(hwnd, message, timer_id, tick_count);
+        if (tick_count >= 1000)
+            exit (0);
         break;
     }
 
@@ -434,6 +436,8 @@ static LRESULT EventDumperProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lP
     return DefaultMainWinProc(hwnd, message, wParam, lParam);
 }
 
+/* change value of this variable to disable i915 driver */
+int dridriver_enabled = 1;
 int MiniGUIMain (int argc, const char* argv[])
 {
     MSG Msg;
@@ -441,12 +445,12 @@ int MiniGUIMain (int argc, const char* argv[])
     MAINWINCREATE CreateInfo;
 
 #ifdef _MGRM_PROCESSES
-    JoinLayer(NAME_DEF_LAYER , "eventdumper" , 0 , 0);
+    JoinLayer(NAME_DEF_LAYER , "testdri" , 0 , 0);
 #endif
 
     CreateInfo.dwStyle = WS_VISIBLE | WS_BORDER | WS_CAPTION;
     CreateInfo.dwExStyle = WS_EX_NONE;
-    CreateInfo.spCaption = "Input Event Dumper";
+    CreateInfo.spCaption = "Test DRI";
     CreateInfo.hMenu = 0;
     CreateInfo.hCursor = GetSystemCursor(0);
     CreateInfo.hIcon = 0;
@@ -460,7 +464,6 @@ int MiniGUIMain (int argc, const char* argv[])
     CreateInfo.hHosting = HWND_DESKTOP;
 
     hMainWnd = CreateMainWindow (&CreateInfo);
-
     if (hMainWnd == HWND_INVALID)
         return -1;
 
