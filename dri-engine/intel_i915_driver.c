@@ -70,7 +70,7 @@
 #include <string.h>
 #include <time.h>
 
-#define _DEBUG
+#undef _DEBUG
 #include <minigui/common.h>
 
 #ifdef __TARGET_EXTERNAL__
@@ -682,9 +682,13 @@ static int i915_clear_buffer (DriDriver *driver,
 static int i915_check_blit (DriDriver *driver,
             DriSurfaceBuffer* src_buf, DriSurfaceBuffer* dst_buf)
 {
+    if (src_buf->pixel_format == dst_buf->pixel_format)
+        return 0;
+
+    _DBG_PRINTF("%s: CANNOT blit src_buf(%p) to dst_buf(%p)\n",
+            __func__, src_buf, dst_buf);
     return -1;
 }
-
 
 static int i915_copy_blit (DriDriver *driver,
             DriSurfaceBuffer* src_buf, const GAL_Rect* src_rc,
@@ -699,8 +703,8 @@ static int i915_copy_blit (DriDriver *driver,
     drm_intel_bo *dst_bo;
     unsigned int dst_offset = 0;
     int src_x = src_rc->x, src_y = src_rc->y;
-    int dst_x = dst_rc->x, dst_y = dst_rc->x;
-    int w = src_rc->w, h = src_rc->w;
+    int dst_x = dst_rc->x, dst_y = dst_rc->y;
+    int w = src_rc->w, h = src_rc->h;
     enum DriColorLogicOp logic_op = COLOR_LOGICOP_COPY;
 
     unsigned int CMD, BR13, pass;
@@ -737,6 +741,7 @@ static int i915_copy_blit (DriDriver *driver,
         return -1;
 
     intel_batchbuffer_require_space(driver, 8 * 4);
+
     _DBG_PRINTF("%s src:buf(%p)/%d+%d %d,%d dst:buf(%p)/%d+%d %d,%d sz:%dx%d\n",
             __func__,
             src_bo, src_pitch, src_offset, src_x, src_y,
@@ -745,9 +750,11 @@ static int i915_copy_blit (DriDriver *driver,
     /* Blit pitch must be dword-aligned.  Otherwise, the hardware appears to drop
      * the low bits.  Offsets must be naturally aligned.
      */
-    if (src_pitch % 4 != 0 || src_offset % cpp != 0 ||
-            dst_pitch % 4 != 0 || dst_offset % cpp != 0)
-        return false;
+    if (src_pitch % 4 != 0 || dst_pitch % 4 != 0) {
+        _DBG_PRINTF("%s pitches are not dword-aligned: src_pitch(%d), dst_pitch(%d)\n",
+                __func__, src_pitch, dst_pitch);
+        return -1;
+    }
 
     BR13 = br13_for_cpp(cpp) | translate_raster_op(logic_op) << 16;
 
@@ -760,11 +767,12 @@ static int i915_copy_blit (DriDriver *driver,
             CMD = XY_SRC_COPY_BLT_CMD | XY_BLT_WRITE_ALPHA | XY_BLT_WRITE_RGB;
             break;
         default:
-            return false;
+            assert(0);
+            return -1;
     }
 
     if (dst_y2 <= dst_y || dst_x2 <= dst_x) {
-        return true;
+        return -1;
     }
 
     assert(dst_x < dst_x2);
