@@ -279,7 +279,7 @@ static LRESULT EventDumperProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lP
         DWORD tick_count = (DWORD)lParam;
         on_timer_message(hwnd, message, timer_id, tick_count);
         move_flying_window(flying_window);
-        if (tick_count >= 200000) {
+        if (tick_count >= 20000) {
             KillTimer (hwnd, 100);
             SendNotifyMessage(flying_window, MSG_CLOSE, 0, 0);
             SendNotifyMessage(hwnd, MSG_CLOSE, 0, 0);
