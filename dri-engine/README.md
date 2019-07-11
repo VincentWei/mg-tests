@@ -3,7 +3,7 @@
 ## Introduction
 
 This test program covers the `dri` NEWGAL engine of MiniGUI 4.0.0.
-It implements a sub driver of `dir` engine for `i915` GPU, and
+It implements a sub driver of `dri` engine for `i915` GPU, and
 gives an example to exploit the GPU's accelerated rendering
 capabilities:
 
