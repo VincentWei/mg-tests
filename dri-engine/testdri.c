@@ -262,6 +262,10 @@ static void on_idle_message(HWND hwnd, UINT message)
     InvalidateRect(hwnd, &idle_msg_rc, TRUE);
 }
 
+HWND create_flying_window (HWND hosting);
+void move_flying_window (HWND hwnd);
+
+static HWND flying_window;
 static LRESULT EventDumperProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message) {
@@ -274,7 +278,8 @@ static LRESULT EventDumperProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lP
         int timer_id = (int)wParam;
         DWORD tick_count = (DWORD)lParam;
         on_timer_message(hwnd, message, timer_id, tick_count);
-        if (tick_count >= 1000)
+        move_flying_window(flying_window);
+        if (tick_count >= 2000)
             exit (0);
         break;
     }
@@ -438,6 +443,7 @@ static LRESULT EventDumperProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lP
 
 /* change value of this variable to disable i915 driver */
 int dridriver_enabled = 1;
+
 int MiniGUIMain (int argc, const char* argv[])
 {
     MSG Msg;
@@ -467,8 +473,15 @@ int MiniGUIMain (int argc, const char* argv[])
     if (hMainWnd == HWND_INVALID)
         return -1;
 
-    ShowWindow(hMainWnd, SW_SHOWNORMAL);
+    flying_window = create_flying_window (hMainWnd);
+    if (flying_window == HWND_INVALID) {
+        DestroyMainWindow (hMainWnd);
+        MainWindowThreadCleanup (hMainWnd);
+        return -2;
+    }
 
+    ShowWindow(hMainWnd, SW_SHOWNORMAL);
+    SetActiveWindow(hMainWnd);
     while (GetMessage(&Msg, hMainWnd)) {
         TranslateMessage(&Msg);
         DispatchMessage(&Msg);
