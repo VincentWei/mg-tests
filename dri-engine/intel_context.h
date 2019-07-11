@@ -84,12 +84,14 @@ struct _DriDriver {
     drm_intel_bufmgr *manager;
 
     struct intel_batchbuffer batch;
-    drm_intel_bo *first_post_swapbuffers_batch;
-
     unsigned int maxBatchSize;
-    uint32_t always_flush_cache:1;
-    uint32_t no_batch_wrap:1;
 
+#if 0
+    drm_intel_bo *first_post_swapbuffers_batch;
+    uint32_t no_batch_wrap:1;
+#endif
+
+#if 0
     struct {
         drm_intel_bo *bo;
         GLuint offset;
@@ -97,16 +99,19 @@ struct _DriDriver {
         uint32_t buffer_offset;
         char buffer[4096];
     } upload;
+#endif
 
     ply_hashtable_t *buffers;
 
     // i915-specific context
+    struct i915_hw_state state;
+#if 0
     drm_intel_bo *current_vb_bo;
     unsigned int current_vertex_size;
 
-    struct i915_hw_state state;
     uint32_t last_draw_offset;
     GLuint last_sampler;
+#endif
 };
 
 #endif

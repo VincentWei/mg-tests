@@ -28,25 +28,16 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#undef _DEBUG
+#include <minigui/common.h>
+
 #include "intel_context.h"
 #include "intel_batchbuffer.h"
 #include "intel_reg.h"
 
-static void
-intel_batchbuffer_reset(struct _DriDriver *driver);
-
-    void
-intel_batchbuffer_init(struct _DriDriver *driver)
+static void intel_batchbuffer_reset(struct _DriDriver *driver)
 {
-    intel_batchbuffer_reset(driver);
-
-    driver->batch.cpu_map = malloc(driver->maxBatchSize);
-    driver->batch.map = driver->batch.cpu_map;
-}
-
-static void
-intel_batchbuffer_reset(struct _DriDriver *driver)
-{
+#if 0
     if (driver->batch.last_bo != NULL) {
         drm_intel_bo_unreference(driver->batch.last_bo);
         driver->batch.last_bo = NULL;
@@ -55,16 +46,28 @@ intel_batchbuffer_reset(struct _DriDriver *driver)
 
     driver->batch.bo = drm_intel_bo_alloc(driver->manager, "batchbuffer",
             driver->maxBatchSize, 4096);
-
+#else
+    drm_intel_gem_bo_clear_relocs(driver->batch.bo, 0);
     driver->batch.reserved_space = BATCH_RESERVED;
     driver->batch.used = 0;
+#endif
 }
 
-void
-intel_batchbuffer_free(struct _DriDriver *driver)
+void intel_batchbuffer_init(struct _DriDriver *driver)
+{
+    driver->batch.bo = drm_intel_bo_alloc(driver->manager, "batchbuffer",
+            driver->maxBatchSize, 4096);
+    drm_intel_bufmgr_gem_enable_reuse(driver->manager);
+
+    intel_batchbuffer_reset(driver);
+    driver->batch.cpu_map = malloc(driver->maxBatchSize);
+    driver->batch.map = driver->batch.cpu_map;
+}
+
+void intel_batchbuffer_free(struct _DriDriver *driver)
 {
     free(driver->batch.cpu_map);
-    drm_intel_bo_unreference(driver->batch.last_bo);
+    //drm_intel_bo_unreference(driver->batch.last_bo);
     drm_intel_bo_unreference(driver->batch.bo);
 }
 
@@ -117,11 +120,13 @@ static void i915_new_batch(struct _DriDriver *driver)
      * difficulties associated with them (physical address requirements).
      */
     driver->state.emitted = 0;
+#if 0
     driver->last_draw_offset = 0;
     driver->last_sampler = 0;
 
     driver->current_vb_bo = NULL;
     driver->current_vertex_size = 0;
+#endif
 }
 
 /* TODO: Push this whole function into manager.
@@ -132,7 +137,7 @@ do_flush_locked(struct _DriDriver *driver)
     struct intel_batchbuffer *batch = &driver->batch;
     int ret = 0;
 
-    ret = drm_intel_bo_subdata(batch->bo, 0, 4*batch->used, batch->map);
+    ret = drm_intel_bo_subdata(batch->bo, 0, 4 * batch->used, batch->map);
 
 #if 0
     if (!driver->intelScreen->no_hw) {
@@ -144,8 +149,13 @@ do_flush_locked(struct _DriDriver *driver)
         }
     }
 #else
-    ret = drm_intel_bo_mrb_exec(batch->bo, 4 * batch->used, NULL, 0, 0,
-            I915_EXEC_RENDER);
+    if (ret == 0) {
+        ret = drm_intel_bo_mrb_exec(batch->bo, 4 * batch->used, NULL, 0, 0,
+                I915_EXEC_BLT);
+    }
+    else {
+        _ERR_PRINTF("drm_intel_bo_subdata failed: %s\n", strerror(-ret));
+    }
 #endif
 
 #if 0
@@ -154,8 +164,9 @@ do_flush_locked(struct _DriDriver *driver)
 #endif
 
     if (ret != 0) {
-        fprintf(stderr, "intel_do_flush_locked failed: %s\n", strerror(-ret));
-        exit(1);
+        _ERR_PRINTF("intel_do_flush_locked failed(%p): %s\n",
+                batch->bo, strerror(-ret));
+        assert(0);
     }
 
     i915_new_batch(driver);
@@ -163,6 +174,7 @@ do_flush_locked(struct _DriDriver *driver)
     return ret;
 }
 
+#if 0
 static void intel_upload_finish(struct _DriDriver *driver)
 {
     if (!driver->upload.bo)
@@ -179,26 +191,20 @@ static void intel_upload_finish(struct _DriDriver *driver)
     drm_intel_bo_unreference(driver->upload.bo);
     driver->upload.bo = NULL;
 }
+#endif
 
-int
-_intel_batchbuffer_flush(struct _DriDriver *driver,
-        const char *file, int line)
+int intel_batchbuffer_flush(struct _DriDriver *driver)
 {
     int ret;
 
     if (driver->batch.used == 0)
         return 0;
 
+#if 0
     if (driver->first_post_swapbuffers_batch == NULL) {
         driver->first_post_swapbuffers_batch = driver->batch.bo;
         drm_intel_bo_reference(driver->first_post_swapbuffers_batch);
     }
-
-#if 0
-    if (unlikely(INTEL_DEBUG & DEBUG_BATCH))
-        fprintf(stderr, "%s:%d: Batchbuffer flush with %db used\n", file, line,
-                4*driver->batch.used);
-#else
 #endif
 
     driver->batch.reserved_space = 0;
@@ -215,10 +221,12 @@ _intel_batchbuffer_flush(struct _DriDriver *driver,
         intel_batchbuffer_emit_dword(driver, MI_NOOP);
     }
 
+#if 0
     intel_upload_finish(driver);
 
     /* Check that we didn't just wrap our batchbuffer at a bad time. */
     assert(!driver->no_batch_wrap);
+#endif
 
     ret = do_flush_locked(driver);
 

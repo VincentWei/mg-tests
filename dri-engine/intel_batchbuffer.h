@@ -12,39 +12,13 @@
  * - Any state emitted by vtbl->finish_batch():
  *   - Gen4-5 record ending occlusion query values (4 * 4 = 16 bytes)
  */
-#define BATCH_RESERVED 24
+#define BATCH_RESERVED  24
+
+#define BATCH_SIZE      256
 
 struct intel_batchbuffer;
 
-void intel_batchbuffer_init(struct _DriDriver *driver);
-void intel_batchbuffer_free(struct _DriDriver *driver);
-
-int _intel_batchbuffer_flush(struct _DriDriver *driver,
-                 const char *file, int line);
-
-#define intel_batchbuffer_flush(driver) \
-    _intel_batchbuffer_flush(driver, __FILE__, __LINE__)
-
-
-
-/* Unlike bmBufferData, this currently requires the buffer be mapped.
- * Consider it a convenience function wrapping multiple
- * intel_buffer_dword() calls.
- */
-void intel_batchbuffer_data(struct _DriDriver *driver,
-                        const void *data, GLuint bytes);
-
-bool intel_batchbuffer_emit_reloc(struct _DriDriver *driver,
-                        drm_intel_bo *buffer,
-                        uint32_t read_domains,
-                        uint32_t write_domain,
-                        uint32_t offset);
-bool intel_batchbuffer_emit_reloc_fenced(struct _DriDriver *driver,
-                        drm_intel_bo *buffer,
-                        uint32_t read_domains,
-                        uint32_t write_domain,
-                        uint32_t offset);
-void intel_batchbuffer_emit_mi_flush(struct _DriDriver *driver);
+static int intel_batchbuffer_flush(struct _DriDriver *driver, unsigned int flags);
 
 static inline uint32_t float_as_int(float f)
 {
@@ -69,7 +43,6 @@ intel_batchbuffer_space(struct _DriDriver *driver)
       - driver->batch.used*4;
 }
 
-
 static inline void
 intel_batchbuffer_emit_dword(struct _DriDriver *driver, GLuint dword)
 {
@@ -93,7 +66,7 @@ intel_batchbuffer_require_space(struct _DriDriver *driver,
    assert(sz < driver->maxBatchSize - BATCH_RESERVED);
 #endif
    if (intel_batchbuffer_space(driver) < sz)
-      intel_batchbuffer_flush(driver);
+      intel_batchbuffer_flush(driver, I915_EXEC_RENDER);
 }
 
 static inline void
@@ -124,24 +97,5 @@ intel_batchbuffer_advance(struct _DriDriver *driver)
    (void) driver;
 #endif
 }
-
-/* Here are the crusty old macros, to be removed:
- */
-#define BATCH_LOCALS
-
-#define BEGIN_BATCH(n) intel_batchbuffer_begin(driver, n)
-#define OUT_BATCH(d) intel_batchbuffer_emit_dword(driver, d)
-#define OUT_BATCH_F(f) intel_batchbuffer_emit_float(driver,f)
-#define OUT_RELOC(buf, read_domains, write_domain, delta) do {        \
-   intel_batchbuffer_emit_reloc(driver, buf,            \
-                read_domains, write_domain, delta);    \
-} while (0)
-#define OUT_RELOC_FENCED(buf, read_domains, write_domain, delta) do {    \
-   intel_batchbuffer_emit_reloc_fenced(driver, buf,        \
-                       read_domains, write_domain, delta); \
-} while (0)
-
-#define ADVANCE_BATCH() intel_batchbuffer_advance(driver);
-#define CACHED_BATCH() intel_batchbuffer_cached_advance(driver);
 
 #endif
