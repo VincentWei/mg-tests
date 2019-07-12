@@ -30,6 +30,8 @@
 #include <minigui/gdi.h>
 #include <minigui/window.h>
 
+#include <mgeff/mgeff.h>
+
 /* 16.16 fixed number */
 #define fixed  int32_t
 
@@ -431,6 +433,7 @@ static LRESULT FlyingGUIWinProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 {
     switch (message) {
     case MSG_CREATE:
+        mGEffInit();
         InitFlyingGUI (hWnd);
         SetTimer (hWnd, 100, 10);
         break;
@@ -453,6 +456,10 @@ static LRESULT FlyingGUIWinProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM 
         KillTimer (hWnd, 100);
         TermFlyingGUI (hWnd);
         DestroyMainWindow (hWnd);
+        return 0;
+
+    case MSG_DESTROY:
+        mGEffDeinit();
         MainWindowThreadCleanup (hWnd);
         return 0;
     }
@@ -478,12 +485,39 @@ static void InitCreateInfo (PMAINWINCREATE pCreateInfo)
     pCreateInfo->hHosting = HWND_DESKTOP;
 }
 
+static void animated_cb(MGEFF_ANIMATION handle, HWND hwnd, int id, POINT *pt)
+{
+    MoveWindow (hwnd, pt->x, pt->y, DEFAULT_WIDTH, DEFAULT_HEIGHT, FALSE);
+}
+
 void move_flying_window (HWND hwnd)
 {
-    MoveWindow (hwnd,
-        random_in_range(-DEFAULT_WIDTH/2, g_rcScr.right - DEFAULT_WIDTH/2),
-        random_in_range(-DEFAULT_HEIGHT/2, g_rcScr.bottom - DEFAULT_HEIGHT/2),
-        DEFAULT_WIDTH, DEFAULT_HEIGHT, FALSE);
+    MGEFF_ANIMATION animation;
+    animation = mGEffAnimationCreate((void *)hwnd, (void *)animated_cb, 1, MGEFF_POINT);
+    if (animation) {
+        RECT rc;
+        POINT start_pt, end_pt;
+        GetWindowRect(hwnd, &rc);
+
+        start_pt.x = rc.left;
+        start_pt.y = rc.top;
+        end_pt.x = random_in_range(-DEFAULT_WIDTH/2, g_rcScr.right - DEFAULT_WIDTH/2);
+        end_pt.y = random_in_range(-DEFAULT_HEIGHT/2, g_rcScr.bottom - DEFAULT_HEIGHT/2);
+
+        mGEffAnimationSetStartValue(animation, &start_pt);
+        mGEffAnimationSetEndValue(animation, &end_pt);
+        mGEffAnimationSetDuration(animation, 200);
+        mGEffAnimationSetProperty(animation, MGEFF_PROP_LOOPCOUNT, 1);
+        mGEffAnimationSetCurve(animation, OutInQuart);
+        mGEffAnimationSyncRun(animation);
+        mGEffAnimationDelete(animation);
+    }
+    else {
+        MoveWindow (hwnd,
+            random_in_range(-DEFAULT_WIDTH/2, g_rcScr.right - DEFAULT_WIDTH/2),
+            random_in_range(-DEFAULT_HEIGHT/2, g_rcScr.bottom - DEFAULT_HEIGHT/2),
+            DEFAULT_WIDTH, DEFAULT_HEIGHT, FALSE);
+    }
 }
 
 HWND create_flying_window (HWND hosting)
