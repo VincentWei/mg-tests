@@ -69,6 +69,7 @@ AC_OUTPUT(
     m4/Makefile
     src/Makefile
     4.0/Makefile
-    dri-engine/Makefile
     extra-input/Makefile
+    dri-engine/Makefile
+    comm-engines/Makefile
 )
