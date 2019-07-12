@@ -487,7 +487,12 @@ static void InitCreateInfo (PMAINWINCREATE pCreateInfo)
 
 static void animated_cb(MGEFF_ANIMATION handle, HWND hwnd, int id, POINT *pt)
 {
+    HWND hosting;
+
     MoveWindow (hwnd, pt->x, pt->y, DEFAULT_WIDTH, DEFAULT_HEIGHT, FALSE);
+
+    hosting = GetHosting(hwnd);
+    UpdateInvalidClient(hosting, FALSE);
 }
 
 void move_flying_window (HWND hwnd)
@@ -508,7 +513,7 @@ void move_flying_window (HWND hwnd)
         mGEffAnimationSetEndValue(animation, &end_pt);
         mGEffAnimationSetDuration(animation, 200);
         mGEffAnimationSetProperty(animation, MGEFF_PROP_LOOPCOUNT, 1);
-        mGEffAnimationSetCurve(animation, OutInQuart);
+        mGEffAnimationSetCurve(animation, InOutQuart);
         mGEffAnimationSyncRun(animation);
         mGEffAnimationDelete(animation);
     }
