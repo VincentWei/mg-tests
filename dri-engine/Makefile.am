@@ -1,6 +1,6 @@
 AM_CPPFLAGS = -I$(DRM_INC_DIR)
 
-EXTRA_DIST = README.md MiniGUI.cfg
+EXTRA_DIST = README.md LICENSE MiniGUI.cfg
 
 noinst_PROGRAMS = \
     testdri
