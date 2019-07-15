@@ -435,7 +435,7 @@ static LRESULT FlyingGUIWinProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM 
     case MSG_CREATE:
         mGEffInit();
         InitFlyingGUI (hWnd);
-        SetTimer (hWnd, 100, 10);
+        SetTimer (hWnd, 100, 5);
         break;
 
     case MSG_TIMER:
