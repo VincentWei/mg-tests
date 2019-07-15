@@ -23,7 +23,7 @@ Copyright (C) 2018 ~ 2019, Beijing FMSoft Technologies Co., Ltd.
 
 Most programs of mg-tests are licensed under the Apache License,
 Version 2.0. Some programs of mg-tests are licensed under GPL,
-because the programs uses some code from other GPL'd programs.
+because the programs use some code from other GPL'd programs.
 
 For more information, please see the `README.md` files in individual
 directories.
