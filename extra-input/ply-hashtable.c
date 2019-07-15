@@ -1,3 +1,15 @@
+///////////////////////////////////////////////////////////////////////////////
+//
+//                          IMPORTANT NOTICE
+//
+// The following open source license statement does not apply to any
+// entity in the Exception List published by FMSoft.
+//
+// For more information, please visit:
+//
+// https://www.fmsoft.cn/exception-list
+//
+//////////////////////////////////////////////////////////////////////////////
 /* ply-hashtable.c - hash table implementation
  *
  * Copyright (C) 2009 Charlie Brej <cbrej@cs.man.ac.uk>
