@@ -65,12 +65,12 @@ int MiniGUIMain (int argc, const char* argv[])
 #else
     while (fnv1a_32_vector[i].test) {
         RES_KEY key = Str2Key(fnv1a_32_vector[i].test->buf);
-        Fnv32_t hval = fnv_32a_str(fnv1a_32_vector[i].test->buf, FNV1A_32_INIT);
+        Fnv32_t hval = fnv_32a_str(fnv1a_32_vector[i].test->buf, FNV1_32A_INIT);
         if (key == hval) {
             print_fnv32(hval, (Fnv32_t)-1, 1, fnv1a_32_vector[i].test->buf);
         }
         else {
-            _ERR_PRINTF("Bad Str2Key implementation: %s (%lx vs %lx)\n",
+            _ERR_PRINTF("Bad Str2Key implementation: %s (%lx vs %x)\n",
                     (char*)fnv1a_32_vector[i].test->buf,
                     key, hval);
             exit(1);

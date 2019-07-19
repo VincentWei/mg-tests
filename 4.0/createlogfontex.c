@@ -539,7 +539,7 @@ static const char* my_get_text_case(const char* text)
             }
             else {
                 fclose(fp);
-                _ERR_PRINTF("%s, failed to read from file: %s(%lu)\n",
+                _ERR_PRINTF("%s, failed to read from file: %s(%zu)\n",
                     __FUNCTION__, text + 5, size);
             }
         }
