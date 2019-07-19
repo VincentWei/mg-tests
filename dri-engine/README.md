@@ -13,6 +13,11 @@ capabilities:
 * Bliting pixels on a source surface to a destination surface with
   alpha or color-key enabled.
 
+Please make sure to install `libdrm-dev` package to your Linux system:
+
+    $ sudo apt install libdrm-dev
+
+
 ## Copying
 
 Copyright (C) 2019, Beijing FMSoft Technologies Co., Ltd.
