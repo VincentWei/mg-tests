@@ -2220,9 +2220,9 @@ print_fnv64(Fnv64_t hval, Fnv64_t mask, int verbose, char *arg)
 {
 #if defined(HAVE_64BIT_LONG_LONG)
     if (verbose) {
-	printf("0x%016lx %s\n", hval & mask, arg);
+	printf("0x%016llx %s\n", (long long unsigned)(hval & mask), arg);
     } else {
-	printf("0x%016lx\n", hval & mask);
+	printf("0x%016llx\n", (long long unsigned)(hval & mask));
     }
 #else
     if (verbose) {
