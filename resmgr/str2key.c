@@ -80,6 +80,7 @@ int MiniGUIMain (int argc, const char* argv[])
     }
 #endif
 
+    exit(0);
     return 0;
 }
 
