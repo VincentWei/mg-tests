@@ -72,4 +72,5 @@ AC_OUTPUT(
     extra-input/Makefile
     dri-engine/Makefile
     comm-engines/Makefile
+    resmgr/Makefile
 )

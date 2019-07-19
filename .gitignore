@@ -88,3 +88,5 @@ src/helloworld
 extra-input/eventdumper
 dri-engine/testdri
 comm-engines/commengines
+resmgr/str2key
+resmgr/resmgr
