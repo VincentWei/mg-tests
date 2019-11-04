@@ -265,8 +265,10 @@ static DriDriver* i915_create_driver (int device_fd)
 
     drm_intel_bufmgr_gem_enable_fenced_relocs(driver->manager);
 
+#ifdef WITH_BUFFER_MANAGEMENT
     driver->buffers = ply_hashtable_new (ply_hashtable_direct_hash,
             ply_hashtable_direct_compare);
+#endif
     driver->nr_buffers = 0;
 
     driver->maxBatchSize = BATCH_SIZE;
@@ -280,7 +282,9 @@ static void i915_destroy_driver (DriDriver *driver)
     _DBG_PRINTF ("%s: destroying driver buffer manager: %d buffers left\n",
             __func__, driver->nr_buffers);
 
+#ifdef WITH_BUFFER_MANAGEMENT
     ply_hashtable_free (driver->buffers);
+#endif
     intel_batchbuffer_free(driver);
     drm_intel_bufmgr_destroy (driver->manager);
     free (driver);
@@ -321,81 +325,6 @@ static my_surface_buffer * drm_buffer_new (DriDriver *driver,
     buffer->bo = buffer_object;
     _DBG_PRINTF ("returning %ux%u buffer with stride %u\n",
             width, height, pitch);
-
-    return buffer;
-}
-
-static drm_intel_bo * create_intel_bo_from_handle (DriDriver *driver,
-        uint32_t handle)
-{
-    struct drm_gem_flink flink_request;
-    char name [64];
-    drm_intel_bo *buffer_object;
-
-    /* FIXME: This can't be the right way to do this.
-     *
-     * 1) It requires skirting around the API and using ioctls
-     * 2) It requires taking a local handle, turning it into a
-     * a global handle ("name"), just so we can use an api that
-     * will open the global name and grab the local handle from it.
-     */
-
-    memset (&flink_request, 0, sizeof (struct drm_gem_flink));
-    flink_request.handle = handle;
-
-    sprintf(name, "buffer %u", handle);
-
-    if (ioctl (driver->device_fd, DRM_IOCTL_GEM_FLINK, &flink_request) < 0)
-    {
-        _DBG_PRINTF ("Could not export global name for handle %u", handle);
-        return NULL;
-    }
-
-    buffer_object = drm_intel_bo_gem_create_from_name (driver->manager,
-            name, flink_request.name);
-
-    return buffer_object;
-}
-
-static my_surface_buffer* drm_buffer_new_from_id (DriDriver *driver,
-        uint32_t buffer_id)
-{
-    my_surface_buffer *buffer;
-    drmModeFB *fb;
-    drm_intel_bo *buffer_object;
-
-    fb = drmModeGetFB (driver->device_fd, buffer_id);
-
-    if (fb == NULL)
-    {
-        _DBG_PRINTF ("could not get FB with buffer id %u", buffer_id);
-        return NULL;
-    }
-
-    buffer_object = create_intel_bo_from_handle (driver, fb->handle);
-
-    if (buffer_object == NULL)
-    {
-        _DBG_PRINTF ("could not create buffer object from handle %lu",
-                (unsigned long) fb->handle);
-        drmModeFreeFB (fb);
-        return NULL;
-    }
-
-    buffer = drm_buffer_new (driver, buffer_object, buffer_id,
-            fb->width, fb->height, fb->pitch);
-    drmModeFreeFB (fb);
-
-    return buffer;
-}
-
-static my_surface_buffer *get_buffer_from_id (DriDriver *driver,
-        uint32_t buffer_id)
-{
-    static my_surface_buffer *buffer;
-
-    buffer = ply_hashtable_lookup (driver->buffers,
-            (void *) (uintptr_t) buffer_id);
 
     return buffer;
 }
@@ -483,93 +412,174 @@ static my_surface_buffer* i915_create_buffer_helper (DriDriver *driver,
     buffer = drm_buffer_new (driver,
             buffer_object, buffer_id, width, height, pitch);
 
+#ifdef WITH_BUFFER_MANAGEMENT
     ply_hashtable_insert (driver->buffers,
             (void *) (uintptr_t) buffer_id, buffer);
+#endif
     driver->nr_buffers++;
 
     _DBG_PRINTF("%s: Buffer object (%u) created\n", __func__, buffer_id);
     return buffer;
 }
 
-static uint32_t i915_create_buffer (DriDriver *driver,
+static DriSurfaceBuffer* i915_create_buffer (DriDriver *driver,
             uint32_t drm_format,
-            unsigned int width, unsigned int height,
-            unsigned int *pitch)
+            unsigned int width, unsigned int height)
 {
     drm_intel_bo *buffer_object;
     my_surface_buffer *buffer;
     int bpp, cpp;
+    unsigned int pitch;
 
     if (drm_format_to_bpp(drm_format, &bpp, &cpp) == 0) {
-        _ERR_PRINTF ("NEWGAL>DRI>I915: Not supported drm format: %d\n", drm_format);
-        return 0;
+        _ERR_PRINTF ("Not supported DRM format: %d\n", drm_format);
+        return NULL;
     }
 
-    *pitch = ROUND_TO_MULTIPLE (width * cpp, 256);
+    pitch = ROUND_TO_MULTIPLE (width * cpp, 256);
     buffer_object = drm_intel_bo_alloc_for_render (driver->manager,
-            "surface", height * *pitch, 0);
+            "surface", height * pitch, 0);
 
     if (buffer_object == NULL) {
-        _ERR_PRINTF ("Could not allocate GEM object for frame buffer: %m");
-        return 0;
+        _ERR_PRINTF ("Could not allocate GEM object for frame buffer (pitch: %d): %m\n",
+            pitch);
+        return NULL;
     }
 
-    if ((buffer = i915_create_buffer_helper (driver, buffer_object, drm_format,
-            width, height, *pitch))) {
-        _ERR_PRINTF ("Could not set up GEM object as frame buffer (%dx%d-%dbpp) 0x%08x: %m",
+    buffer = i915_create_buffer_helper (driver, buffer_object, drm_format,
+            width, height, pitch);
+    if (buffer == NULL) {
+        _ERR_PRINTF ("Could not set up GEM object as frame buffer (%dx%d-%dbpp) 0x%08x: %m\n",
             width, height, bpp, drm_format);
-        return 0;
+        return NULL;
     }
 
     buffer->base.bpp = bpp;
     buffer->base.cpp = cpp;
     buffer->added_fb = 1;
-    return buffer->base.id;
+    return &buffer->base;
 }
 
-static uint32_t i915_create_buffer_from_name (DriDriver *driver,
+static DriSurfaceBuffer* i915_create_buffer_from_name (DriDriver *driver,
             uint32_t name_handle, uint32_t drm_format,
-            unsigned int width, unsigned int height,
-            unsigned int *pitch)
+            unsigned int width, unsigned int height)
 {
     drm_intel_bo *buffer_object;
     my_surface_buffer *buffer;
     char name [64];
     int bpp, cpp;
+    unsigned int pitch;
 
     if (drm_format_to_bpp(drm_format, &bpp, &cpp) == 0) {
-        _ERR_PRINTF ("NEWGAL>DRI>I915: Not supported drm format: %d", drm_format);
-        return 0;
+        _ERR_PRINTF ("Not supported DRM format: %d\n", drm_format);
+        return NULL;
     }
 
-    *pitch = ROUND_TO_MULTIPLE (width * cpp, 256);
+    pitch = ROUND_TO_MULTIPLE (width * cpp, 256);
     sprintf(name, "buffer %u", name_handle);
     buffer_object = drm_intel_bo_gem_create_from_name (driver->manager,
             name, name_handle);
     if (buffer_object == NULL) {
-        _ERR_PRINTF ("Could not open GEM object with name %u for frame buffer: %m",
+        _ERR_PRINTF ("Could not open GEM object with name %u for frame buffer: %m\n",
                 name_handle);
-        return 0;
+        return NULL;
     }
 
-    if (buffer_object->size < height * *pitch) {
-        _ERR_PRINTF ("Specified surface size is larger than the size of the buffer object: %u.",
+    if (buffer_object->size < height * pitch) {
+        _ERR_PRINTF ("Specified surface size is larger than the size of the buffer object: %u.\n",
                 name_handle);
         drm_intel_bo_unreference (buffer_object);
-        return 0;
+        return NULL;
     }
 
-    if ((buffer = i915_create_buffer_helper (driver, buffer_object, drm_format,
-            width, height, *pitch))) {
-        _ERR_PRINTF ("Could not set up GEM object as frame buffer (%dx%d-%dbpp) 0x%08x: %m",
+    buffer = i915_create_buffer_helper (driver, buffer_object, drm_format,
+            width, height, pitch);
+    if (buffer == NULL) {
+        _ERR_PRINTF ("Could not set up GEM object as frame buffer (%dx%d-%dbpp) 0x%08x: %m\n",
             width, height, bpp, drm_format);
-        return 0;
+        return NULL;
     }
 
     buffer->base.bpp = bpp;
     buffer->base.cpp = cpp;
     buffer->added_fb = 1;
-    return buffer->base.id;
+    return &buffer->base;
+}
+
+#if 0
+static my_surface_buffer *get_buffer_from_id (DriDriver *driver,
+        uint32_t buffer_id)
+{
+    static my_surface_buffer *buffer;
+
+    buffer = ply_hashtable_lookup (driver->buffers,
+            (void *) (uintptr_t) buffer_id);
+
+    return buffer;
+}
+
+static drm_intel_bo * create_intel_bo_from_handle (DriDriver *driver,
+        uint32_t handle)
+{
+    struct drm_gem_flink flink_request;
+    char name [64];
+    drm_intel_bo *buffer_object;
+
+    /* FIXME: This can't be the right way to do this.
+     *
+     * 1) It requires skirting around the API and using ioctls
+     * 2) It requires taking a local handle, turning it into a
+     * a global handle ("name"), just so we can use an api that
+     * will open the global name and grab the local handle from it.
+     */
+
+    memset (&flink_request, 0, sizeof (struct drm_gem_flink));
+    flink_request.handle = handle;
+
+    sprintf(name, "buffer %u", handle);
+
+    if (ioctl (driver->device_fd, DRM_IOCTL_GEM_FLINK, &flink_request) < 0)
+    {
+        _DBG_PRINTF ("Could not export global name for handle %u", handle);
+        return NULL;
+    }
+
+    buffer_object = drm_intel_bo_gem_create_from_name (driver->manager,
+            name, flink_request.name);
+
+    return buffer_object;
+}
+
+static my_surface_buffer* drm_buffer_new_from_id (DriDriver *driver,
+        uint32_t buffer_id)
+{
+    my_surface_buffer *buffer;
+    drmModeFB *fb;
+    drm_intel_bo *buffer_object;
+
+    fb = drmModeGetFB (driver->device_fd, buffer_id);
+
+    if (fb == NULL)
+    {
+        _DBG_PRINTF ("could not get FB with buffer id %u", buffer_id);
+        return NULL;
+    }
+
+    buffer_object = create_intel_bo_from_handle (driver, fb->handle);
+
+    if (buffer_object == NULL)
+    {
+        _DBG_PRINTF ("could not create buffer object from handle %lu",
+                (unsigned long) fb->handle);
+        drmModeFreeFB (fb);
+        return NULL;
+    }
+
+    buffer = drm_buffer_new (driver, buffer_object, buffer_id,
+            fb->width, fb->height, fb->pitch);
+    drmModeFreeFB (fb);
+
+    return buffer;
 }
 
 static BOOL i915_fetch_buffer (DriDriver *driver,
@@ -611,18 +621,19 @@ static BOOL i915_fetch_buffer (DriDriver *driver,
             buffer->base.width, buffer->base.height, buffer->base.pitch);
     return TRUE;
 }
+#endif
 
-static DriSurfaceBuffer* i915_map_buffer (DriDriver *driver,
-            uint32_t buffer_id)
+static uint8_t* i915_map_buffer (DriDriver *driver,
+            DriSurfaceBuffer* buffer)
 {
-    my_surface_buffer *buffer;
+    my_surface_buffer *my_buffer = (my_surface_buffer *)buffer;
 
-    buffer = get_buffer_from_id (driver, buffer_id);
-    assert (buffer != NULL);
+    assert (my_buffer != NULL);
+    assert (my_buffer->base.pixels == NULL);
 
-    drm_intel_gem_bo_map_gtt (buffer->bo);
-    buffer->base.pixels = buffer->bo->virtual;
-    return &buffer->base;
+    drm_intel_gem_bo_map_gtt (my_buffer->bo);
+    my_buffer->base.pixels = my_buffer->bo->virtual;
+    return my_buffer->base.pixels;
 }
 
 static void i915_unmap_buffer (DriDriver *driver,
@@ -630,6 +641,7 @@ static void i915_unmap_buffer (DriDriver *driver,
 {
     my_surface_buffer *my_buffer = (my_surface_buffer *)buffer;
     assert (my_buffer != NULL);
+    assert (my_buffer->base.pixels != NULL);
 
     drm_intel_gem_bo_unmap_gtt (my_buffer->bo);
     my_buffer->base.pixels = NULL;
@@ -658,31 +670,28 @@ static void i915_end_flush (DriDriver *driver,
 #endif
 
 static void i915_destroy_buffer (DriDriver *driver,
-            uint32_t buffer_id)
+            DriSurfaceBuffer* buffer)
 {
-    my_surface_buffer *buffer;
+    my_surface_buffer *my_buffer = (my_surface_buffer *)buffer;
+    assert (my_buffer != NULL);
 
-    buffer = get_buffer_from_id (driver, buffer_id);
-    if (buffer == NULL) {
-        _WRN_PRINTF("Buffer object (%u) has already been destroied!", buffer_id);
-        return;
+    if (my_buffer->base.pixels) {
+        drm_intel_gem_bo_unmap_gtt (my_buffer->bo);
+        my_buffer->base.pixels = NULL;
     }
 
-    if (buffer->base.pixels) {
-        drm_intel_gem_bo_unmap_gtt (buffer->bo);
-        buffer->base.pixels = NULL;
-    }
+    if (my_buffer->added_fb)
+        drmModeRmFB (driver->device_fd, my_buffer->base.id);
 
-    if (buffer->added_fb)
-        drmModeRmFB (driver->device_fd, buffer->base.id);
+    drm_intel_bo_unreference (my_buffer->bo);
 
-    drm_intel_bo_unreference (buffer->bo);
-
+#ifdef WITH_BUFFER_MANAGEMENT
     ply_hashtable_remove (driver->buffers,
-            (void *) (uintptr_t) buffer_id);
+            (void *) (uintptr_t) my_buffer->base.id);
+#endif
     driver->nr_buffers--;
 
-    free (buffer);
+    free (my_buffer);
 
     _DBG_PRINTF("%s: Buffer object (%u) destroied\n",
             __func__, buffer_id);
@@ -905,7 +914,7 @@ DriDriverOps* __dri_ex_driver_get(const char* driver_name)
             .flush_driver = i915_flush_driver,
             .create_buffer = i915_create_buffer,
             .create_buffer_from_name = i915_create_buffer_from_name,
-            .fetch_buffer = i915_fetch_buffer,
+//            .fetch_buffer = i915_fetch_buffer,
             .map_buffer = i915_map_buffer,
             .unmap_buffer = i915_unmap_buffer,
             .destroy_buffer = i915_destroy_buffer,

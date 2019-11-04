@@ -48,7 +48,12 @@
 #include <i915_drm.h>
 #include <libdrm/intel_bufmgr.h>
 
+//#define WITH_BUFFER_MANAGEMENT
+#undef WITH_BUFFER_MANAGEMENT
+
+#ifdef WITH_BUFFER_MANAGEMENT
 #include "ply-hashtable.h"
+#endif
 
 #define DV_PF_555  (1<<8)
 #define DV_PF_565  (2<<8)
@@ -93,7 +98,9 @@ struct _DriDriver {
     struct intel_batchbuffer batch;
     unsigned int maxBatchSize;
 
+#ifdef WITH_BUFFER_MANAGEMENT
     ply_hashtable_t *buffers;
+#endif
     int nr_buffers;
 
 #if 0
