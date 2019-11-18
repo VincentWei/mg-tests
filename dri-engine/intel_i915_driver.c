@@ -460,34 +460,78 @@ static DriSurfaceBuffer* i915_create_buffer (DriDriver *driver,
     return &buffer->base;
 }
 
-static DriSurfaceBuffer* i915_create_buffer_from_name (DriDriver *driver,
-            uint32_t name_handle, uint32_t drm_format,
-            unsigned int width, unsigned int height)
+static DriSurfaceBuffer* i915_create_buffer_from_handle (DriDriver *driver,
+            uint32_t handle, unsigned long size, uint32_t drm_format,
+            unsigned int width, unsigned int height, unsigned int pitch)
 {
+#if 0 // TODO: add drm_intel_bo_gem_create_from_handle
     drm_intel_bo *buffer_object;
     my_surface_buffer *buffer;
-    char name [64];
     int bpp, cpp;
-    unsigned int pitch;
 
     if (drm_format_to_bpp(drm_format, &bpp, &cpp) == 0) {
         _ERR_PRINTF ("Not supported DRM format: %d\n", drm_format);
         return NULL;
     }
 
-    pitch = ROUND_TO_MULTIPLE (width * cpp, 256);
-    sprintf(name, "buffer %u", name_handle);
-    buffer_object = drm_intel_bo_gem_create_from_name (driver->manager,
-            name, name_handle);
+    buffer_object = drm_intel_bo_gem_create_from_handle (driver->manager,
+            handle, size);
     if (buffer_object == NULL) {
-        _ERR_PRINTF ("Could not open GEM object with name %u for frame buffer: %m\n",
-                name_handle);
+        _ERR_PRINTF ("Could not open GEM object with handle %u for frame buffer: %m\n",
+                handle);
         return NULL;
     }
 
     if (buffer_object->size < height * pitch) {
         _ERR_PRINTF ("Specified surface size is larger than the size of the buffer object: %u.\n",
-                name_handle);
+                handle);
+        drm_intel_bo_unreference (buffer_object);
+        return NULL;
+    }
+
+    buffer = i915_create_buffer_helper (driver, buffer_object, drm_format,
+            width, height, pitch);
+    if (buffer == NULL) {
+        _ERR_PRINTF ("Could not set up GEM object as frame buffer (%dx%d-%dbpp) 0x%08x: %m\n",
+            width, height, bpp, drm_format);
+        return NULL;
+    }
+
+    buffer->base.bpp = bpp;
+    buffer->base.cpp = cpp;
+    buffer->added_fb = 1;
+    return &buffer->base;
+#else
+    return NULL;
+#endif
+}
+
+static DriSurfaceBuffer* i915_create_buffer_from_name (DriDriver *driver,
+            uint32_t name, uint32_t drm_format,
+            unsigned int width, unsigned int height, unsigned int pitch)
+{
+    drm_intel_bo *buffer_object;
+    my_surface_buffer *buffer;
+    char sz_name [64];
+    int bpp, cpp;
+
+    if (drm_format_to_bpp(drm_format, &bpp, &cpp) == 0) {
+        _ERR_PRINTF ("Not supported DRM format: %d\n", drm_format);
+        return NULL;
+    }
+
+    sprintf(sz_name, "buffer %u", name);
+    buffer_object = drm_intel_bo_gem_create_from_name (driver->manager,
+            sz_name, name);
+    if (buffer_object == NULL) {
+        _ERR_PRINTF ("Could not open GEM object with name %u for frame buffer: %m\n",
+                name);
+        return NULL;
+    }
+
+    if (buffer_object->size < height * pitch) {
+        _ERR_PRINTF ("Specified surface size is larger than the size of the buffer object: %u.\n",
+                name);
         drm_intel_bo_unreference (buffer_object);
         return NULL;
     }
@@ -913,8 +957,8 @@ DriDriverOps* __dri_ex_driver_get(const char* driver_name)
             .destroy_driver = i915_destroy_driver,
             .flush_driver = i915_flush_driver,
             .create_buffer = i915_create_buffer,
+            .create_buffer_from_handle = i915_create_buffer_from_handle,
             .create_buffer_from_name = i915_create_buffer_from_name,
-//            .fetch_buffer = i915_fetch_buffer,
             .map_buffer = i915_map_buffer,
             .unmap_buffer = i915_unmap_buffer,
             .destroy_buffer = i915_destroy_buffer,
