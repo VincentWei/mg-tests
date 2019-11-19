@@ -550,6 +550,48 @@ static DriSurfaceBuffer* i915_create_buffer_from_name (DriDriver *driver,
     return &buffer->base;
 }
 
+static DriSurfaceBuffer* i915_create_buffer_from_prime_fd (DriDriver *driver,
+            int prime_fd, unsigned long size, uint32_t drm_format,
+            unsigned int width, unsigned int height, unsigned int pitch)
+{
+    drm_intel_bo *buffer_object;
+    my_surface_buffer *buffer;
+    int bpp, cpp;
+
+    if (drm_format_to_bpp(drm_format, &bpp, &cpp) == 0) {
+        _ERR_PRINTF ("Not supported DRM format: %d\n", drm_format);
+        return NULL;
+    }
+
+    buffer_object = drm_intel_bo_gem_create_from_prime (driver->manager,
+            prime_fd, size);
+    if (buffer_object == NULL) {
+        _ERR_PRINTF ("Could not open GEM object with prime fd (%d) for frame buffer: %m\n",
+                prime_fd);
+        return NULL;
+    }
+
+    if (buffer_object->size < height * pitch) {
+        _ERR_PRINTF ("Specified surface size is larger than the size of the buffer object: %u.\n",
+                buffer_object->handle);
+        drm_intel_bo_unreference (buffer_object);
+        return NULL;
+    }
+
+    buffer = i915_create_buffer_helper (driver, buffer_object, drm_format,
+            width, height, pitch);
+    if (buffer == NULL) {
+        _ERR_PRINTF ("Could not set up GEM object as frame buffer (%dx%d-%dbpp) 0x%08x: %m\n",
+            width, height, bpp, drm_format);
+        return NULL;
+    }
+
+    buffer->base.bpp = bpp;
+    buffer->base.cpp = cpp;
+    buffer->added_fb = 1;
+    return &buffer->base;
+}
+
 #if 0
 static my_surface_buffer *get_buffer_from_id (DriDriver *driver,
         uint32_t buffer_id)
@@ -959,6 +1001,7 @@ DriDriverOps* __dri_ex_driver_get(const char* driver_name)
             .create_buffer = i915_create_buffer,
             .create_buffer_from_handle = i915_create_buffer_from_handle,
             .create_buffer_from_name = i915_create_buffer_from_name,
+            .create_buffer_from_prime_fd = i915_create_buffer_from_prime_fd,
             .map_buffer = i915_map_buffer,
             .unmap_buffer = i915_unmap_buffer,
             .destroy_buffer = i915_destroy_buffer,
