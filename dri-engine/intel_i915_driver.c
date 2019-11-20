@@ -982,15 +982,8 @@ static int i915_copy_blit (DriDriver *driver,
     return -1;
 }
 
-extern int dridriver_enabled;
-
 DriDriverOps* __dri_ex_driver_get(const char* driver_name, int device_fd)
 {
-    if (!dridriver_enabled) {
-        _MG_PRINTF("%s called with driver name: %s, but disabled\n", __func__, driver_name);
-        return NULL;
-    }
-
     _MG_PRINTF("%s called with driver name: %s\n", __func__, driver_name);
 
     if (strcmp(driver_name, "i915") == 0) {
