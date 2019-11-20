@@ -28,7 +28,7 @@
 
 #include <minigui/common.h>
 
-#ifdef __TARGET_EXTERNAL__
+#if defined(_MGIAL_COMM) && defined(__TARGET_EXTERNAL__)
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -232,4 +232,4 @@ void __comminput_deinit (void)
     close (sg_power_event_fd);
 }
 
-#endif /* __TARGET_EXTERNAL__ */
+#endif /* _MGIAL_COMM && __TARGET_EXTERNAL__ */

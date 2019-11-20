@@ -12,7 +12,7 @@ noinst_PROGRAMS = \
     basicshapingengine \
     complexshapingengine
 
-COMMFILES = helpers.c helpers.h exstubs-null.c
+COMMFILES = helpers.c helpers.h
 
 sliceallocator_SOURCES = sliceallocator.c $(COMMFILES)
 ustrgetbreaks_SOURCES = ustrgetbreaks.c $(COMMFILES)

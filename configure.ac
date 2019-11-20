@@ -31,13 +31,13 @@ AC_HEADER_SYS_WAIT
 AC_HEADER_TIME
 AC_CHECK_HEADERS(sys/time.h unistd.h)
 
-PKG_CHECK_MODULES([MINIGUI], [minigui >= 4.0.0])
+PKG_CHECK_MODULES([MINIGUI], [minigui >= 4.1.0])
 PKG_CHECK_MODULES([MGEFF], [mgeff >= 1.2.0])
 
 PKG_CHECK_MODULES(DRM, [libudev >= 200, libdrm >= 2.4], video_drm="yes",
     video_drm="no; the test code requires libdrm 2.4+ and libudev 200+")
 if test "x$video_drm" = "xyes"; then
-    DRM_INC_DIR="`$PKG_CONFIG --variable includedir libdrm`/drm"
+    DRM_INC_DIR="`$PKG_CONFIG --variable includedir libdrm`/libdrm"
     AC_SUBST(DRM_INC_DIR)
 else
     AC_MSG_WARN([$video_drm])

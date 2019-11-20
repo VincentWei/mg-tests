@@ -16,7 +16,7 @@
 
 #include <minigui/common.h>
 
-#ifdef __TARGET_EXTERNAL__
+#if defined(_MGGAL_COMMLCD) && defined(__TARGET_EXTERNAL__)
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -102,4 +102,4 @@ int __commlcd_drv_setclut (int firstcolor, int ncolors, GAL_Color *colors)
     return 0;
 }
 
-#endif /* __TARGET_EXTERNAL__ */
+#endif /* _MGGAL_COMMLCD && __TARGET_EXTERNAL__ */

@@ -984,7 +984,7 @@ static int i915_copy_blit (DriDriver *driver,
 
 extern int dridriver_enabled;
 
-DriDriverOps* __dri_ex_driver_get(const char* driver_name)
+DriDriverOps* __dri_ex_driver_get(const char* driver_name, int device_fd)
 {
     if (!dridriver_enabled) {
         _MG_PRINTF("%s called with driver name: %s, but disabled\n", __func__, driver_name);
@@ -1021,7 +1021,7 @@ DriDriverOps* __dri_ex_driver_get(const char* driver_name)
 
 #else /* HAVE_DRM_INTEL */
 
-DriDriverOps* __dri_ex_driver_get(const char* driver_name)
+DriDriverOps* __dri_ex_driver_get(const char* driver_name, int device_fd)
 {
     _WRN_PRINTF("This external DRM driver is a NULL implementation!");
     return NULL;
