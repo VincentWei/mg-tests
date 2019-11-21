@@ -70,7 +70,7 @@ AC_OUTPUT(
     src/Makefile
     4.0/Makefile
     extra-input/Makefile
-    dri-engine/Makefile
+    drm-engine/Makefile
     comm-engines/Makefile
     resmgr/Makefile
 )

@@ -86,7 +86,7 @@ src/helloworld
 4.0/sliceallocator
 4.0/ustrgetbreaks
 extra-input/eventdumper
-dri-engine/testdri
+drm-engine/testdrm
 comm-engines/commengines
 resmgr/str2key
 resmgr/resmgr

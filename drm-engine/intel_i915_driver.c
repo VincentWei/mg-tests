@@ -103,14 +103,14 @@
 #include "intel_context.h"
 #include "intel_batchbuffer.h"
 
-static void intel_batchbuffer_reset(struct _DriDriver *driver)
+static void intel_batchbuffer_reset(struct _DrmDriver *driver)
 {
     drm_intel_gem_bo_clear_relocs(driver->batch.bo, 0);
     driver->batch.reserved_space = BATCH_RESERVED;
     driver->batch.used = 0;
 }
 
-static void intel_batchbuffer_init(struct _DriDriver *driver)
+static void intel_batchbuffer_init(struct _DrmDriver *driver)
 {
     driver->batch.bo = drm_intel_bo_alloc(driver->manager, "batchbuffer",
             driver->maxBatchSize, BATCH_SIZE);
@@ -121,13 +121,13 @@ static void intel_batchbuffer_init(struct _DriDriver *driver)
     driver->batch.map = driver->batch.cpu_map;
 }
 
-static void intel_batchbuffer_free(struct _DriDriver *driver)
+static void intel_batchbuffer_free(struct _DrmDriver *driver)
 {
     free(driver->batch.cpu_map);
     drm_intel_bo_unreference(driver->batch.bo);
 }
 
-static int intel_do_flush_locked(struct _DriDriver *driver, unsigned int flags)
+static int intel_do_flush_locked(struct _DrmDriver *driver, unsigned int flags)
 {
     struct intel_batchbuffer *batch = &driver->batch;
     int ret = 0;
@@ -151,7 +151,7 @@ static int intel_do_flush_locked(struct _DriDriver *driver, unsigned int flags)
     return ret;
 }
 
-static int intel_batchbuffer_flush(struct _DriDriver *driver, unsigned int flags)
+static int intel_batchbuffer_flush(struct _DrmDriver *driver, unsigned int flags)
 {
     int ret;
 
@@ -175,7 +175,7 @@ static int intel_batchbuffer_flush(struct _DriDriver *driver, unsigned int flags
 }
 
 #if 0
-static bool intel_batchbuffer_emit_reloc(struct _DriDriver *driver,
+static bool intel_batchbuffer_emit_reloc(struct _DrmDriver *driver,
         drm_intel_bo *buffer,
         uint32_t read_domains, uint32_t write_domain,
         uint32_t delta)
@@ -199,7 +199,7 @@ static bool intel_batchbuffer_emit_reloc(struct _DriDriver *driver,
 }
 #endif
 
-static bool intel_batchbuffer_emit_reloc_fenced(struct _DriDriver *driver,
+static bool intel_batchbuffer_emit_reloc_fenced(struct _DrmDriver *driver,
         drm_intel_bo *buffer,
         uint32_t read_domains,
         uint32_t write_domain,
@@ -224,7 +224,7 @@ static bool intel_batchbuffer_emit_reloc_fenced(struct _DriDriver *driver,
 }
 
 #if 0
-static void intel_batchbuffer_data(struct _DriDriver *driver,
+static void intel_batchbuffer_data(struct _DrmDriver *driver,
         const void *data, GLuint bytes)
 {
     assert((bytes & 3) == 0);
@@ -240,7 +240,7 @@ static void intel_batchbuffer_data(struct _DriDriver *driver,
  *
  * This is also used for the always_flush_cache driconf debug option.
  */
-static void intel_batchbuffer_emit_mi_flush(struct _DriDriver *driver)
+static void intel_batchbuffer_emit_mi_flush(struct _DrmDriver *driver)
 {
     intel_batchbuffer_begin(driver, 1);
     intel_batchbuffer_emit_dword(driver, MI_FLUSH);
@@ -248,11 +248,11 @@ static void intel_batchbuffer_emit_mi_flush(struct _DriDriver *driver)
     intel_batchbuffer_flush(driver, I915_EXEC_RENDER);
 }
 
-static DriDriver* i915_create_driver (int device_fd)
+static DrmDriver* i915_create_driver (int device_fd)
 {
-    DriDriver *driver;
+    DrmDriver *driver;
 
-    driver = calloc (1, sizeof (DriDriver));
+    driver = calloc (1, sizeof (DrmDriver));
     driver->device_fd = device_fd;
 
     driver->manager = drm_intel_bufmgr_gem_init (driver->device_fd, BATCH_SZ);
@@ -277,7 +277,7 @@ static DriDriver* i915_create_driver (int device_fd)
     return driver;
 }
 
-static void i915_destroy_driver (DriDriver *driver)
+static void i915_destroy_driver (DrmDriver *driver)
 {
     _DBG_PRINTF ("%s: destroying driver buffer manager: %d buffers left\n",
             __func__, driver->nr_buffers);
@@ -290,13 +290,13 @@ static void i915_destroy_driver (DriDriver *driver)
     free (driver);
 }
 
-static void i915_flush_driver (DriDriver *driver)
+static void i915_flush_driver (DrmDriver *driver)
 {
     intel_batchbuffer_emit_mi_flush(driver);
 }
 
 typedef struct _my_surface_buffer {
-    DriSurfaceBuffer base;
+    DrmSurfaceBuffer base;
 
     drm_intel_bo *bo;
 
@@ -305,7 +305,7 @@ typedef struct _my_surface_buffer {
 
 #define ROUND_TO_MULTIPLE(n, m) (((n) + (((m) - 1))) & ~((m) - 1))
 
-static my_surface_buffer * drm_buffer_new (DriDriver *driver,
+static my_surface_buffer * drm_buffer_new (DrmDriver *driver,
         drm_intel_bo *buffer_object,
         uint32_t id,
         uint32_t width,
@@ -389,7 +389,7 @@ static int drm_format_to_bpp(uint32_t drm_format,
     return 1;
 }
 
-static my_surface_buffer* i915_create_buffer_helper (DriDriver *driver,
+static my_surface_buffer* i915_create_buffer_helper (DrmDriver *driver,
             drm_intel_bo *buffer_object,
             uint32_t drm_format,
             unsigned int width, unsigned int height,
@@ -422,7 +422,7 @@ static my_surface_buffer* i915_create_buffer_helper (DriDriver *driver,
     return buffer;
 }
 
-static DriSurfaceBuffer* i915_create_buffer (DriDriver *driver,
+static DrmSurfaceBuffer* i915_create_buffer (DrmDriver *driver,
             uint32_t drm_format,
             unsigned int width, unsigned int height)
 {
@@ -460,7 +460,7 @@ static DriSurfaceBuffer* i915_create_buffer (DriDriver *driver,
     return &buffer->base;
 }
 
-static DriSurfaceBuffer* i915_create_buffer_from_handle (DriDriver *driver,
+static DrmSurfaceBuffer* i915_create_buffer_from_handle (DrmDriver *driver,
             uint32_t handle, unsigned long size, uint32_t drm_format,
             unsigned int width, unsigned int height, unsigned int pitch)
 {
@@ -506,7 +506,7 @@ static DriSurfaceBuffer* i915_create_buffer_from_handle (DriDriver *driver,
 #endif
 }
 
-static DriSurfaceBuffer* i915_create_buffer_from_name (DriDriver *driver,
+static DrmSurfaceBuffer* i915_create_buffer_from_name (DrmDriver *driver,
             uint32_t name, uint32_t drm_format,
             unsigned int width, unsigned int height, unsigned int pitch)
 {
@@ -550,7 +550,7 @@ static DriSurfaceBuffer* i915_create_buffer_from_name (DriDriver *driver,
     return &buffer->base;
 }
 
-static DriSurfaceBuffer* i915_create_buffer_from_prime_fd (DriDriver *driver,
+static DrmSurfaceBuffer* i915_create_buffer_from_prime_fd (DrmDriver *driver,
             int prime_fd, unsigned long size, uint32_t drm_format,
             unsigned int width, unsigned int height, unsigned int pitch)
 {
@@ -593,7 +593,7 @@ static DriSurfaceBuffer* i915_create_buffer_from_prime_fd (DriDriver *driver,
 }
 
 #if 0
-static my_surface_buffer *get_buffer_from_id (DriDriver *driver,
+static my_surface_buffer *get_buffer_from_id (DrmDriver *driver,
         uint32_t buffer_id)
 {
     static my_surface_buffer *buffer;
@@ -604,7 +604,7 @@ static my_surface_buffer *get_buffer_from_id (DriDriver *driver,
     return buffer;
 }
 
-static drm_intel_bo * create_intel_bo_from_handle (DriDriver *driver,
+static drm_intel_bo * create_intel_bo_from_handle (DrmDriver *driver,
         uint32_t handle)
 {
     struct drm_gem_flink flink_request;
@@ -636,7 +636,7 @@ static drm_intel_bo * create_intel_bo_from_handle (DriDriver *driver,
     return buffer_object;
 }
 
-static my_surface_buffer* drm_buffer_new_from_id (DriDriver *driver,
+static my_surface_buffer* drm_buffer_new_from_id (DrmDriver *driver,
         uint32_t buffer_id)
 {
     my_surface_buffer *buffer;
@@ -668,7 +668,7 @@ static my_surface_buffer* drm_buffer_new_from_id (DriDriver *driver,
     return buffer;
 }
 
-static BOOL i915_fetch_buffer (DriDriver *driver,
+static BOOL i915_fetch_buffer (DrmDriver *driver,
             uint32_t buffer_id,
             unsigned int *width, unsigned int *height,
             unsigned int *pitch)
@@ -709,8 +709,8 @@ static BOOL i915_fetch_buffer (DriDriver *driver,
 }
 #endif
 
-static uint8_t* i915_map_buffer (DriDriver *driver,
-            DriSurfaceBuffer* buffer)
+static uint8_t* i915_map_buffer (DrmDriver *driver,
+            DrmSurfaceBuffer* buffer)
 {
     my_surface_buffer *my_buffer = (my_surface_buffer *)buffer;
 
@@ -722,8 +722,8 @@ static uint8_t* i915_map_buffer (DriDriver *driver,
     return my_buffer->base.pixels;
 }
 
-static void i915_unmap_buffer (DriDriver *driver,
-            DriSurfaceBuffer* buffer)
+static void i915_unmap_buffer (DrmDriver *driver,
+            DrmSurfaceBuffer* buffer)
 {
     my_surface_buffer *my_buffer = (my_surface_buffer *)buffer;
     assert (my_buffer != NULL);
@@ -734,7 +734,7 @@ static void i915_unmap_buffer (DriDriver *driver,
 }
 
 #if 0
-static uint8_t * i915_begin_flush (DriDriver *driver,
+static uint8_t * i915_begin_flush (DrmDriver *driver,
             uint32_t buffer_id)
 {
     my_surface_buffer *buffer;
@@ -745,7 +745,7 @@ static uint8_t * i915_begin_flush (DriDriver *driver,
     return buffer->bo->virtual;
 }
 
-static void i915_end_flush (DriDriver *driver,
+static void i915_end_flush (DrmDriver *driver,
             uint32_t buffer_id)
 {
     my_surface_buffer *buffer;
@@ -755,8 +755,8 @@ static void i915_end_flush (DriDriver *driver,
 }
 #endif
 
-static void i915_destroy_buffer (DriDriver *driver,
-            DriSurfaceBuffer* buffer)
+static void i915_destroy_buffer (DrmDriver *driver,
+            DrmSurfaceBuffer* buffer)
 {
     my_surface_buffer *my_buffer = (my_surface_buffer *)buffer;
     assert (my_buffer != NULL);
@@ -783,7 +783,7 @@ static void i915_destroy_buffer (DriDriver *driver,
             __func__, buffer_id);
 }
 
-static unsigned int translate_raster_op(enum DriColorLogicOp logicop)
+static unsigned int translate_raster_op(enum DrmColorLogicOp logicop)
 {
    return logicop | (logicop << 4);
 }
@@ -806,8 +806,8 @@ static inline uint32_t br13_for_cpp(int cpp)
    }
 }
 
-static int i915_clear_buffer (DriDriver *driver,
-            DriSurfaceBuffer* dst_buf, const GAL_Rect* rc, uint32_t clear_value)
+static int i915_clear_buffer (DrmDriver *driver,
+            DrmSurfaceBuffer* dst_buf, const GAL_Rect* rc, uint32_t clear_value)
 {
     my_surface_buffer *buffer;
     drm_intel_bo *aper_array[2];
@@ -862,8 +862,8 @@ static int i915_clear_buffer (DriDriver *driver,
     return 0;
 }
 
-static int i915_check_blit (DriDriver *driver,
-            DriSurfaceBuffer* src_buf, DriSurfaceBuffer* dst_buf)
+static int i915_check_blit (DrmDriver *driver,
+            DrmSurfaceBuffer* src_buf, DrmSurfaceBuffer* dst_buf)
 {
     if (src_buf->drm_format == dst_buf->drm_format)
         return 0;
@@ -873,10 +873,10 @@ static int i915_check_blit (DriDriver *driver,
     return -1;
 }
 
-static int i915_copy_blit (DriDriver *driver,
-            DriSurfaceBuffer* src_buf, const GAL_Rect* src_rc,
-            DriSurfaceBuffer* dst_buf, const GAL_Rect* dst_rc,
-            enum DriColorLogicOp logic_op)
+static int i915_copy_blit (DrmDriver *driver,
+            DrmSurfaceBuffer* src_buf, const GAL_Rect* src_rc,
+            DrmSurfaceBuffer* dst_buf, const GAL_Rect* dst_rc,
+            enum DrmColorLogicOp logic_op)
 {
     my_surface_buffer *buffer;
     unsigned int cpp;
@@ -982,12 +982,12 @@ static int i915_copy_blit (DriDriver *driver,
     return -1;
 }
 
-DriDriverOps* __dri_ex_driver_get(const char* driver_name, int device_fd)
+DrmDriverOps* __dri_ex_driver_get(const char* driver_name, int device_fd)
 {
     _MG_PRINTF("%s called with driver name: %s\n", __func__, driver_name);
 
     if (strcmp(driver_name, "i915") == 0) {
-        static DriDriverOps i915_driver = {
+        static DrmDriverOps i915_driver = {
             .create_driver = i915_create_driver,
             .destroy_driver = i915_destroy_driver,
             .flush_driver = i915_flush_driver,
@@ -1014,7 +1014,7 @@ DriDriverOps* __dri_ex_driver_get(const char* driver_name, int device_fd)
 
 #else /* HAVE_DRM_INTEL */
 
-DriDriverOps* __dri_ex_driver_get(const char* driver_name, int device_fd)
+DrmDriverOps* __dri_ex_driver_get(const char* driver_name, int device_fd)
 {
     _WRN_PRINTF("This external DRM driver is a NULL implementation!");
     return NULL;

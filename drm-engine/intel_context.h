@@ -91,7 +91,7 @@ struct intel_batchbuffer {
 #define GLuint unsigned int
 
 /* the driver data struct */
-struct _DriDriver {
+struct _DrmDriver {
     int device_fd;
     drm_intel_bufmgr *manager;
 

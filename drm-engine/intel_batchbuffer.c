@@ -47,7 +47,7 @@
 #include "intel_batchbuffer.h"
 #include "intel_reg.h"
 
-static void intel_batchbuffer_reset(struct _DriDriver *driver)
+static void intel_batchbuffer_reset(struct _DrmDriver *driver)
 {
 #if 0
     if (driver->batch.last_bo != NULL) {
@@ -65,7 +65,7 @@ static void intel_batchbuffer_reset(struct _DriDriver *driver)
 #endif
 }
 
-void intel_batchbuffer_init(struct _DriDriver *driver)
+void intel_batchbuffer_init(struct _DrmDriver *driver)
 {
     driver->batch.bo = drm_intel_bo_alloc(driver->manager, "batchbuffer",
             driver->maxBatchSize, 4096);
@@ -76,7 +76,7 @@ void intel_batchbuffer_init(struct _DriDriver *driver)
     driver->batch.map = driver->batch.cpu_map;
 }
 
-void intel_batchbuffer_free(struct _DriDriver *driver)
+void intel_batchbuffer_free(struct _DrmDriver *driver)
 {
     free(driver->batch.cpu_map);
     //drm_intel_bo_unreference(driver->batch.last_bo);
@@ -85,7 +85,7 @@ void intel_batchbuffer_free(struct _DriDriver *driver)
 
 #if 0
 static void
-do_batch_dump(struct _DriDriver *driver)
+do_batch_dump(struct _DrmDriver *driver)
 {
     struct drm_intel_decode *decode;
     struct intel_batchbuffer *batch = &driver->batch;
@@ -125,7 +125,7 @@ do_batch_dump(struct _DriDriver *driver)
 }
 #endif
 
-static void i915_new_batch(struct _DriDriver *driver)
+static void i915_new_batch(struct _DrmDriver *driver)
 {
     /* Mark all state as needing to be emitted when starting a new batchbuffer.
      * Using hardware contexts would be an alternative, but they have some
@@ -144,7 +144,7 @@ static void i915_new_batch(struct _DriDriver *driver)
 /* TODO: Push this whole function into manager.
  */
 static int
-do_flush_locked(struct _DriDriver *driver)
+do_flush_locked(struct _DrmDriver *driver)
 {
     struct intel_batchbuffer *batch = &driver->batch;
     int ret = 0;
@@ -187,7 +187,7 @@ do_flush_locked(struct _DriDriver *driver)
 }
 
 #if 0
-static void intel_upload_finish(struct _DriDriver *driver)
+static void intel_upload_finish(struct _DrmDriver *driver)
 {
     if (!driver->upload.bo)
         return;
@@ -205,7 +205,7 @@ static void intel_upload_finish(struct _DriDriver *driver)
 }
 #endif
 
-int intel_batchbuffer_flush(struct _DriDriver *driver)
+int intel_batchbuffer_flush(struct _DrmDriver *driver)
 {
     int ret;
 
@@ -260,7 +260,7 @@ int intel_batchbuffer_flush(struct _DriDriver *driver)
 /*  This is the only way buffers get added to the validate list.
  */
 bool
-intel_batchbuffer_emit_reloc(struct _DriDriver *driver,
+intel_batchbuffer_emit_reloc(struct _DrmDriver *driver,
         drm_intel_bo *buffer,
         uint32_t read_domains, uint32_t write_domain,
         uint32_t delta)
@@ -284,7 +284,7 @@ intel_batchbuffer_emit_reloc(struct _DriDriver *driver,
 }
 
 bool
-intel_batchbuffer_emit_reloc_fenced(struct _DriDriver *driver,
+intel_batchbuffer_emit_reloc_fenced(struct _DrmDriver *driver,
         drm_intel_bo *buffer,
         uint32_t read_domains,
         uint32_t write_domain,
@@ -309,7 +309,7 @@ intel_batchbuffer_emit_reloc_fenced(struct _DriDriver *driver,
 }
 
 void
-intel_batchbuffer_data(struct _DriDriver *driver,
+intel_batchbuffer_data(struct _DrmDriver *driver,
         const void *data, GLuint bytes)
 {
     assert((bytes & 3) == 0);
@@ -325,7 +325,7 @@ intel_batchbuffer_data(struct _DriDriver *driver,
  * This is also used for the always_flush_cache driconf debug option.
  */
 void
-intel_batchbuffer_emit_mi_flush(struct _DriDriver *driver)
+intel_batchbuffer_emit_mi_flush(struct _DrmDriver *driver)
 {
     BEGIN_BATCH(1);
     OUT_BATCH(MI_FLUSH);
