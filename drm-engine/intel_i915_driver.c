@@ -79,7 +79,7 @@
 #include <minigui/gdi.h>
 #include <minigui/exstubs.h>
 
-#ifdef _MGGAL_DRI
+#ifdef _MGGAL_DRM
 
 #ifdef HAVE_DRM_INTEL
 
@@ -982,7 +982,7 @@ static int i915_copy_blit (DrmDriver *driver,
     return -1;
 }
 
-DrmDriverOps* __dri_ex_driver_get(const char* driver_name, int device_fd)
+DrmDriverOps* __drm_ex_driver_get(const char* driver_name, int device_fd)
 {
     _MG_PRINTF("%s called with driver name: %s\n", __func__, driver_name);
 
@@ -1014,7 +1014,7 @@ DrmDriverOps* __dri_ex_driver_get(const char* driver_name, int device_fd)
 
 #else /* HAVE_DRM_INTEL */
 
-DrmDriverOps* __dri_ex_driver_get(const char* driver_name, int device_fd)
+DrmDriverOps* __drm_ex_driver_get(const char* driver_name, int device_fd)
 {
     _WRN_PRINTF("This external DRM driver is a NULL implementation!");
     return NULL;
@@ -1022,6 +1022,6 @@ DrmDriverOps* __dri_ex_driver_get(const char* driver_name, int device_fd)
 
 #endif /* !HAVE_DRM_INTEL */
 
-#endif /* _MGGAL_DRI */
+#endif /* _MGGAL_DRM */
 
 #endif /* __TARGET_EXTERNAL__ */
