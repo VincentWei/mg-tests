@@ -315,6 +315,7 @@ static my_surface_buffer * drm_buffer_new (DrmDriver *driver,
     my_surface_buffer *buffer;
 
     buffer = calloc (1, sizeof (my_surface_buffer));
+    buffer->base.name = 0;
     buffer->base.handle = buffer_object->handle;
     buffer->base.id = id;
     buffer->base.width = width;
@@ -454,6 +455,8 @@ static DrmSurfaceBuffer* i915_create_buffer (DrmDriver *driver,
         return NULL;
     }
 
+    buffer->base.prime_fd = -1;
+    buffer->base.name = 0;
     buffer->base.bpp = bpp;
     buffer->base.cpp = cpp;
     buffer->added_fb = 1;
@@ -497,6 +500,8 @@ static DrmSurfaceBuffer* i915_create_buffer_from_handle (DrmDriver *driver,
         return NULL;
     }
 
+    buffer->base.prime_fd = -1;
+    buffer->base.name = 0;
     buffer->base.bpp = bpp;
     buffer->base.cpp = cpp;
     buffer->added_fb = 1;
@@ -544,6 +549,8 @@ static DrmSurfaceBuffer* i915_create_buffer_from_name (DrmDriver *driver,
         return NULL;
     }
 
+    buffer->base.prime_fd = -1;
+    buffer->base.name = name;
     buffer->base.bpp = bpp;
     buffer->base.cpp = cpp;
     buffer->added_fb = 1;
@@ -586,6 +593,8 @@ static DrmSurfaceBuffer* i915_create_buffer_from_prime_fd (DrmDriver *driver,
         return NULL;
     }
 
+    buffer->base.prime_fd = prime_fd;
+    buffer->base.name = 0;
     buffer->base.bpp = bpp;
     buffer->base.cpp = cpp;
     buffer->added_fb = 1;
