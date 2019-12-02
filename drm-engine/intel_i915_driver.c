@@ -70,7 +70,7 @@
 #include <string.h>
 #include <time.h>
 
-#undef _DEBUG
+#define _DEBUG
 #include <minigui/common.h>
 
 #ifdef __TARGET_EXTERNAL__
@@ -396,10 +396,11 @@ static my_surface_buffer* i915_create_buffer_helper (DrmDriver *driver,
             unsigned int width, unsigned int height,
             unsigned int pitch)
 {
-    uint32_t buffer_id;
-    uint32_t handles[4], pitches[4], offsets[4];
+    uint32_t buffer_id = 0;
     my_surface_buffer *buffer;
 
+#if 0
+    uint32_t handles[4], pitches[4], offsets[4];
     handles[0] = buffer_object->handle;
     pitches[0] = pitch;
     offsets[0] = 0;
@@ -409,6 +410,7 @@ static my_surface_buffer* i915_create_buffer_helper (DrmDriver *driver,
         drm_intel_bo_unreference (buffer_object);
         return 0;
     }
+#endif
 
     buffer = drm_buffer_new (driver,
             buffer_object, buffer_id, width, height, pitch);
@@ -789,7 +791,7 @@ static void i915_destroy_buffer (DrmDriver *driver,
     free (my_buffer);
 
     _DBG_PRINTF("%s: Buffer object (%u) destroied\n",
-            __func__, buffer_id);
+            __func__, my_buffer->base.id);
 }
 
 static unsigned int translate_raster_op(enum DrmColorLogicOp logicop)
