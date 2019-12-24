@@ -453,12 +453,12 @@ int MiniGUIMain (int argc, const char* argv[])
     MAINWINCREATE CreateInfo;
 
 #ifdef _MGRM_PROCESSES
-    JoinLayer(NAME_DEF_LAYER , "testdri" , 0 , 0);
+    JoinLayer(NAME_DEF_LAYER , "testdrm" , 0 , 0);
 #endif
 
     CreateInfo.dwStyle = WS_VISIBLE | WS_BORDER | WS_CAPTION;
     CreateInfo.dwExStyle = WS_EX_NONE;
-    CreateInfo.spCaption = "Test DRI";
+    CreateInfo.spCaption = "Test of DRM engine";
     CreateInfo.hMenu = 0;
     CreateInfo.hCursor = GetSystemCursor(0);
     CreateInfo.hIcon = 0;
