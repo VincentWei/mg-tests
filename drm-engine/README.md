@@ -1,16 +1,16 @@
-# Test code for DRI engine
+# Test code for DRM engine
 
 ## Introduction
 
-This test program covers the `dri` NEWGAL engine of MiniGUI 4.0.0.
-It implements a sub driver of `dri` engine for `i915` GPU, and
+This test program covers the `drm` NEWGAL engine of MiniGUI 4.0.0.
+It implements a sub driver of `drm` engine for `i915` GPU, and
 gives an example to exploit the GPU's accelerated rendering
 capabilities:
 
 * Allocating and freeing memory from GPU for a hardware accelerated
   MiniGUI surface.
 * Filling a rectangle in the hardware surface with a solid pixel value.
-* Bliting pixels on a source surface to a destination surface with
+* Blitting pixels on a source surface to a destination surface with
   alpha or color-key enabled.
 
 Please make sure to install `libdrm-dev` package to your Linux system:
@@ -50,5 +50,5 @@ already downloaded it, you MUST destroy all of its copies.
 The Exception List is published by FMSoft
 in the following webpage and may be updated from time to time:
 
-https://www.fmsoft.cn/exception-list
+<https://www.fmsoft.cn/exception-list>
 
