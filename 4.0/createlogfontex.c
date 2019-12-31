@@ -972,16 +972,16 @@ int MiniGUIMain (int argc, const char* argv[])
 #ifdef _MGRM_PROCESSES
     const char* layer = NULL;
 
-    for (i = 1; i < args; i++) {
-        if (strcmp (arg[i], "-layer") == 0) {
-            layer = arg[i + 1];
+    for (i = 1; i < argc; i++) {
+        if (strcmp (argv[i], "-layer") == 0) {
+            layer = argv[i + 1];
             break;
         }
     }
 
     GetLayerInfo (layer, NULL, NULL, NULL);
 
-    if (JoinLayer (layer, arg[0], 0, 0) == INV_LAYER_HANDLE) {
+    if (JoinLayer (layer, argv[0], 0, 0) == INV_LAYER_HANDLE) {
         printf ("JoinLayer: invalid layer handle.\n");
         exit (1);
     }
