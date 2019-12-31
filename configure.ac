@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.60)
-AC_INIT(mg-tests,4.0.4)
+AC_INIT(mg-tests,4.1.0)
 AC_CONFIG_SRCDIR(src/helloworld.c)
 
 dnl ========================================================================
@@ -31,7 +31,7 @@ AC_HEADER_SYS_WAIT
 AC_HEADER_TIME
 AC_CHECK_HEADERS(sys/time.h unistd.h)
 
-PKG_CHECK_MODULES([MINIGUI], [minigui >= 4.0.4])
+PKG_CHECK_MODULES([MINIGUI], [minigui >= 4.1.0])
 PKG_CHECK_MODULES([MGEFF], [mgeff >= 1.2.0])
 
 PKG_CHECK_MODULES(DRM, [libudev >= 200, libdrm >= 2.4], video_drm="yes",
