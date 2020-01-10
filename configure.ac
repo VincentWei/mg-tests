@@ -51,6 +51,11 @@ else
     AC_MSG_WARN([$video_drm_intel])
 fi
 
+AC_CHECK_DECLS(_MGUSE_COMPOSITING, use_compositing="yes", foo=bar, [#include <minigui/common.h>])
+
+dnl ========================================================================
+dnl Write Output
+
 LIBS="$LIBS $MINIGUI_LIBS -lefence"
 
 if test "$ac_cv_prog_gcc" = "yes"; then
@@ -58,11 +63,7 @@ if test "$ac_cv_prog_gcc" = "yes"; then
     CFLAGS="$CFLAGS -std=c99 -Wall -Werror -Wstrict-prototypes -pipe"
 fi
 
-dnl ========================================================================
-dnl Write Output
-
-AC_CHECK_DECLS(_MGRM_PROCESSES, minigui_runmode="procs", foo=bar, [#include <minigui/common.h>])
-AM_CONDITIONAL(MGRM_PROCESSES, test "x$minigui_runmode" = "xprocs")
+AM_CONDITIONAL(MGUSE_COMPOSITING, test "x$use_compositing" = "xyes")
 
 AC_OUTPUT(
     Makefile
@@ -73,4 +74,5 @@ AC_OUTPUT(
     drm-engine/Makefile
     comm-engines/Makefile
     resmgr/Makefile
+    compositor/Makefile
 )

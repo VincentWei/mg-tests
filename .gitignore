@@ -90,3 +90,10 @@ drm-engine/testdrm
 comm-engines/commengines
 resmgr/str2key
 resmgr/resmgr
+compositor/edit
+compositor/helloworld
+compositor/mginit
+compositor/scrnsaver
+compositor/static
+compositor/trackbar
+
