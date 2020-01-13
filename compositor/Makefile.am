@@ -1,5 +1,6 @@
-noinst_PROGRAMS=helloworld static edit trackbar scrnsaver mginit
+noinst_PROGRAMS=wallpaper helloworld static edit trackbar scrnsaver mginit
 
+wallpaper_SOURCES=wallpaper.c
 helloworld_SOURCES=helloworld.c
 static_SOURCES=static.c
 edit_SOURCES=edit.c

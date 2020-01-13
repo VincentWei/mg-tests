@@ -10,7 +10,7 @@
 // https://www.fmsoft.cn/exception-list
 //
 //////////////////////////////////////////////////////////////////////////////
-/* 
+/*
 ** $Id: mginit.c 322 2007-08-30 01:20:10Z xwyan $
 **
 ** Listing 31.1
@@ -48,26 +48,26 @@
 #include <minigui/window.h>
 
 static BOOL quit = FALSE;
+static int nr_clients = 0;
 
 static void on_new_del_client (int op, int cli)
-{       
-    static int nr_clients = 0;
-
+{
     if (op == LCO_NEW_CLIENT) {
         nr_clients ++;
-    }   
+        _MG_PRINTF ("A new client: %d.\n", mgClients[cli].pid);
+    }
     else if (op == LCO_DEL_CLIENT) {
+        _MG_PRINTF ("A client left: %d.\n", mgClients[cli].pid);
         nr_clients --;
         if (nr_clients == 0) {
-            printf ("There is no any client, I will quit.\n");
-            quit = TRUE;
-        }               
+            _MG_PRINTF ("There is no any client.\n");
+        }
         else if (nr_clients < 0) {
-            printf ("Serious error: nr_clients less than zero.\n");
+            _ERR_PRINTF ("Serious error: nr_clients less than zero.\n");
         }
     }
     else
-        printf ("Serious error: incorrect operations.\n");
+        _ERR_PRINTF ("Serious error: incorrect operations.\n");
 }
 
 static pid_t exec_app (const char* file_name, const char* app_name)
@@ -75,7 +75,7 @@ static pid_t exec_app (const char* file_name, const char* app_name)
     pid_t pid = 0;
 
     if ((pid = vfork ()) > 0) {
-        fprintf (stderr, "new child, pid: %d.\n", pid);
+        _MG_PRINTF ("new child, pid: %d.\n", pid);
     }
     else if (pid == 0) {
         execl (file_name, app_name, NULL);
@@ -105,19 +105,25 @@ static int my_event_hook (PMSG msg)
 
     if (msg->message == MSG_KEYDOWN) {
         switch (msg->wParam) {
-            case SCANCODE_F1:
-               exec_app ("./edit", "edit");
-               break;
-            case SCANCODE_F2:
-               exec_app ("./timeeditor", "timeeditor");
-               break;
-            case SCANCODE_F3:
-               exec_app ("./propsheet", "propsheet");
-               break;
-            case SCANCODE_F4:
-               exec_app ("./bmpbkgnd", "bmpbkgnd");
-               break;
-	}
+        case SCANCODE_ESCAPE:
+            if (nr_clients == 0) {
+                quit = TRUE;
+            }
+            break;
+
+        case SCANCODE_F1:
+           exec_app ("./edit", "edit");
+           break;
+        case SCANCODE_F2:
+           exec_app ("./timeeditor", "timeeditor");
+           break;
+        case SCANCODE_F3:
+           exec_app ("./propsheet", "propsheet");
+           break;
+        case SCANCODE_F4:
+           exec_app ("./bmpbkgnd", "bmpbkgnd");
+           break;
+    }
     }
 
     return HOOK_GOON;
@@ -130,9 +136,9 @@ static void child_wait (int sig)
 
     while ((pid = waitpid (-1, &status, WNOHANG)) > 0) {
         if (WIFEXITED (status))
-            printf ("--pid=%d--status=%x--rc=%d---\n", pid, status, WEXITSTATUS(status));
+            _MG_PRINTF ("--pid=%d--status=%x--rc=%d---\n", pid, status, WEXITSTATUS(status));
         else if (WIFSIGNALED(status))
-            printf ("--pid=%d--signal=%d--\n", pid, WTERMSIG (status));
+            _MG_PRINTF ("--pid=%d--signal=%d--\n", pid, WTERMSIG (status));
     }
 }
 
@@ -149,11 +155,11 @@ int MiniGUIMain (int args, const char* arg[])
     OnNewDelClient = on_new_del_client;
 
     if (!ServerStartup (0 , 0 , 0)) {
-        fprintf (stderr, 
-                 "Can not start the server of MiniGUI-Processes: mginit.\n");
+        _ERR_PRINTF("Can not start the server of MiniGUI-Processes: mginit.\n");
         return 1;
     }
 
+    //exec_app ("./wallpaper", "wallpaper");
 
     SetServerEventHook (my_event_hook);
 
@@ -161,18 +167,16 @@ int MiniGUIMain (int args, const char* arg[])
         if (exec_app (arg[1], arg[1]) == 0)
             return 3;
     }
-    else {
-        if (exec_app ("./helloworld", "helloworld") == 0)
-            return 3;
-    }
 
     old_tick_count = GetTickCount ();
 
     while (!quit && GetMessage (&msg, HWND_DESKTOP)) {
+#if 0
         if (pid_scrnsaver == 0 && GetTickCount () > old_tick_count + 1000) {
             ShowCursor (FALSE);
             pid_scrnsaver = exec_app ("./scrnsaver", "scrnsaver");
         }
+#endif
         DispatchMessage (&msg);
     }
 
