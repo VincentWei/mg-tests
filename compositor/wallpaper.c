@@ -89,6 +89,15 @@ static unsigned int old_tick_count;
 int MiniGUIMain (int argc, const char* argv[])
 {
     MSG msg;
+    RECT rc_scr = GetScreenRect();
+
+    _MG_PRINTF("Screen rect: %d, %d, %d, %d\n",
+            rc_scr.left, rc_scr.top,
+            rc_scr.right, rc_scr.bottom);
+
+    _MG_PRINTF("Wallpaper pattern size: %d, %d\n",
+            GetGDCapability (HDC_SCREEN, GDCAP_HPIXEL),
+            GetGDCapability (HDC_SCREEN, GDCAP_VPIXEL));
 
     JoinLayer(NAME_DEF_LAYER , "wallpaper" , 0 , 0);
 
