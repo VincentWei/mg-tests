@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#define _DEBUG
 #include <minigui/common.h>
 #include <minigui/minigui.h>
 #include <minigui/gdi.h>
@@ -185,6 +186,10 @@ int MiniGUIMain (int argc, const char* argv[])
 #ifdef _MGRM_PROCESSES
     JoinLayer(NAME_DEF_LAYER , "helloworld" , 0 , 0);
 #endif
+
+    _DBG_PRINTF("Screen rect: %d, %d, %d, %d\n",
+        g_rcScr.left, g_rcScr.top,
+        g_rcScr.right, g_rcScr.bottom);
 
     CreateInfo.dwStyle = 
         WS_VISIBLE | WS_BORDER | WS_CAPTION;
