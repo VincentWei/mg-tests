@@ -103,7 +103,6 @@ int MiniGUIMain (int argc, const char* argv[])
     RECT rc_scr = GetScreenRect();
     DWORD old_tick_count;
 
-
     _MG_PRINTF("Screen rect: %d, %d, %d, %d\n",
             rc_scr.left, rc_scr.top,
             rc_scr.right, rc_scr.bottom);
