@@ -32,8 +32,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#define _DEBUG
-
 #include <minigui/common.h>
 #include <minigui/minigui.h>
 #include <minigui/gdi.h>
@@ -119,7 +117,7 @@ int MiniGUIMain (int argc, const char* argv[])
     old_tick_count = GetTickCount ();
     while (GetMessage (&msg, HWND_DESKTOP)) {
         DWORD curr_tick_count = GetTickCount ();
-        if (curr_tick_count > old_tick_count + 100) {
+        if (curr_tick_count > old_tick_count + 2) {
             scale += step;
             if (scale > 2.0) {
                 step = -0.1;
@@ -128,7 +126,7 @@ int MiniGUIMain (int argc, const char* argv[])
                 step = 0.1;
             }
 
-            _WRN_PRINTF("It is time to load another wallpaper.\n");
+            _DBG_PRINTF("It is time to load another wallpaper.\n");
             if (load_wallpaper (HDC_SCREEN, WALLPAPER_FILE, scale) < 0)
                 exit (1);
             old_tick_count = curr_tick_count;
