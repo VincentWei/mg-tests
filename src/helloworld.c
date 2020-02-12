@@ -134,10 +134,9 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
         case MSG_SYSKEYDOWN:
             syskey = HL_ST_SYS;
         case MSG_KEYDOWN:
-            if(last_key == wParam)
+            if (last_key == wParam)
                 last_key_count++;
-            else
-            {
+            else {
                 last_key = wParam;
                 last_key_count = 1;
             }
@@ -176,6 +175,12 @@ int MiniGUIMain (int argc, const char* argv[])
     MSG Msg;
     HWND hMainWnd;
     MAINWINCREATE CreateInfo;
+
+    RECT rc_scr = GetScreenRect();
+
+    _MG_PRINTF("Screen rect: %d, %d, %d, %d\n",
+            rc_scr.left, rc_scr.top,
+            rc_scr.right, rc_scr.bottom);
 
 #ifdef _MGRM_PROCESSES
     JoinLayer(NAME_DEF_LAYER , "helloworld" , 0 , 0);

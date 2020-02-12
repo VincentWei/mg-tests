@@ -159,7 +159,11 @@ int MiniGUIMain (int args, const char* arg[])
         return 1;
     }
 
-    //exec_app ("./wallpaper", "wallpaper");
+#ifdef _MGSCHEMA_COMPOSITING
+    exec_app ("./wallpaper", "wallpaper");
+#endif
+    exec_app ("./static", "static");
+    exec_app ("./edit", "edit");
 
     SetServerEventHook (my_event_hook);
 
