@@ -22,6 +22,7 @@
 **      GetWindowAdditionalData
 **      PostQuitMessage
 **      DestroyMainWindow
+**      GetWindowInfo
 **      MainWindowCleanup
 **      MSG_TIMER
 **      MSG_IDLE
@@ -280,9 +281,11 @@ static int test_timer_in_gui_thread (void)
 
     DestroyMainWindow (hMainWnd);
 
-    /* dwAddData of this window has been set to zero in clean_timers.
-       We use GetWindowInfo to check the dwAddData of this window */
-    const WINDOWINFO *win_info = GetWindowInfo(hMainWnd);
+    /* The dwAddData of this window has been set to zero in clean_timers.
+       We use GetWindowInfo to check the dwAddData of this window,
+       because the window is to be deleted, GetWindowAdditionalData will
+       always returns 0. */
+    const WINDOWINFO *win_info = GetWindowInfo (hMainWnd);
     assert (win_info->dwAddData == 0);
 
     MainWindowCleanup (hMainWnd);
