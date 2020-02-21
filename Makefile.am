@@ -1,4 +1,4 @@
-COMMON_SUBDIRS = m4 src 4.0 extra-input drm-engine comm-engines resmgr
+COMMON_SUBDIRS = m4 src 5.0 4.0 extra-input drm-engine comm-engines resmgr
 
 if MGSCHEMA_COMPOSITING
 COMPOS_SUBDIRS=compositor
