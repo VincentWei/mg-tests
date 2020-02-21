@@ -18,7 +18,7 @@
 **      DefaultWindowProc
 **      SetTimerEx
 **      KillTimer
-**      SetWindowAddtionalData
+**      SetWindowAdditionalData
 **      GetWindowAdditionalData
 **      PostQuitMessage
 **      DestroyMainWindow
@@ -78,12 +78,11 @@ static BOOL my_timer_proc (HWND hwnd, LINT id, DWORD ticks)
         ticks_error = timer->ticks_expected - ticks_current;
     }
 
+    assert (ticks_error < 10);
+
     timer->ticks_expected = ticks_current + timer->interv;
     if (ticks_error > timer->ticks_error) {
         timer->ticks_error = ticks_error;
-    }
-    else {
-        assert (0);
     }
 
     _MG_PRINTF ("Timer fired: id (%ld), interval (%lu), error (%lu)\n",
@@ -209,6 +208,9 @@ static void clean_timers (HWND hwnd)
     assert (info);
     free (info);
 
+    _MG_PRINTF("data for test freed\n");
+
+    SetWindowAdditionalData (hwnd, 0);
     /* all timers will be killed by DestroyMainWindow() */
 }
 
@@ -277,6 +279,12 @@ static int test_timer_in_gui_thread (void)
     dump_timer_info (hMainWnd);
 
     DestroyMainWindow (hMainWnd);
+
+    /* dwAddData of this window has been set to zero in clean_timers.
+       We use GetWindowInfo to check the dwAddData of this window */
+    const WINDOWINFO *win_info = GetWindowInfo(hMainWnd);
+    assert (win_info->dwAddData == 0);
+
     MainWindowCleanup (hMainWnd);
     return 0;
 }
@@ -287,12 +295,13 @@ int MiniGUIMain (int argc, const char* argv[])
 
     JoinLayer (NAME_DEF_LAYER , "timer" , 0 , 0);
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 3; i++) {
         retval = test_timer_in_gui_thread ();
         if (retval)
             exit (retval);
     }
 
+    _MG_PRINTF ("Test for timer passed!\n");
     return 0;
 }
 
