@@ -37,6 +37,8 @@
 **      GetWindowAdditionalData2
 **      SetWindowAdditionalData2
 **      MSG_IDLE
+**      MSG_CREATE
+**      MSG_DESTROY
 **
 ** Copyright (C) 2020 FMSoft (http://www.fmsoft.cn).
 **
