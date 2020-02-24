@@ -11,7 +11,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 /*
-**  Test code for timer for MiniGUI 5.0.0
+**  Test code of timer for MiniGUI 5.0.0
 **  The following APIs are covered:
 **
 **      CreateMainWindow
@@ -31,6 +31,7 @@
 **      CreateVirtualWindow
 **      DestroyVirtualWindow
 **      VirtualWindowCleanup
+**      GetTickCount
 **      MSG_TIMER
 **      MSG_IDLE
 **
@@ -329,8 +330,8 @@ static void* test_timer_in_message_thread (void* arg)
 {
     MSG Msg;
     HWND hMainWnd = (HWND)arg;
-    HWND hVirtWnd = CreateVirtualWindow (HWND_DESKTOP,
-            "Virtual Window for timer test", 0, TestWinProc, 0);
+    HWND hVirtWnd = CreateVirtualWindow (HWND_DESKTOP, TestWinProc,
+            "Virtual Window for timer test", 0, 0);
 
     if (hVirtWnd == HWND_INVALID) {
         SendNotifyMessage (hMainWnd, MSG_COMMAND, CMD_VIRTWND_FAILED, 0);
