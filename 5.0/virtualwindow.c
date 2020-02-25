@@ -25,6 +25,7 @@
 **      GetRootWindow
 **      GetFirstHosted
 **      GetNextHosted
+**      GetHostedById
 **      GetWindowInfo
 **      PostQuitMessage
 **      NotifyWindow
@@ -154,7 +155,7 @@ static void create_hosted_windows (HWND hwnd)
     pthread_t self = pthread_self ();
 
     _DBG_PRINTF ("current hosting depth: %d\n", depth_hosted);
-    if (depth_hosted >= info->max_depth_hosted) {
+    if (depth_hosted > info->max_depth_hosted) {
         _WRN_PRINTF ("Reached the maximal hosting depth: %d\n", depth_hosted);
         return;
     }
@@ -215,6 +216,7 @@ static void create_hosted_windows (HWND hwnd)
 }
 
 struct _travel_context {
+    int nr_wins;
     int depth;
     HWND hosting;
 };
@@ -236,6 +238,8 @@ static HWND travel_win_tree_bfs (struct _travel_context *ctxt)
         _MG_PRINTF ("Got a window in depth (%d): %p (%ld, %s)\n",
                 ctxt->depth, hosted, win_info->id, win_info->spCaption);
 
+        ctxt->nr_wins++;
+
         ctxt->hosting = hosted;
         ctxt->depth++;
         travel_win_tree_bfs (ctxt);
@@ -247,13 +251,54 @@ static HWND travel_win_tree_bfs (struct _travel_context *ctxt)
     return NULL;
 }
 
+static void test_get_hosted_by_id (HWND root_wnd, struct test_info *info)
+{
+    HWND found_main = GetHostedById (root_wnd,
+            info->max_depth_hosted,
+            WIN_SEARCH_METHOD_BFS | WIN_SEARCH_FILTER_MAIN);
+
+    HWND found_virt = GetHostedById (root_wnd,
+            info->max_depth_hosted,
+            WIN_SEARCH_METHOD_DFS | WIN_SEARCH_FILTER_VIRT);
+
+    /* GetHostedById never returns the desktop */
+    assert (found_main != HWND_DESKTOP);
+    assert (found_main != HWND_DESKTOP);
+
+    if (found_main != HWND_NULL || found_virt != HWND_NULL) {
+        /* different filters must return different results */
+        assert (found_main != found_virt);
+    }
+
+    if (info->nr_thread_wins > 0 && root_wnd == HWND_DESKTOP) {
+        HWND found_wnd = GetHostedById (root_wnd,
+                0,
+                WIN_SEARCH_METHOD_DFS |
+                WIN_SEARCH_FILTER_VIRT |
+                WIN_SEARCH_FILTER_MAIN);
+
+        /* the window identified by 0 is always the root window
+           in the gui thread */
+        assert (found_wnd == info->root_wnd);
+    }
+}
+
 static void print_hosting_tree (HWND hwnd)
 {
     HWND root_wnd = GetRootWindow ();
 
     if (root_wnd != HWND_INVALID && root_wnd != HWND_NULL) {
-        struct _travel_context ctxt = { 0, root_wnd };
+        struct test_info *info;
+        info = (struct test_info*)GetWindowAdditionalData (hwnd);
+
+        struct _travel_context ctxt = { 0, 0, root_wnd };
         travel_win_tree_bfs (&ctxt);
+        assert (ctxt.nr_wins == info->nr_thread_wins);
+
+        test_get_hosted_by_id (root_wnd, info);
+    }
+    else {
+        _ERR_PRINTF ("try to travel a non message thread\n");
     }
 }
 
@@ -371,7 +416,7 @@ test_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
                 }
             }
             else {
-                _MG_PRINTF ("It's time to quit the message loop (%p, %0lx): nr (%d)\n",
+                _MG_PRINTF ("It's time to quit the message loop (%p, %0lx): nr_wins (%d)\n",
                         hwnd, add_data2, info->nr_thread_wins);
 
                 if (info->nr_mths == 0 && info->nr_thread_wins == 0) {
@@ -457,14 +502,16 @@ create_test_main_window (struct test_info* info, HWND hosting)
         nr_wins_hosted = 0;
     }
 
-    LINT id = MAKELONG (nr_wins_hosted, depth_hosted);
+    DWORD add_data2 = MAKELONG (nr_wins_hosted, depth_hosted);
 
-    HWND new_wnd = CreateMainWindowEx2 (&create_info, NULL, NULL, 0, 0, 0, id, 0);
+    /* we use hosting depth as the identifier of the window,
+       for testing GetHostedbyId easily */
+    HWND new_wnd = CreateMainWindowEx2 (&create_info, NULL, NULL, 0, 0, 0, depth_hosted, 0);
     if (info->root_wnd && new_wnd != HWND_INVALID) {
         NotifyWindow (info->main_main_wnd, (LINT)info->main_main_wnd,
             NC_MTH_MAINWIN_CEATED, (DWORD)new_wnd);
-        SetWindowAdditionalData2 (new_wnd, id);
-        _MG_PRINTF ("CREATE A WINDOW (MAIN) at depth (%d): %p\n", depth_hosted--, new_wnd);
+        SetWindowAdditionalData2 (new_wnd, add_data2);
+        _DBG_PRINTF ("CREATED A WINDOW (MAIN) at depth (%d): %p\n", depth_hosted--, new_wnd);
 
         info->nr_thread_wins++;
     }
@@ -493,15 +540,17 @@ create_test_virtual_window (struct test_info* info, HWND hosting)
         nr_wins_hosted = 0;
     }
 
-    LINT id = MAKELONG (nr_wins_hosted, depth_hosted);
+    DWORD add_data2 = MAKELONG (nr_wins_hosted, depth_hosted);
+
+    /* we use the depth hosted as the identifier of a window */
     HWND new_wnd = CreateVirtualWindow (hosting, test_win_proc,
-            "A Virtual Window", id, (DWORD)info);
+            "A Virtual Window", depth_hosted, (DWORD)info);
 
     if (info->root_wnd && new_wnd != HWND_INVALID) {
         NotifyWindow (info->main_main_wnd, (LINT)info->main_main_wnd,
             NC_MTH_VIRTWIN_CEATED, (DWORD)new_wnd);
-        SetWindowAdditionalData2 (new_wnd, id);
-        _MG_PRINTF ("CREATE A WINDOW (VIRTUAL) at depth (%d): %p\n", depth_hosted--, new_wnd);
+        SetWindowAdditionalData2 (new_wnd, add_data2);
+        _DBG_PRINTF ("CREATED A WINDOW (VIRTUAL) at depth (%d): %p\n", depth_hosted--, new_wnd);
 
         info->nr_thread_wins++;
     }
