@@ -100,4 +100,5 @@ compositor/trackbar
 5.0/timer
 5.0/virtualwindow
 5.0/tickcount
+5.0/zorder
 
