@@ -12,6 +12,10 @@
 //////////////////////////////////////////////////////////////////////////////
 /*
 **  Test code of timer for MiniGUI 5.0.0
+**
+**  This test program continually sleeps and call GetTickCount, then calculate
+**  the error giving by the sleep time and the GetTickCount.
+**
 **  The following APIs are covered:
 **
 **      GetTickCount

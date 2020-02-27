@@ -12,6 +12,16 @@
 //////////////////////////////////////////////////////////////////////////////
 /*
 **  Test code of virtual window for MiniGUI 5.0.
+**
+**  This test program creates some main windows and virtual windows in the main
+**  thread, and creates some virtual windows in some message threads.
+**  Every main window or virtual window will create a general POSIX thread
+**  as a worker to perform a time-consuming operation.
+**
+**  All threads use MiniGUI's messaging functions to send notifications by
+**  calling NotifyWindow or send a synchronous message to other windows/threads
+**  by calling SendMessage.
+**
 **  The following APIs are covered:
 **
 **      CreateThreadForMessaging
@@ -700,22 +710,22 @@ static int test_main_entry (int nr_threads)
 
 int MiniGUIMain (int argc, const char* argv[])
 {
-    int nr_threads = 4;
     int nr_loops = 10;
+    int nr_threads = 4;
 
     JoinLayer (NAME_DEF_LAYER , "virtual window" , 0 , 0);
 
     srandom (time(NULL));
 
     if (argc > 1)
-        nr_threads = atoi (argv[1]);
-    if (nr_threads < 0)
-        nr_threads = 4;
+        nr_loops = atoi (argv[1]);
+    if (nr_loops < 0)
+        nr_loops = 10;
 
     if (argc > 2)
-        nr_loops = atoi (argv[2]);
+        nr_threads = atoi (argv[2]);
     if (nr_threads < 0)
-        nr_threads = 10;
+        nr_threads = 4;
 
     for (int i = 0; i < nr_loops; i++) {
         _WRN_PRINTF ("Starting loop %d.\n", i);
