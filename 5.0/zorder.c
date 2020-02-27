@@ -145,37 +145,37 @@ struct window_template {
     { WS_EX_WINTYPE_TOOLTIP,    0xFFFFFF00, 0x00000010,
         { 0, 0, 100, 100 }, { 13, 13 }, DEF_NR_TOOLTIPS,    0,
         "WS_EX_WINTYPE_TOOLTIP",
-        "A tooltip window expected %d" },
+        "A tooltip window #%d" },
 
     { WS_EX_WINTYPE_GLOBAL,     0xFFFF00FF, 0x00001000,
         { 0, 0, 200, 200 }, { 17, 17 }, DEF_NR_GLOBALS,     0,
         "WS_EX_WINTYPE_GLOBAL",
-        "A global window expected %d" },
+        "A global window #%d" },
 
     { WS_EX_WINTYPE_SCREENLOCK, 0xFF00FFFF, 0x00100000,
         { 0, 0, 300, 300 }, { 7, 7 },   DEF_NR_SCREENLOCKS, 0,
         "WS_EX_WINTYPE_SCREENLOCK",
-        "A screenlock window expected %d" },
+        "A screenlock window #%d" },
 
     { WS_EX_WINTYPE_DOCKER,     0xFFFF0000, 0x00001010,
         { 0, 0, 400, 400 }, { 11, 11 }, DEF_NR_DOCKERS,     0,
         "WS_EX_WINTYPE_DOCKER",
-        "A docker window expected %d" },
+        "A docker window #%d" },
 
     { WS_EX_WINTYPE_HIGHER,     0xFF000000, 0x00030303,
         { 0, 0, 500, 500 }, { 5, 5 },   DEF_NR_HIGHERS,     0,
         "WS_EX_WINTYPE_HIGHER",
-        "A higher window expected %d" },
+        "A higher window #%d" },
 
     { WS_EX_WINTYPE_NORMAL,     0xFF000000, 0x00010101,
         { 0, 0, 600, 600 }, { 3, 3 },   DEF_NR_NORMALS,     0,
         "WS_EX_WINTYPE_NORMAL",
-        "A normal window expected %d" },
+        "A normal window #%d" },
 
     { WS_EX_WINTYPE_LAUNCHER,   0xFF00FF00, 0x00100010,
         { 0, 0, 700, 700 }, { 19, 19 }, DEF_NR_LAUNCHERS,   0,
         "WS_EX_WINTYPE_LAUNCHER",
-        "A launcher window expected %d" },
+        "A launcher window #%d" },
 };
 
 typedef struct test_info {
@@ -253,8 +253,12 @@ static void on_test_win_created (HWND hwnd, test_info_t* info,
             return;
     }
 
+    _MG_PRINTF ("A main window created (%s) type (%s)\n",
+            GetWindowCaption (win_info->hwnd),
+            window_templates[level_got].type_name);
+
     if (level_got != win_info->level_expected) {
-        _WRN_PRINTF ("window (%s) type changed (%s -> %s)\n", 
+        _WRN_PRINTF ("window (%s) type changed (%s -> %s)\n",
                 GetWindowCaption (win_info->hwnd),
                 window_templates[win_info->level_expected].type_name,
                 window_templates[level_got].type_name);
@@ -284,6 +288,7 @@ test_main_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
         break;
 
     case MSG_IDLE:
+        _DBG_PRINTF ("got a MSG_IDLE for window: %p\n", hwnd);
         break;
 
     case MSG_DESTROY:
