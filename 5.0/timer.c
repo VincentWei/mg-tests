@@ -13,7 +13,7 @@
 /*
 **  Test code of timer for MiniGUI 5.0.0
 **
-**  This test program creates a main window in the main threas and some message
+**  This test program creates a main window in the main threads and some message
 **  threads by calling CreateThreadForMessaging. A main window or a virtual
 **  window will be created in every thread. The window will set up some timers
 **  by calling SetTimerEx.

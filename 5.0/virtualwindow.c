@@ -77,9 +77,8 @@
 
 #ifdef _MGHAVE_VIRTUAL_WINDOW
 
-/* If the following values are too large, stack may overflow. */
 #define MAX_DEPTH_HOSTED        8
-#define MAX_BREADTH_HOSTED      4
+#define MAX_BREADTH_HOSTED      8
 
 enum {
     NC_GTH_NOOP = 0,

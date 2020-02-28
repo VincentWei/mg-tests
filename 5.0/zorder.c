@@ -18,9 +18,9 @@
 **  The program will check the correctness of a z-order operation by reading
 **  some pixel values of specific pixels on the screen.
 **
-**  Under MiniGUI-Threads runtime mode, this program will create 6 GUI threads
-*   for all z-order levels other than WS_EX_WINTYPE_NORMAL, and create main
-**  windows in different levels in theses threads.
+**  Under MiniGUI-Threads runtime mode, this program will create 7 GUI threads
+**  for all z-order levels and create main windows in different levels in
+**  theses threads.
 **
 **  Under MiniGUI-Processes runtime mode, this program runs as the server and
 **  forks 6 children processes for all z-order levels other than
@@ -81,7 +81,9 @@
 
 #ifndef _MGSCHEMA_COMPOSITING
 
-/* constants defined by MiniGUI */
+#include "list.h"
+
+/* constants defined by MiniGUI Core */
 #define DEF_NR_TOOLTIPS             8
 #define DEF_NR_GLOBALS              15
 #define DEF_NR_SCREENLOCKS          8
@@ -99,13 +101,19 @@ enum {
     WIN_LEVEL_HIGHER,
     WIN_LEVEL_NORMAL,
     WIN_LEVEL_LAUNCHER,
+    WIN_LEVEL_MIN = WIN_LEVEL_TOOLTIP,
     WIN_LEVEL_MAX = WIN_LEVEL_LAUNCHER,
 };
+
+#define IS_WIN_LEVEL_VALID(level)   \
+    ((level) >= WIN_LEVEL_MIN && (level) <= WIN_LEVEL_MAX)
 
 /* user-defined messages */
 enum {
     MSG_GETWINLEVEL = MSG_USER,
     MSG_TESTWINCREATED,
+    MSG_TESTWINSHOWN,
+    MSG_TESTWINDESTROYED,
 };
 
 /* notification identifiers */
@@ -122,15 +130,17 @@ enum {
 };
 
 typedef struct win_info {
-    HWND    hwnd;
-    DWORD   color_bkgnd;
-    BOOL    visible;
-    BOOL    topmost;
-    int     level_expected;
-    RECT    rc_window;
+    struct list_head    list;
+    HWND                hwnd;
+    DWORD               color_bkgnd;
+    BOOL                visible;
+    BOOL                topmost;
+    int                 level_expected;
+    int                 level_got;
+    RECT                rc_window;
 } win_info_t;
 
-struct window_template {
+static struct window_template {
     DWORD       type_style;
     DWORD       color_bkgnd;
     DWORD       color_delta;
@@ -140,7 +150,11 @@ struct window_template {
     int         nr_created;
     const char *type_name;
     const char *caption;
+
+    struct list_head list_wins;
+#if 0
     win_info_t *windows;
+#endif
 } window_templates [] = {
     { WS_EX_WINTYPE_TOOLTIP,    0xFFFFFF00, 0x00000010,
         { 0, 0, 100, 100 }, { 13, 13 }, DEF_NR_TOOLTIPS,    0,
@@ -178,13 +192,174 @@ struct window_template {
         "A launcher window #%d" },
 };
 
+static int add_new_window_in_level (int level, const win_info_t* win_info)
+{
+    struct list_head *info;
+    win_info_t *new_win_info;
+
+    list_for_each (info, &window_templates[level].list_wins) {
+        win_info_t *my_win_info = (win_info_t*)info;
+        if (my_win_info->hwnd == win_info->hwnd) {
+            _ERR_PRINTF ("window (%p) existed in level (%d)\n",
+                    win_info->hwnd, level);
+            assert (0);
+            return -1;
+        }
+    }
+
+    if ((new_win_info = mg_slice_new (win_info_t)) == NULL) {
+        _WRN_PRINTF ("failed to allocate memory for window info\n");
+        return -1;
+    }
+
+    memcpy (new_win_info, win_info, sizeof (win_info_t));
+    list_add (&new_win_info->list, &window_templates[level].list_wins);
+
+    window_templates[level].nr_created++;
+    return 0;
+}
+
+static int mark_window_as_visible_in_level (int level, HWND hwnd, BOOL show_hide)
+{
+    struct list_head *info, *tmp;
+    win_info_t *found = NULL;
+
+    list_for_each_safe (info, tmp, &window_templates[level].list_wins) {
+        win_info_t *win_info = (win_info_t *)info;
+        if (win_info->hwnd == hwnd) {
+            found = win_info;
+            break;
+        }
+    }
+
+    if (found == NULL) {
+        _ERR_PRINTF ("window (%p) not found in level (%d)\n", hwnd, level);
+        assert (0);
+        return -1;
+    }
+
+    found->visible = show_hide;
+    return 0;
+}
+
+static int move_window_to_top_in_level (int level, HWND hwnd, BOOL show_hide)
+{
+    struct list_head *info, *tmp;
+    win_info_t *found = NULL;
+
+    list_for_each_safe (info, tmp, &window_templates[level].list_wins) {
+        win_info_t *win_info = (win_info_t *)info;
+        if (win_info->hwnd == hwnd) {
+            found = win_info;
+            break;
+        }
+    }
+
+    if (found == NULL) {
+        _ERR_PRINTF ("window (%p) not found in level (%d)\n", hwnd, level);
+        assert (0);
+        return -1;
+    }
+
+    found->visible = show_hide;
+
+    list_del (&found->list);
+    list_add (&found->list, &window_templates[level].list_wins);
+    return 0;
+}
+
+static int remove_window_in_level (int level, HWND hwnd)
+{
+    struct list_head *info;
+    win_info_t *found = NULL;
+
+    list_for_each (info, &window_templates[level].list_wins) {
+        win_info_t *win_info = (win_info_t *)info;
+        if (win_info->hwnd == hwnd) {
+            found = win_info;
+            break;
+        }
+    }
+
+    if (found == NULL) {
+        _ERR_PRINTF ("window (%p) not found in level (%d)\n", hwnd, level);
+        assert (0);
+        return -1;
+    }
+
+    list_del (&found->list);
+    mg_slice_delete (win_info_t, found);
+
+    window_templates[level].nr_created--;
+    return 0;
+}
+
+static int free_all_windows_in_level (int level)
+{
+    int nr = 0;
+    struct list_head *info, *tmp;
+
+    list_for_each_safe (info, tmp, &window_templates[level].list_wins) {
+        win_info_t *win_info = (win_info_t *)info;
+        list_del (&win_info->list);
+        mg_slice_delete (win_info_t, win_info);
+        nr++;
+    }
+
+    return nr;
+}
+
 typedef struct test_info {
-    HWND main_main_wnd; // the main window in main thread
-    HWND root_wnd;      // the root window in the gui thread
+    HWND main_main_wnd; // the main window in the main thread
+    HWND root_wnd;      // the root window in a GUI thread
 
     int win_level;      // window level for the thread.
-    int nr_thread_wins; // the number of main windows in a thread.
+    int nr_thread_wins; // the number of main windows in this thread.
 } test_info_t;
+
+static void on_test_win_created (test_info_t* info, win_info_t* win_info)
+{
+    assert (IS_WIN_LEVEL_VALID (win_info->level_got));
+
+    _MG_PRINTF ("A main window created (%p) in level (%d)\n",
+            win_info->hwnd, win_info->level_got);
+
+    add_new_window_in_level (win_info->level_got, win_info);
+}
+
+static void on_test_win_shown (int show_cmd, HWND hwnd)
+{
+    int level = (int)GetWindowAdditionalData2 (hwnd);
+
+    assert (IS_WIN_LEVEL_VALID (level));
+
+    switch (show_cmd) {
+        case SW_HIDE:
+            mark_window_as_visible_in_level (level, hwnd, FALSE);
+            break;
+        case SW_SHOW:
+            mark_window_as_visible_in_level (level, hwnd, TRUE);
+            break;
+        case SW_SHOWNORMAL:
+            move_window_to_top_in_level (level, hwnd, TRUE);
+            break;
+        default:
+            assert (0);
+            break;
+    }
+}
+
+static void on_test_win_destroyed (test_info_t* info, HWND hwnd)
+{
+    int level = (int)GetWindowAdditionalData2 (hwnd);
+
+    assert (IS_WIN_LEVEL_VALID (level));
+
+    _MG_PRINTF ("The main window is being destroyed (%p) in level (%d)\n",
+            hwnd, level);
+
+    remove_window_in_level (level, hwnd);
+}
 
 static void main_main_wnd_notif_proc (HWND hwnd, LINT id, int nc, DWORD add_data)
 {
@@ -211,67 +386,23 @@ static void main_main_wnd_notif_proc (HWND hwnd, LINT id, int nc, DWORD add_data
     }
 }
 
-static void on_test_win_created (HWND hwnd, test_info_t* info,
-        win_info_t* win_info)
-{
-    int level_got = -1;
-
-    assert (info->main_main_wnd == hwnd);
-
-    switch (GetWindowExStyle (win_info->hwnd) & WS_EX_WINTYPE_MASK) {
-        case WS_EX_WINTYPE_TOOLTIP:
-            level_got = WIN_LEVEL_TOOLTIP;
-            break;
-
-        case WS_EX_WINTYPE_GLOBAL:
-            level_got = WIN_LEVEL_GLOBAL;
-            break;
-
-        case WS_EX_WINTYPE_SCREENLOCK:
-            level_got = WIN_LEVEL_SCREENLOCK;
-            break;
-
-        case WS_EX_WINTYPE_DOCKER:
-            level_got = WIN_LEVEL_DOCKER;
-            break;
-
-        case WS_EX_WINTYPE_HIGHER:
-            level_got = WIN_LEVEL_HIGHER;
-            break;
-
-        case WS_EX_WINTYPE_NORMAL:
-            level_got = WIN_LEVEL_NORMAL;
-            break;
-
-        case WS_EX_WINTYPE_LAUNCHER:
-            level_got = WIN_LEVEL_LAUNCHER;
-            break;
-
-        default:
-            _WRN_PRINTF ("bad window type\n");
-            assert (0);
-            return;
-    }
-
-    _MG_PRINTF ("A main window created (%s) type (%s)\n",
-            GetWindowCaption (win_info->hwnd),
-            window_templates[level_got].type_name);
-
-    if (level_got != win_info->level_expected) {
-        _WRN_PRINTF ("window (%s) type changed (%s -> %s)\n",
-                GetWindowCaption (win_info->hwnd),
-                window_templates[win_info->level_expected].type_name,
-                window_templates[level_got].type_name);
-    }
-}
-
 static LRESULT
 test_main_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
 {
     switch (message) {
     case MSG_CREATE:
-        SetNotificationCallback (hwnd, main_main_wnd_notif_proc);
         return 0;
+
+    case MSG_SHOWWINDOW: {
+        test_info_t *info;
+        info = (test_info_t *)GetWindowAdditionalData (hwnd);
+
+        assert (info && info->main_main_wnd != HWND_NULL);
+
+        SendMessage (info->main_main_wnd,
+                MSG_TESTWINSHOWN, wparam, (LPARAM)hwnd);
+        break;
+    }
 
     case MSG_GETWINLEVEL: {
 #ifndef _MGRM_THREADS
@@ -284,7 +415,15 @@ test_main_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
     }
 
     case MSG_TESTWINCREATED:
-        on_test_win_created (hwnd, (test_info_t *)wparam, (win_info_t *)lparam);
+        on_test_win_created ((test_info_t *)wparam, (win_info_t *)lparam);
+        break;
+
+    case MSG_TESTWINSHOWN:
+        on_test_win_shown ((int)wparam, (HWND)lparam);
+        break;
+
+    case MSG_TESTWINDESTROYED:
+        on_test_win_destroyed ((test_info_t *)wparam, (HWND)lparam);
         break;
 
     case MSG_IDLE:
@@ -352,6 +491,56 @@ create_test_main_window (test_info_t* info, HWND hosting, int number)
             info->root_wnd = win_info.hwnd;
         }
 
+        win_info.level_got = -1;
+        switch (GetWindowExStyle (win_info.hwnd) & WS_EX_WINTYPE_MASK) {
+            case WS_EX_WINTYPE_TOOLTIP:
+                win_info.level_got = WIN_LEVEL_TOOLTIP;
+                break;
+
+            case WS_EX_WINTYPE_GLOBAL:
+                win_info.level_got = WIN_LEVEL_GLOBAL;
+                break;
+
+            case WS_EX_WINTYPE_SCREENLOCK:
+                win_info.level_got = WIN_LEVEL_SCREENLOCK;
+                break;
+
+            case WS_EX_WINTYPE_DOCKER:
+                win_info.level_got = WIN_LEVEL_DOCKER;
+                break;
+
+            case WS_EX_WINTYPE_HIGHER:
+                win_info.level_got = WIN_LEVEL_HIGHER;
+                break;
+
+            case WS_EX_WINTYPE_NORMAL:
+                win_info.level_got = WIN_LEVEL_NORMAL;
+                break;
+
+            case WS_EX_WINTYPE_LAUNCHER:
+                win_info.level_got = WIN_LEVEL_LAUNCHER;
+                break;
+
+            default:
+                _WRN_PRINTF ("bad window type\n");
+                assert (0);
+                return HWND_INVALID;
+        }
+
+        // we use dwAddData2 to record the level got
+        SetWindowAdditionalData2 (win_info.hwnd, (DWORD)win_info.level_got);
+
+        _MG_PRINTF ("A main window created (%s) type (%s)\n",
+                GetWindowCaption (win_info.hwnd),
+                window_templates[win_info.level_got].type_name);
+
+        if (win_info.level_got != win_info.level_expected) {
+            _WRN_PRINTF ("window (%s) type changed (%s -> %s)\n",
+                    GetWindowCaption (win_info.hwnd),
+                    window_templates[win_info.level_expected].type_name,
+                    window_templates[win_info.level_got].type_name);
+        }
+
         SendMessage (info->main_main_wnd, MSG_TESTWINCREATED,
             (WPARAM)info, (LPARAM)&win_info);
 
@@ -398,7 +587,7 @@ static void* test_thread_entry (void* arg)
     info.win_level = (int)SendMessage (info.main_main_wnd,
             MSG_GETWINLEVEL, 0, (DWORD)&self);
 
-    if (info.win_level < 0 || info.win_level > WIN_LEVEL_MAX) {
+    if (!IS_WIN_LEVEL_VALID (info.win_level)) {
         NotifyWindow (info.main_main_wnd,
                 NTID_THREAD_STATUS, NC_ERR_WINLEVEL, (DWORD)&self);
         _ERR_PRINTF ("bad window level: %d\n", info.win_level);
@@ -440,11 +629,18 @@ static int test_main_entry (void)
 {
     test_info_t info = { HWND_NULL, HWND_NULL, WIN_LEVEL_NORMAL, 0 };
 
-    /* allocate window info for all levels */
-    for (int level = WIN_LEVEL_TOOLTIP; level <= WIN_LEVEL_MAX; level++) {
+    /* initialize window list for all levels */
+    for (int level = WIN_LEVEL_MIN; level <= WIN_LEVEL_MAX; level++) {
+        window_templates[level].list_wins.next =
+            &window_templates[level].list_wins;
+
+        window_templates[level].list_wins.prev =
+            &window_templates[level].list_wins;
+#if 0
         window_templates[info.win_level].windows =
             calloc (window_templates[info.win_level].nr_allowed,
                     sizeof (win_info_t));
+#endif
     }
 
     /* we use dwAddData to record the global test info */
@@ -453,12 +649,14 @@ static int test_main_entry (void)
         return -1;
     }
 
+    SetNotificationCallback (info.main_main_wnd, main_main_wnd_notif_proc);
+
     /* reset nr_thread_wins for main thread */
     info.nr_thread_wins = 0;
 
 #ifdef _MGRM_THREADS
     /* create message threads */
-    for (int level = WIN_LEVEL_TOOLTIP; level <= WIN_LEVEL_MAX; level++) {
+    for (int level = WIN_LEVEL_MIN; level <= WIN_LEVEL_MAX; level++) {
         pthread_t th;
         if (CreateThreadForMainWindow (&th, NULL, test_thread_entry,
                     (void*)info.main_main_wnd)) {
@@ -467,7 +665,7 @@ static int test_main_entry (void)
         }
     }
 #else   /* defined _MGRM_THREADS */
-    for (int level = WIN_LEVEL_TOOLTIP; level <= WIN_LEVEL_MAX; level++) {
+    for (int level = WIN_LEVEL_MIN; level <= WIN_LEVEL_MAX; level++) {
         info.win_level = level;
 
         int nr_tries = window_templates[info.win_level].nr_allowed + 1;
@@ -492,10 +690,13 @@ static int test_main_entry (void)
     DestroyMainWindow (info.main_main_wnd);
     MainWindowCleanup (info.main_main_wnd);
 
-    /* allocate window info for all levels */
-    for (int level = WIN_LEVEL_TOOLTIP; level <= WIN_LEVEL_MAX; level++) {
+    /* free window list for all levels */
+    for (int level = WIN_LEVEL_MIN; level <= WIN_LEVEL_MAX; level++) {
+        free_all_windows_in_level (level);
+#if 0
         free (window_templates[level].windows);
         window_templates[level].windows = NULL;
+#endif
     }
     return 0;
 }
