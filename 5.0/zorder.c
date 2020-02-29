@@ -230,7 +230,7 @@ static const win_info_t *get_window_at_point (int x, int y)
     return NULL;
 }
 
-static void print_windows_by_pixel (gal_pixel pixel)
+static int print_windows_by_pixel (gal_pixel pixel)
 {
     for (int level = WIN_LEVEL_MIN; level <= WIN_LEVEL_MAX; level++) {
         struct list_head *info;
@@ -251,15 +251,21 @@ static void print_windows_by_pixel (gal_pixel pixel)
                     win_info->rc_window.right,
                     win_info->rc_window.bottom,
                     win_info->visible ? "TRUE" : "FALSE");
+                return win_info->level_got;
             }
         }
     }
+
+    return -1;
 }
 
 static int print_windows_in_level (int level)
 {
     int nr = 0;
     struct list_head *info;
+
+    if (!IS_WIN_LEVEL_VALID (level))
+        return nr;
 
     list_for_each (info, &window_templates[level].list_wins) {
         win_info_t *win_info = (win_info_t *)info;
@@ -327,8 +333,8 @@ static int check_zorder_by_apis (void)
 
 static int check_zorder_by_pixels (void)
 {
-    int nr = 0;
     int x, y;
+    DWORD color_desktop = GetWindowElementAttr (HWND_DESKTOP, WE_BGC_DESKTOP);
     gal_pixel pixel_desktop = GetWindowElementPixelEx (HWND_DESKTOP,
             HDC_SCREEN, WE_BGC_DESKTOP);
 
@@ -346,7 +352,7 @@ static int check_zorder_by_pixels (void)
                 _ERR_PRINTF ("pixel (%d, %d) on screen: %08x\n",
                         x, y, pixel_screen);
                 _ERR_PRINTF ("pixel (%d, %d) on screen "
-                        "do not match background 0x%08lx of window (%s), "
+                        "do not match background color (0x%08lx) of window (%s), "
                         "rect (%d, %d, %d, %d)\n",
                         x, y, win_info->color_bkgnd,
                         GetWindowCaption (win_info->hwnd),
@@ -358,13 +364,12 @@ static int check_zorder_by_pixels (void)
                             "is background pixel of desktop\n", x, y);
                 }
                 else {
-                    print_windows_by_pixel (pixel_screen);
+                    print_windows_in_level (
+                            print_windows_by_pixel (pixel_screen));
                 }
 
                 print_windows_in_level (win_info->level_got);
-
-                assert (0);
-                nr++;
+                return -1;
             }
         }
         else {
@@ -372,19 +377,17 @@ static int check_zorder_by_pixels (void)
                 _ERR_PRINTF ("pixel (%d, %d) on screen: %08x\n",
                         x, y, pixel_screen);
                 _ERR_PRINTF ("pixel (%d, %d) on screen "
-                        "do not match background of desktop\n",
-                        x, y);
+                        "do not match background color (0x%08lx) of desktop\n",
+                        x, y, color_desktop);
 
-                print_windows_by_pixel (pixel_screen);
-                print_windows_in_level (win_info->level_got);
-
-                assert (0);
-                nr++;
+                print_windows_in_level (
+                        print_windows_by_pixel (pixel_screen));
+                return -1;
             }
         }
     }
 
-    return nr;
+    return 0;
 }
 
 static int add_new_window_in_level (int level, const win_info_t* win_info)
@@ -886,8 +889,24 @@ test_main_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
                 // check zorder when the main main window is idle
                 // and the number of pending zorder operation is 0.
                 if (info->nr_zops == 0) {
+                    static int nr_errors;
+
                     check_zorder_by_apis ();
-                    check_zorder_by_pixels ();
+
+                    // under MiniGUI-Processes runtime mode, because some
+                    // updates are asynchronous, so we need to give another
+                    // chances to try to pass the test.
+                    // After 5 tries, if the test can not pass, we give up.
+                    if (nr_errors > 5) {
+                        assert (0);
+                    }
+
+                    if (check_zorder_by_pixels ()) {
+                        nr_errors++;
+                        break;
+                    }
+
+                    nr_errors = 0;
                     do_zorder_operation (info);
                 }
             }
@@ -979,6 +998,9 @@ create_test_main_window (test_info_t* info, HWND hosting, int number)
 
             case WS_EX_WINTYPE_GLOBAL:
                 win_info.level_got = WIN_LEVEL_GLOBAL;
+#ifdef _MGRM_PROCESSES
+                assert (0);
+#endif
                 break;
 
             case WS_EX_WINTYPE_SCREENLOCK:
