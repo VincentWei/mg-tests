@@ -22,7 +22,7 @@
 **  for all z-order levels and create main windows in different levels in
 **  theses threads.
 **
-**  Under MiniGUI-Processes runtime mode, this program runs as the server and
+**  Under MiniGUI-Processes runtime mode, this program will
 **  forks 6 children processes for all z-order levels other than
 **  WS_EX_WINTYPE_GLOBAL. The children processes create main windows in
 **  different levels.
@@ -32,15 +32,27 @@
 **  The following APIs are covered:
 **
 **      CreateThreadForMainWindow
-**      CreateMainWindowEx2
+**      CreateMainWindow
 **      DestroyMainWindow
 **      MainWindowCleanup
-**      SetActiveWindow
-**      GetActiveWindow
-**      GetPixel
+**      CreateVirtualWindow
+**      DestroyVirtualWindow
+**      VirtualWindowCleanup
+**      PostQuitMessage
 **      DefaultMainWinProc
 **      DefaultVirtualWinProc
 **      ShowWindow
+**      MoveWindow
+**      GetWindowAdditionalData
+**      SetWindowAdditionalData
+**      GetWindowAdditionalData2
+**      SetWindowAdditionalData2
+**      SendMessage
+**      NotifyWindow
+**      GetPixel
+**      SetTimer
+**      GetNextMainWindow
+**      GetWindowRect
 **      WS_EX_WINTYPE_TOOLTIP
 **      WS_EX_WINTYPE_GLOBAL
 **      WS_EX_WINTYPE_SCREENLOCK
@@ -48,9 +60,8 @@
 **      WS_EX_WINTYPE_HIGHER
 **      WS_EX_WINTYPE_NORMAL
 **      WS_EX_WINTYPE_LAUNCHER
-**      WS_ALWAYSTOP
 **      MSG_PAINT
-**      MSG_IDLE
+**      MSG_TIMER
 **      MSG_CREATE
 **      MSG_DESTROY
 **      HDC_SCREEN
@@ -110,10 +121,23 @@ enum {
 
 /* user-defined messages */
 enum {
-    MSG_GETWINLEVEL = MSG_USER,
+    /* Messages sent to main main window from a message thread. */
+    MSG_MTH_READY = MSG_USER,
+    MSG_MTH_QUIT,
+
+    /* Messages sent to main main window from a test window. */
+    MSG_GETWINLEVEL,
     MSG_TESTWINCREATED,
     MSG_TESTWINSHOWN,
+    MSG_TESTWINMOVED,
     MSG_TESTWINDESTROYED,
+
+    /* Messages sent to test main window from main main window. */
+    MSG_ZORDER_OP_DESTROY, 
+    MSG_ZORDER_OP_SHOW,
+    MSG_ZORDER_OP_HIDE,
+    MSG_ZORDER_OP_RAISE,
+    MSG_ZORDER_OP_MOVE,
 };
 
 /* notification identifiers */
@@ -134,10 +158,10 @@ typedef struct win_info {
     HWND                hwnd;
     DWORD               color_bkgnd;
     BOOL                visible;
-    BOOL                topmost;
     int                 level_expected;
     int                 level_got;
     RECT                rc_window;
+    RECT                rc_exp;
 } win_info_t;
 
 static struct window_template {
@@ -192,6 +216,182 @@ static struct window_template {
         "A launcher window #%d" },
 };
 
+static const win_info_t *get_window_at_point (int x, int y)
+{
+    int level;
+
+    for (level = WIN_LEVEL_MIN; level <= WIN_LEVEL_MAX; level++) {
+        struct list_head *info;
+
+        list_for_each (info, &window_templates[level].list_wins) {
+            win_info_t *my_win_info = (win_info_t*)info;
+            if (my_win_info->visible &&
+                    PtInRect (&my_win_info->rc_window, x, y)) {
+                return my_win_info;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+static void print_windows_by_pixel (gal_pixel pixel)
+{
+    for (int level = WIN_LEVEL_MIN; level <= WIN_LEVEL_MAX; level++) {
+        struct list_head *info;
+
+        list_for_each (info, &window_templates[level].list_wins) {
+            win_info_t *win_info = (win_info_t *)info;
+            gal_pixel pixel_window = DWORD2Pixel (HDC_SCREEN,
+                    win_info->color_bkgnd);
+
+            if (pixel_window == pixel) {
+                _ERR_PRINTF ("pixel (%08x) on screen "
+                    "is background 0x%08lx of window (%s), "
+                    "rect (%d, %d, %d, %d), visibility: %s\n",
+                    pixel, win_info->color_bkgnd,
+                    GetWindowCaption (win_info->hwnd),
+                    win_info->rc_window.left,
+                    win_info->rc_window.top,
+                    win_info->rc_window.right,
+                    win_info->rc_window.bottom,
+                    win_info->visible ? "TRUE" : "FALSE");
+            }
+        }
+    }
+}
+
+static int print_windows_in_level (int level)
+{
+    int nr = 0;
+    struct list_head *info;
+
+    list_for_each (info, &window_templates[level].list_wins) {
+        win_info_t *win_info = (win_info_t *)info;
+
+        _ERR_PRINTF ("window (%s) in level (%d): background (0x%08lx), "
+            "rect (%d, %d, %d, %d), visibility: %s\n",
+            GetWindowCaption (win_info->hwnd), level,
+            win_info->color_bkgnd,
+            win_info->rc_window.left,
+            win_info->rc_window.top,
+            win_info->rc_window.right,
+            win_info->rc_window.bottom,
+            win_info->visible ? "TRUE" : "FALSE");
+
+        nr++;
+    }
+
+    SendMessage (HWND_DESKTOP, MSG_DUMPZORDER, 0, 0);
+
+    return nr;
+}
+
+static int check_zorder_by_apis (void)
+{
+    HWND tm_api = GetNextMainWindow (HWND_NULL);    // tm: topmost
+    HWND bm_api = HWND_NULL;                        // bm: bottommost
+    HWND next = HWND_NULL;
+    
+    _WRN_PRINTF ("the topmost window got by APIs: %p (%s)\n",
+            tm_api, GetWindowCaption (tm_api));
+
+    next = tm_api;
+    while (next) {
+        bm_api = next;
+        next = GetNextMainWindow (next);
+    }
+
+    _WRN_PRINTF ("the bottommost window got by APIs: %p (%s)\n",
+            bm_api, GetWindowCaption (bm_api));
+
+    HWND tm_me = HWND_NULL, bm_me = HWND_NULL;
+
+    for (int level = WIN_LEVEL_MIN; level <= WIN_LEVEL_MAX; level++) {
+        struct list_head *info;
+
+        list_for_each (info, &window_templates[level].list_wins) {
+            win_info_t *win_info = (win_info_t *)info;
+
+            if (tm_me == HWND_NULL)
+                tm_me = win_info->hwnd;
+            bm_me = win_info->hwnd;
+        }
+    }
+
+    _WRN_PRINTF ("the topmost window got from my zorder: %p (%s)\n",
+            tm_me, GetWindowCaption (tm_me));
+
+    _WRN_PRINTF ("the bottommost window got from my zorder: %p (%s)\n",
+            bm_me, GetWindowCaption (bm_me));
+
+    assert (tm_api == tm_me);
+    assert (bm_api == bm_me);
+    return 0;
+}
+
+static int check_zorder_by_pixels (void)
+{
+    int nr = 0;
+    int x, y;
+    gal_pixel pixel_desktop = GetWindowElementPixelEx (HWND_DESKTOP,
+            HDC_SCREEN, WE_BGC_DESKTOP);
+
+    /* check some pixels on the diagonal line */
+    for (x = 0, y = 0; x < g_rcScr.right && y < g_rcScr.bottom; x += 3, y += 3) {
+        const win_info_t* win_info;
+        gal_pixel pixel_screen = GetPixel (HDC_SCREEN, x, y);
+
+        win_info = get_window_at_point (x, y);
+        if (win_info) {
+            gal_pixel pixel_window = DWORD2Pixel (HDC_SCREEN,
+                    win_info->color_bkgnd);
+
+            if (pixel_screen != pixel_window) {
+                _ERR_PRINTF ("pixel (%d, %d) on screen: %08x\n",
+                        x, y, pixel_screen);
+                _ERR_PRINTF ("pixel (%d, %d) on screen "
+                        "do not match background 0x%08lx of window (%s), "
+                        "rect (%d, %d, %d, %d)\n",
+                        x, y, win_info->color_bkgnd,
+                        GetWindowCaption (win_info->hwnd),
+                        win_info->rc_window.left, win_info->rc_window.top,
+                        win_info->rc_window.right, win_info->rc_window.bottom);
+
+                if (pixel_screen == pixel_desktop) {
+                    _ERR_PRINTF ("pixel (%d, %d) on screen "
+                            "is background pixel of desktop\n", x, y);
+                }
+                else {
+                    print_windows_by_pixel (pixel_screen);
+                }
+
+                print_windows_in_level (win_info->level_got);
+
+                assert (0);
+                nr++;
+            }
+        }
+        else {
+            if (pixel_screen != pixel_desktop) {
+                _ERR_PRINTF ("pixel (%d, %d) on screen: %08x\n",
+                        x, y, pixel_screen);
+                _ERR_PRINTF ("pixel (%d, %d) on screen "
+                        "do not match background of desktop\n",
+                        x, y);
+
+                print_windows_by_pixel (pixel_screen);
+                print_windows_in_level (win_info->level_got);
+
+                assert (0);
+                nr++;
+            }
+        }
+    }
+
+    return nr;
+}
+
 static int add_new_window_in_level (int level, const win_info_t* win_info)
 {
     struct list_head *info;
@@ -219,6 +419,9 @@ static int add_new_window_in_level (int level, const win_info_t* win_info)
     return 0;
 }
 
+
+GET_ENTRY_BY_INDEX(get_win_info_by_idx, win_info_t, list)
+
 static int mark_window_as_visible_in_level (int level, HWND hwnd, BOOL show_hide)
 {
     struct list_head *info, *tmp;
@@ -242,12 +445,45 @@ static int mark_window_as_visible_in_level (int level, HWND hwnd, BOOL show_hide
     return 0;
 }
 
-static int move_window_to_top_in_level (int level, HWND hwnd, BOOL show_hide)
+static int raise_window_to_top_in_level (int level, HWND hwnd)
 {
-    struct list_head *info, *tmp;
+    int idx = 0;
+    struct list_head *info;
     win_info_t *found = NULL;
 
-    list_for_each_safe (info, tmp, &window_templates[level].list_wins) {
+    list_for_each (info, &window_templates[level].list_wins) {
+        win_info_t *win_info = (win_info_t *)info;
+        if (win_info->hwnd == hwnd) {
+            found = win_info;
+            break;
+        }
+        idx++;
+    }
+
+    if (found == NULL) {
+        _ERR_PRINTF ("window (%p) not found in level (%d)\n", hwnd, level);
+        assert (0);
+        return -1;
+    }
+
+    _DBG_PRINTF ("window #%d (%s) is visible (%d: %d)\n",
+            idx, GetWindowCaption (found->hwnd),
+            found->visible, IsWindowVisible (found->hwnd));
+
+    found->visible = TRUE;
+    assert (IsWindowVisible (found->hwnd));
+
+    list_del (&found->list);
+    list_add (&found->list, &window_templates[level].list_wins);
+    return 0;
+}
+
+static int change_window_rect_in_level (int level, HWND hwnd)
+{
+    struct list_head *info;
+    win_info_t *found = NULL;
+
+    list_for_each (info, &window_templates[level].list_wins) {
         win_info_t *win_info = (win_info_t *)info;
         if (win_info->hwnd == hwnd) {
             found = win_info;
@@ -261,10 +497,7 @@ static int move_window_to_top_in_level (int level, HWND hwnd, BOOL show_hide)
         return -1;
     }
 
-    found->visible = show_hide;
-
-    list_del (&found->list);
-    list_add (&found->list, &window_templates[level].list_wins);
+    found->rc_window = found->rc_exp;
     return 0;
 }
 
@@ -306,6 +539,7 @@ static int free_all_windows_in_level (int level)
         nr++;
     }
 
+    window_templates[level].nr_created = 0;
     return nr;
 }
 
@@ -313,16 +547,23 @@ typedef struct test_info {
     HWND main_main_wnd; // the main window in the main thread
     HWND root_wnd;      // the root window in a GUI thread
 
-    int win_level;      // window level for the thread.
+    int win_level;      // window level for this thread.
     int nr_thread_wins; // the number of main windows in this thread.
+    int nr_threads;     // the number of active GUI threads.
+    int nr_zops;        // the number of pending zorder operations.
 } test_info_t;
 
 static void on_test_win_created (test_info_t* info, win_info_t* win_info)
 {
     assert (IS_WIN_LEVEL_VALID (win_info->level_got));
 
-    _MG_PRINTF ("A main window created (%p) in level (%d)\n",
-            win_info->hwnd, win_info->level_got);
+    _MG_PRINTF ("A main window created (%s) in level (%d), visible (%s : %s)\n",
+            GetWindowCaption (win_info->hwnd), win_info->level_got,
+            win_info->visible?"YSE":"NO",
+            IsWindowVisible (win_info->hwnd)?"YES":"NO");
+
+    if (win_info->visible)
+        info->nr_zops++;
 
     add_new_window_in_level (win_info->level_got, win_info);
 }
@@ -335,17 +576,39 @@ static void on_test_win_shown (int show_cmd, HWND hwnd)
 
     switch (show_cmd) {
         case SW_HIDE:
+            _MG_PRINTF ("The main window (%s) was hidden in level (%d)\n",
+                    GetWindowCaption (hwnd), level);
             mark_window_as_visible_in_level (level, hwnd, FALSE);
             break;
+
         case SW_SHOW:
+            _MG_PRINTF ("The main window (%s) was shown in level (%d)\n",
+                    GetWindowCaption (hwnd), level);
             mark_window_as_visible_in_level (level, hwnd, TRUE);
             break;
+
         case SW_SHOWNORMAL:
-            move_window_to_top_in_level (level, hwnd, TRUE);
+            _MG_PRINTF ("The main window (%s) was raised in level (%d)\n",
+                    GetWindowCaption (hwnd), level);
+            raise_window_to_top_in_level (level, hwnd);
             break;
+
         default:
             assert (0);
             break;
+    }
+}
+
+static void on_test_win_moved (HWND hwnd)
+{
+    int level = (int)GetWindowAdditionalData2 (hwnd);
+
+    assert (IS_WIN_LEVEL_VALID (level));
+
+    _MG_PRINTF ("The main window (%s) was moved in level (%d)\n",
+            GetWindowCaption (hwnd), level);
+    if (change_window_rect_in_level (level, hwnd)) {
+        assert (0);
     }
 }
 
@@ -355,8 +618,8 @@ static void on_test_win_destroyed (test_info_t* info, HWND hwnd)
 
     assert (IS_WIN_LEVEL_VALID (level));
 
-    _MG_PRINTF ("The main window is being destroyed (%p) in level (%d)\n",
-            hwnd, level);
+    _MG_PRINTF ("The main window (%s) is being destroyed in level (%d)\n",
+            GetWindowCaption (hwnd), level);
 
     remove_window_in_level (level, hwnd);
 }
@@ -386,12 +649,107 @@ static void main_main_wnd_notif_proc (HWND hwnd, LINT id, int nc, DWORD add_data
     }
 }
 
+static void set_new_window_rect (win_info_t *win_info, int level)
+{
+    win_info->rc_exp = win_info->rc_window;
+
+    int offx = window_templates[level].size_delta.cx * (random () % 5 - 10);
+    int offy = window_templates[level].size_delta.cy * (random () % 5 - 10);
+
+    OffsetRect (&win_info->rc_exp, offx, offy);
+}
+
+static void do_zorder_operation (test_info_t* info)
+{
+    int level;
+    int wnd_idx;
+    win_info_t *win_info;
+
+    level = random() % (WIN_LEVEL_MAX + 1);
+    if (window_templates[level].nr_created == 0) {
+        _WRN_PRINTF ("all windows in level (%d) are destroyed.\n", level);
+        for (int i = WIN_LEVEL_MIN; i <= WIN_LEVEL_MAX; i++) {
+            if (window_templates[i].nr_created > 0) {
+                level = i;
+                break;
+            }
+        }
+    }
+
+    if (window_templates[level].nr_created == 0) {
+        _WRN_PRINTF ("all windows in all levels are destroyed.\n");
+        return;
+    }
+
+    wnd_idx = random() % window_templates[level].nr_created;
+
+    win_info = get_win_info_by_idx (&window_templates[level].list_wins, wnd_idx);
+    if (win_info) {
+        switch (random () % 4) {    /* 3 for no moving */
+        case 0:
+            if (win_info->hwnd != info->main_main_wnd) {
+                _MG_PRINTF ("we are destroying window (%s) in level (%d), "
+                        "%d windows left\n",
+                        GetWindowCaption (win_info->hwnd), level,
+                        window_templates[level].nr_created);
+                // destroy the target window
+                SendNotifyMessage (win_info->hwnd, MSG_ZORDER_OP_DESTROY, 0, 0);
+                info->nr_zops++;
+            }
+            break;
+
+        case 1:
+            if (win_info->visible) {
+                _MG_PRINTF ("we are hiding window (%s) in level (%d)\n",
+                        GetWindowCaption (win_info->hwnd), level);
+                assert (IsWindowVisible (win_info->hwnd));
+                SendNotifyMessage (win_info->hwnd, MSG_ZORDER_OP_HIDE, 0, 0);
+                info->nr_zops++;
+            }
+            else {
+                _MG_PRINTF ("we are showing window (%s) in level (%d)\n",
+                        GetWindowCaption (win_info->hwnd), level);
+                assert (!IsWindowVisible (win_info->hwnd));
+                SendNotifyMessage (win_info->hwnd, MSG_ZORDER_OP_SHOW, 0, 0);
+                info->nr_zops++;
+            }
+            break;
+
+        case 2:
+            _MG_PRINTF ("we are showing and raising window (%s) in level (%d)\n",
+                    GetWindowCaption (win_info->hwnd), level);
+            SendNotifyMessage (win_info->hwnd, MSG_ZORDER_OP_RAISE, 0, 0);
+            info->nr_zops++;
+            break;
+
+        case 3:
+            _MG_PRINTF ("we are moving window (%s) in level (%d)\n",
+                    GetWindowCaption (win_info->hwnd), level);
+            set_new_window_rect (win_info, level);
+            SendNotifyMessage (win_info->hwnd, MSG_ZORDER_OP_MOVE,
+                    MAKELONG (win_info->rc_exp.left, win_info->rc_exp.top),
+                    MAKELONG (win_info->rc_exp.right, win_info->rc_exp.bottom));
+            info->nr_zops++;
+            break;
+
+        default:
+            assert (0);
+            break;
+        }
+    }
+}
+
 static LRESULT
 test_main_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
 {
     switch (message) {
     case MSG_CREATE:
         return 0;
+
+    case MSG_ERASEBKGND:
+        _DBG_PRINTF ("window (%s) got MSG_ERASEBKGND message\n",
+                GetWindowCaption (hwnd));
+        break;
 
     case MSG_SHOWWINDOW: {
         test_info_t *info;
@@ -404,34 +762,157 @@ test_main_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
         break;
     }
 
-    case MSG_GETWINLEVEL: {
-#ifndef _MGRM_THREADS
-        assert (0);
-#else
-        static int win_level = WIN_LEVEL_TOOLTIP;
-        return win_level++;
-#endif
+    case MSG_MOVEWINDOW: {
+        test_info_t *info;
+        info = (test_info_t *)GetWindowAdditionalData (hwnd);
+
+        assert (info && info->main_main_wnd != HWND_NULL);
+
+        SendMessage (info->main_main_wnd,
+                MSG_TESTWINMOVED, 0, (LPARAM)hwnd);
         break;
     }
 
-    case MSG_TESTWINCREATED:
-        on_test_win_created ((test_info_t *)wparam, (win_info_t *)lparam);
-        break;
+    case MSG_GETWINLEVEL: {
+        static int win_level = WIN_LEVEL_MIN;
 
-    case MSG_TESTWINSHOWN:
+        if (win_level > WIN_LEVEL_MAX) {
+            win_level = WIN_LEVEL_MIN;
+        }
+
+        return win_level++;
+    }
+
+    case MSG_MTH_READY: {
+        /* when a GUI thread is ready */
+        test_info_t *info;
+        info = (test_info_t *)GetWindowAdditionalData (hwnd);
+
+        assert (info && hwnd == info->main_main_wnd);
+        info->nr_threads++;
+        break;
+    }
+
+    case MSG_MTH_QUIT: {
+        /* when a GUI thread is quiting */
+        test_info_t *info;
+        info = (test_info_t *)GetWindowAdditionalData (hwnd);
+
+        assert (info && hwnd == info->main_main_wnd);
+        info->nr_threads--;
+        break;
+    }
+
+    case MSG_TESTWINCREATED: {
+        test_info_t *info;
+        info = (test_info_t *)GetWindowAdditionalData (hwnd);
+
+        assert (info && hwnd == info->main_main_wnd);
+        on_test_win_created (info, (win_info_t *)lparam);
+        break;
+    }
+
+    case MSG_TESTWINSHOWN: {
+        test_info_t *info;
+        info = (test_info_t *)GetWindowAdditionalData (hwnd);
+
+        assert (info && hwnd == info->main_main_wnd);
         on_test_win_shown ((int)wparam, (HWND)lparam);
+        info->nr_zops--;
         break;
+    }
 
-    case MSG_TESTWINDESTROYED:
+    case MSG_TESTWINMOVED: {
+        test_info_t *info;
+        info = (test_info_t *)GetWindowAdditionalData (hwnd);
+
+        assert (info && hwnd == info->main_main_wnd);
+        on_test_win_moved ((HWND)lparam);
+        info->nr_zops--;
+        break;
+    }
+
+    case MSG_TESTWINDESTROYED: {
+        test_info_t *info;
+        info = (test_info_t *)GetWindowAdditionalData (hwnd);
+
+        assert (info && hwnd == info->main_main_wnd);
         on_test_win_destroyed ((test_info_t *)wparam, (HWND)lparam);
+        info->nr_zops--;
+        break;
+    }
+
+    case MSG_ZORDER_OP_DESTROY: {
+        test_info_t *info;
+        info = (test_info_t *)GetWindowAdditionalData (hwnd);
+
+        if (info->root_wnd != hwnd) {
+            SendMessage (info->main_main_wnd, MSG_TESTWINDESTROYED,
+                    (WPARAM)info, (LPARAM)hwnd);
+            // for non root window, destroy it here
+            DestroyMainWindow (hwnd);
+            MainWindowCleanup (hwnd);
+        }
+        break;
+    }
+
+    case MSG_ZORDER_OP_SHOW:
+        ShowWindow (hwnd, SW_SHOW);
         break;
 
-    case MSG_IDLE:
-        _DBG_PRINTF ("got a MSG_IDLE for window: %p\n", hwnd);
+    case MSG_ZORDER_OP_HIDE:
+        ShowWindow (hwnd, SW_HIDE);
         break;
 
-    case MSG_DESTROY:
+    case MSG_ZORDER_OP_RAISE:
+        ShowWindow (hwnd, SW_SHOWNORMAL);
+        break;
+
+    case MSG_ZORDER_OP_MOVE: {
+        int lx = LOSWORD (wparam);
+        int ty = HISWORD (wparam);
+        int rx = LOSWORD (lparam);
+        int by = HISWORD (lparam);
+
+        MoveWindow (hwnd, lx, ty, (rx - lx), (by - ty), TRUE);
+        break;
+    }
+
+    case MSG_TIMER: {
+        test_info_t *info;
+        info = (test_info_t *)GetWindowAdditionalData (hwnd);
+
+        if (info->main_main_wnd == hwnd) {
+            if (info->nr_threads == 0 && info->nr_thread_wins == 0) {
+                _MG_PRINTF ("It's time to quit message loop of main thread\n");
+                PostQuitMessage (hwnd);
+            }
+            else {
+                // check zorder when the main main window is idle
+                // and the number of pending zorder operation is 0.
+                if (info->nr_zops == 0) {
+                    check_zorder_by_apis ();
+                    check_zorder_by_pixels ();
+                    do_zorder_operation (info);
+                }
+            }
+        }
+
+        break;
+    }
+
+    case MSG_DESTROY: {
+        test_info_t *info;
+        info = (test_info_t *)GetWindowAdditionalData (hwnd);
+
+        info->nr_thread_wins--;
+        if (info->nr_thread_wins == 0)
+            PostQuitMessage (hwnd);
         return 0;
+    }
+
+    default:
+        break;
     }
 
     return DefaultMainWinProc (hwnd, message, wparam, lparam);
@@ -445,7 +926,11 @@ create_test_main_window (test_info_t* info, HWND hosting, int number)
     win_info_t      win_info;
 
     win_info.level_expected = info->win_level;
-    if (random() % 2) {
+
+    /* always create main windows visible initially, in order that
+       the z-order maintained by this test program and
+       the z-order maintained by MiniGUI is identical at the start. */
+    if (1 || random() % 2) {
         create_info.dwStyle = WS_VISIBLE;
         win_info.visible = TRUE;
     }
@@ -530,9 +1015,10 @@ create_test_main_window (test_info_t* info, HWND hosting, int number)
         // we use dwAddData2 to record the level got
         SetWindowAdditionalData2 (win_info.hwnd, (DWORD)win_info.level_got);
 
-        _MG_PRINTF ("A main window created (%s) type (%s)\n",
+        _MG_PRINTF ("A main window created (%s) type (%s) visible (%s)\n",
                 GetWindowCaption (win_info.hwnd),
-                window_templates[win_info.level_got].type_name);
+                window_templates[win_info.level_got].type_name,
+                win_info.visible?"YES":"NO");
 
         if (win_info.level_got != win_info.level_expected) {
             _WRN_PRINTF ("window (%s) type changed (%s -> %s)\n",
@@ -603,6 +1089,8 @@ static void* test_thread_entry (void* arg)
         return NULL;
     }
 
+    SendMessage (info.main_main_wnd, MSG_MTH_READY, 0, (LPARAM)&self);
+
     int nr_tries = window_templates[info.win_level].nr_allowed + 1;
     for (int i = 0; i < nr_tries; i++) {
         if (create_test_main_window (&info, info.root_wnd, i) == HWND_INVALID) {
@@ -620,6 +1108,8 @@ static void* test_thread_entry (void* arg)
 
     NotifyWindow (info.main_main_wnd,
             NTID_THREAD_STATUS, NC_RUN_QUITING, (DWORD)&self);
+
+    SendMessage (info.main_main_wnd, MSG_MTH_QUIT, 0, (LPARAM)&self);
     return NULL;
 }
 
@@ -650,6 +1140,7 @@ static int test_main_entry (void)
     }
 
     SetNotificationCallback (info.main_main_wnd, main_main_wnd_notif_proc);
+    SetTimer (info.main_main_wnd, 100, 10);  // we check zorder per 100ms
 
     /* reset nr_thread_wins for main thread */
     info.nr_thread_wins = 0;
@@ -670,7 +1161,7 @@ static int test_main_entry (void)
 
         int nr_tries = window_templates[info.win_level].nr_allowed + 1;
         for (int i = 0; i < nr_tries; i++) {
-            if (create_test_main_window (info, info.main_main_wnd, i)
+            if (create_test_main_window (&info, info.main_main_wnd, i)
                     == HWND_INVALID) {
                 NotifyWindow (info.main_main_wnd,
                         NTID_THREAD_STATUS, NC_ERR_TESTWND, 0);
@@ -682,6 +1173,7 @@ static int test_main_entry (void)
     /* enter message loop */
     MSG msg;
     ShowWindow (info.main_main_wnd, SW_SHOWNORMAL);
+    info.nr_zops++;
     while (GetMessage (&msg, info.main_main_wnd)) {
         TranslateMessage (&msg);
         DispatchMessage (&msg);
@@ -691,19 +1183,28 @@ static int test_main_entry (void)
     MainWindowCleanup (info.main_main_wnd);
 
     /* free window list for all levels */
+    int nr_left = 0;
     for (int level = WIN_LEVEL_MIN; level <= WIN_LEVEL_MAX; level++) {
-        free_all_windows_in_level (level);
+        nr_left += free_all_windows_in_level (level);
+
 #if 0
         free (window_templates[level].windows);
         window_templates[level].windows = NULL;
 #endif
     }
+
+    if (nr_left > 1) {
+        _WRN_PRINTF ("There are some window information not freed "
+                "besides the main main window\n");
+    }
+    assert (nr_left == 1);
+
     return 0;
 }
 
 int MiniGUIMain (int argc, const char* argv[])
 {
-    int nr_loops = 10;
+    int nr_loops = 3;
 
     JoinLayer (NAME_DEF_LAYER , "zorder" , 0 , 0);
 
