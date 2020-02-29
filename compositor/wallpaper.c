@@ -115,6 +115,10 @@ int MiniGUIMain (int argc, const char* argv[])
         exit (1);
 
     old_tick_count = GetTickCount ();
+
+    /* this is a trick in order that GetMessage can return fast */
+    SetTimer (HWND_DESKTOP, (LINT)&old_tick_count, 2);
+
     while (GetMessage (&msg, HWND_DESKTOP)) {
         DWORD curr_tick_count = GetTickCount ();
         if (curr_tick_count > old_tick_count + 2) {
