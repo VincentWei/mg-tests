@@ -22,12 +22,8 @@
 **  for all z-order levels and create main windows in different levels in
 **  theses threads.
 **
-**  Under MiniGUI-Processes runtime mode, this program will
-**  forks 6 children processes for all z-order levels other than
-**  WS_EX_WINTYPE_GLOBAL. The children processes create main windows in
-**  different levels.
-**
 **  Note that this program cannot give correct result under compositing schema.
+**  Also note that the underlying screen should run in 32-bit color depth.
 **
 **  The following APIs are covered:
 **
@@ -52,7 +48,6 @@
 **      GetPixel
 **      SetTimer
 **      GetNextMainWindow
-**      GetWindowRect
 **      WS_EX_WINTYPE_TOOLTIP
 **      WS_EX_WINTYPE_GLOBAL
 **      WS_EX_WINTYPE_SCREENLOCK
