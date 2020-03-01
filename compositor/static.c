@@ -47,8 +47,9 @@
 
 static void my_notif_proc (HWND hwnd, LINT id, int nc, DWORD add_data)
 {
-    if (nc == STN_DBLCLK)
+    if (nc == STN_DBLCLK) {
         SetWindowText (hwnd, PROMPTB);
+    }
 }
 
 static LRESULT StaticDemoWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)

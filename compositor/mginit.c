@@ -47,6 +47,8 @@
 #include <minigui/gdi.h>
 #include <minigui/window.h>
 
+#ifdef _MGRM_PROCESSES
+
 static BOOL quit = FALSE;
 static int nr_clients = 0;
 
@@ -186,4 +188,16 @@ int MiniGUIMain (int args, const char* arg[])
 
     return 0;
 }
+
+#else   /* defined _MGRM_PROCESSES */
+
+int main (int argc, const char* argv[])
+{
+    _WRN_PRINTF ("This test program is the server for MiniGUI-Prcesses "
+           "runtime mode. But your MiniGUI was not configured as "
+           "MiniGUI-Processes\n");
+    return 0;
+}
+
+#endif  /* not defined _MGRM_PROCESSES */
 
