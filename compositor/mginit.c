@@ -51,6 +51,7 @@
 
 static BOOL quit = FALSE;
 static int nr_clients = 0;
+static pid_t pid_welcomer = 0;
 
 static void on_new_del_client (int op, int cli)
 {
@@ -67,6 +68,9 @@ static void on_new_del_client (int op, int cli)
         else if (nr_clients < 0) {
             _ERR_PRINTF ("Serious error: nr_clients less than zero.\n");
         }
+
+        if (pid_welcomer == mgClients[cli].pid)
+            pid_welcomer = 0;
     }
     else
         _ERR_PRINTF ("Serious error: incorrect operations.\n");
@@ -162,8 +166,14 @@ int MiniGUIMain (int args, const char* arg[])
     }
 
 #ifdef _MGSCHEMA_COMPOSITING
+    pid_welcomer = exec_app ("./welcome", "welcome");
+    while (pid_welcomer && GetMessage (&msg, HWND_DESKTOP)) {
+        DispatchMessage (&msg);
+    }
+
     exec_app ("./wallpaper", "wallpaper");
 #endif
+
     exec_app ("./static", "static");
     exec_app ("./edit", "edit");
     exec_app ("./eventdumper", "eventdumper");
