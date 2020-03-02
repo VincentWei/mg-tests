@@ -102,7 +102,12 @@ int MiniGUIMain (int argc, const char* argv[])
     CreateInfo.dwAddData = 0;
     CreateInfo.hHosting = HWND_DESKTOP;
     
-    hMainWnd = CreateMainWindow (&CreateInfo);
+    hMainWnd = CreateMainWindowEx2 (&CreateInfo, 0L, NULL, NULL,
+            ST_PIXEL_ARGB8888,
+            MakeRGBA (SysPixelColor[IDX_COLOR_lightwhite].r,
+                SysPixelColor[IDX_COLOR_lightwhite].g,
+                SysPixelColor[IDX_COLOR_lightwhite].b, 0xA0),
+            CT_ALPHAPIXEL, 0x80);
     
     if (hMainWnd == HWND_INVALID)
         return -1;

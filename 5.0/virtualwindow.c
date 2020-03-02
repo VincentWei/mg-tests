@@ -515,7 +515,8 @@ create_test_main_window (struct test_info* info, HWND hosting)
 
     /* we use hosting depth as the identifier of the window,
        for testing GetHostedbyId easily */
-    HWND new_wnd = CreateMainWindowEx2 (&create_info, NULL, NULL, 0, 0, 0, depth_hosted, 0);
+    HWND new_wnd = CreateMainWindowEx2 (&create_info, depth_hosted, NULL, NULL,
+            0, 0, 0, 0);
     if (info->root_wnd && new_wnd != HWND_INVALID) {
         NotifyWindow (info->main_main_wnd, (LINT)info->main_main_wnd,
             NC_MTH_MAINWIN_CEATED, (DWORD)new_wnd);
