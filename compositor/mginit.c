@@ -166,6 +166,7 @@ int MiniGUIMain (int args, const char* arg[])
 #endif
     exec_app ("./static", "static");
     exec_app ("./edit", "edit");
+    exec_app ("./eventdumper", "eventdumper");
 
     SetServerEventHook (my_event_hook);
 

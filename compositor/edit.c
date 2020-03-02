@@ -49,7 +49,7 @@
 static DLGTEMPLATE DlgBoxInputChar =
 {
     WS_BORDER | WS_CAPTION, 
-    WS_EX_NONE,
+    WS_EX_AUTOPOSITION,
     0, 0, 400, 230, 
     please_input_letters,
     0, 0,

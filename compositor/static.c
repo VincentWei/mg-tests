@@ -88,7 +88,7 @@ int MiniGUIMain (int argc, const char* argv[])
 #endif
 
     CreateInfo.dwStyle = WS_VISIBLE | WS_BORDER | WS_CAPTION;
-    CreateInfo.dwExStyle = WS_EX_NONE;
+    CreateInfo.dwExStyle = WS_EX_AUTOPOSITION;
     CreateInfo.spCaption = CAPTION;
     CreateInfo.hMenu = 0;
     CreateInfo.hCursor = GetSystemCursor(0);
@@ -102,12 +102,7 @@ int MiniGUIMain (int argc, const char* argv[])
     CreateInfo.dwAddData = 0;
     CreateInfo.hHosting = HWND_DESKTOP;
     
-    hMainWnd = CreateMainWindowEx2 (&CreateInfo, 0L, NULL, NULL,
-            ST_PIXEL_ARGB8888,
-            MakeRGBA (SysPixelColor[IDX_COLOR_lightwhite].r,
-                SysPixelColor[IDX_COLOR_lightwhite].g,
-                SysPixelColor[IDX_COLOR_lightwhite].b, 0xA0),
-            CT_ALPHAPIXEL, 0x80);
+    hMainWnd = CreateMainWindow (&CreateInfo);
     
     if (hMainWnd == HWND_INVALID)
         return -1;

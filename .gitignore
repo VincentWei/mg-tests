@@ -97,6 +97,7 @@ compositor/edit
 compositor/scrnsaver
 compositor/static
 compositor/trackbar
+compositor/eventdumper
 5.0/mginit
 5.0/timer
 5.0/virtualwindow
