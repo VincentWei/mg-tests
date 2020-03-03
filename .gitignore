@@ -96,6 +96,8 @@ compositor/edit
 compositor/scrnsaver
 compositor/static
 compositor/trackbar
+compositor/combobox
+compositor/menubutton
 compositor/eventdumper
 compositor/wallpaper-welcome
 compositor/wallpaper-dynamic
