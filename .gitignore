@@ -91,14 +91,14 @@ comm-engines/commengines
 resmgr/str2key
 resmgr/resmgr
 compositor/mginit
-compositor/wallpaper
 compositor/helloworld
 compositor/edit
 compositor/scrnsaver
 compositor/static
 compositor/trackbar
 compositor/eventdumper
-compositor/welcome
+compositor/wallpaper-welcome
+compositor/wallpaper-dynamic
 5.0/mginit
 5.0/timer
 5.0/virtualwindow

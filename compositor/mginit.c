@@ -148,7 +148,7 @@ static void child_wait (int sig)
     }
 }
 
-int MiniGUIMain (int args, const char* arg[])
+int MiniGUIMain (int argc, const char* argv[])
 {
     MSG msg;
     struct sigaction siga;
@@ -166,24 +166,29 @@ int MiniGUIMain (int args, const char* arg[])
     }
 
 #ifdef _MGSCHEMA_COMPOSITING
-    pid_welcomer = exec_app ("./welcome", "welcome");
-    while (pid_welcomer && GetMessage (&msg, HWND_DESKTOP)) {
-        DispatchMessage (&msg);
+    if (argc > 1 && strcasecmp (argv[1], "auto") == 0) {
+        exec_app ("./wallpaper-dynamic", "wallpaper-dynamic");
+        exec_app ("./static", "static");
+        exec_app ("./edit", "edit");
+        exec_app ("./eventdumper", "eventdumper");
     }
+    else if (argc > 1 && strcasecmp (argv[1], "none") == 0) {
+        // do not start any child
+    }
+    else {
+        pid_welcomer = exec_app ("./wallpaper-welcome", "wallpaper-welcome");
+        while (pid_welcomer && GetMessage (&msg, HWND_DESKTOP)) {
+            DispatchMessage (&msg);
+        }
 
-    exec_app ("./wallpaper", "wallpaper");
+        if (argc > 1) {
+            if (exec_app (argv[1], argv[1]) == 0)
+                return 3;
+        }
+    }
 #endif
 
-    exec_app ("./static", "static");
-    exec_app ("./edit", "edit");
-    exec_app ("./eventdumper", "eventdumper");
-
     SetServerEventHook (my_event_hook);
-
-    if (args > 1) {
-        if (exec_app (arg[1], arg[1]) == 0)
-            return 3;
-    }
 
     old_tick_count = GetTickCount ();
 

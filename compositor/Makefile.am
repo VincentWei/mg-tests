@@ -1,16 +1,16 @@
-noinst_PROGRAMS=wallpaper helloworld static edit trackbar scrnsaver eventdumper welcome mginit
+noinst_PROGRAMS=wallpaper-dynamic wallpaper-welcome helloworld static edit trackbar scrnsaver eventdumper mginit
 
-wallpaper_SOURCES = wallpaper.c
+wallpaper_dynamic_SOURCES = wallpaper-dynamic.c
+wallpaper_welcome_SOURCES = wallpaper-welcome.c welcome-data.c
 helloworld_SOURCES = helloworld.c
 static_SOURCES = static.c
 edit_SOURCES = edit.c
 trackbar_SOURCES = trackbar.c
 scrnsaver_SOURCES = scrnsaver.c
 eventdumper_SOURCES = eventdumper.c flying_window.c
-welcome_SOURCES = welcome.c welcome-data.c
 mginit_SOURCES = mginit.c
 
+wallpaper_welcome_LDADD = -lmgeff
 eventdumper_LDADD = -lmgeff
-welcome_LDADD = -lmgeff
 
 DIST_SUBDIRS=res

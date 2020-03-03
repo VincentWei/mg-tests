@@ -11,8 +11,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 /* 
-**
-** wallpaper.c: wallpaper renderer.
+** wallpaper-dynamic.c: a daynamic wallpaper renderer.
 **
 ** Copyright (C) 2019 ~ 2020 FMSoft (http://www.fmsoft.cn).
 **

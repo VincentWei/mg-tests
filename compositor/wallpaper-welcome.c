@@ -11,34 +11,21 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 /*
- *   This file is part of mGEff, a component for MiniGUI.
- * 
- *   Copyright (C) 2008~2018, Beijing FMSoft Technologies Co., Ltd.
- * 
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- * 
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- * 
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
- *   Or,
- * 
- *   As this program is a library, any link to this program must follow
- *   GNU General Public License version 3 (GPLv3). If you cannot accept
- *   GPLv3, you need to be licensed from FMSoft.
- * 
- *   If you have got a commercial license of this program, please use it
- *   under the terms and conditions of the commercial license.
- * 
- *   For more information about the commercial license, please refer to
- *   <http://www.minigui.com/blog/minigui-licensing-policy/>.
+** wallpaper-welcome.c: a MiniGUI 5.0 wallpaper renderer.
+**
+** Copyright (C) 2019 ~ 2020 FMSoft (http://www.fmsoft.cn).
+**
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+** You may obtain a copy of the License at
+**
+**     http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS,
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+** See the License for the specific language governing permissions and
+** limitations under the License.
  */
 
 #include <stdio.h>
@@ -49,7 +36,7 @@
 
 #include <mgeff/mgeff.h>
 
-#define BLK_SIZE 5
+#define BLK_SIZE 2
 
 typedef struct {
     int x;
@@ -67,7 +54,7 @@ static int s_nrLetters;
 static star_t *s_allstar;
 static int s_nrStars;
 
-static int star_cmp(star_t *s1, star_t *s2) {
+static inline int star_cmp(star_t *s1, star_t *s2) {
     if (s1->y != s2->y) {
         return (-s1->y) - (-s2->y);
     }
@@ -76,10 +63,12 @@ static int star_cmp(star_t *s1, star_t *s2) {
     }
 }
 
-static void gen_letters(void) {
+extern const char *g_lines[];
+
+static void gen_letters (void)
+{
     int line;
     int i;
-    extern const char *g_lines[];
 
     // count letters
     for (line=0; g_lines[line]; line++) {
@@ -87,6 +76,9 @@ static void gen_letters(void) {
             s_nrLetters ++;
         }
     }
+
+    _DBG_PRINTF ("total letters: %d\n", s_nrLetters);
+
     s_letters = (letter_t *)calloc(s_nrLetters, sizeof(letter_t));
 
     // count stars
@@ -95,14 +87,17 @@ static void gen_letters(void) {
         for (line=0; g_lines[line]; line++) {
             int i;
             if (strcmp(g_lines[line], "----") == 0) {
+                _DBG_PRINTF ("number of stars for line %d: %d\n",
+                        index, s_letters[index].n);
                 index++;
                 continue;
             }
             for (i=0; g_lines[line][i]; i++) {
-                if (g_lines[line][i] == '#'){
+                if (g_lines[line][i] != ' ') {
                     s_letters[index].n++;
                 }
             }
+
         }
     }
 
@@ -113,7 +108,8 @@ static void gen_letters(void) {
         // malloc
         for (index=0; index<s_nrLetters; index++) {
             if (s_letters[index].n > 0)
-                s_letters[index].star = (star_t *)calloc(s_letters[index].n, sizeof(star_t));
+                s_letters[index].star =
+                    (star_t *)calloc(s_letters[index].n, sizeof(star_t));
             else
                 s_letters[index].star = NULL;
 
@@ -132,7 +128,7 @@ static void gen_letters(void) {
                 continue;
             }
             for (i=0; g_lines[line][i]; i++) {
-                if (g_lines[line][i] == '#'){
+                if (g_lines[line][i] != ' '){
                     assert(nStar < s_letters[index].n);
                     s_letters[index].star[nStar].x =
                         120 + line * BLK_SIZE;
@@ -140,8 +136,6 @@ static void gen_letters(void) {
                         550 - i*BLK_SIZE;
                     s_letters[index].star[nStar].color = MakeRGBA(
                             0xf0, 0xf0, 0xf0, 0xff);
-                            // 0xe8, 0xd1, 0x06, 0xff);
-                            // 0x40+(rand() & 0x7f), 0x40+(rand() & 0x7f), 0x40+(rand() & 0x7f), 0xff);
                     nStar++;
                 }
             }
@@ -149,9 +143,15 @@ static void gen_letters(void) {
     }
 
     // sort
+#if 0
     for (i=0; i<s_nrLetters; i++) {
-        qsort(s_letters[i].star, s_letters[i].n, sizeof(s_letters[i].star[0]), (void *)star_cmp);
+        qsort(s_letters[i].star, s_letters[i].n, sizeof(s_letters[i].star[0]),
+                (void *)star_cmp);
     }
+#else   /* only for the special letter */
+    qsort (s_letters[7].star, s_letters[7].n, sizeof(s_letters[7].star[0]),
+            (void *)star_cmp);
+#endif
 
 #if 0
     // print
@@ -212,7 +212,7 @@ static void moveStar(MGEFF_ANIMATION animation, star_t *star, int id, POINT *poi
     }
 }
 
-static void setup_animations(void)
+static void play_animations(void)
 {
     MGEFF_ANIMATION sequence_group;
     int i;
@@ -238,23 +238,24 @@ static void setup_animations(void)
                     j<letter->n-1 ? id : -id, MGEFF_POINT);
             // duration
             switch (i) {
-                case 0: // m
+                case 0: // M
+                    mGEffAnimationSetDuration(animation, 100);
+                    break;
+                case 1: // i
+                case 2: // n
+                case 3: // i
+                case 4: // G
                     mGEffAnimationSetDuration(animation, 600);
                     break;
-                case 1: // G
-                case 2: // E
-                case 3: // f
-                case 5: // _
-                case 6: // 0
+                case 5: // U
+                case 6: // I
                     mGEffAnimationSetDuration(animation, 1000-i*50);
                     break;
-                case 4: // f
-                    mGEffAnimationSetDuration(animation, 600);
+                case 7: // 5
+                    mGEffAnimationSetDuration(animation, 100 + j);
                     break;
-                case 7: // .
-                    mGEffAnimationSetDuration(animation, 1000 + j*60);
-                    break;
-                case 8: // 4
+                case 8: // .
+                case 9: // 0
                 default:
                     mGEffAnimationSetDuration(animation, 500 + j*6);
                     break;
@@ -262,24 +263,25 @@ static void setup_animations(void)
 
             // start value
             switch (i) {
-                case 0: // m
+                case 0: // M
                     point.x = win_rc.left = 5;
                     point.y = letter->star[j].y;
                     break;
-                case 1: // G
-                case 2: // E
-                case 3: // f
-                case 5: // _
-                case 6: // 0
-                case 7: // .
-                    point.x = letter->star[j].x;
-                    point.y = letter->star[j].y - 600;
-                    break;
-                case 4: // f
+                case 1: // i
+                case 2: // n
+                case 3: // i
+                case 4: // G
                     point.x = letter->star[j].x;
                     point.y = letter->star[j].y + 350;
                     break;
-                case 8: // 4
+                case 5: // U
+                case 6: // I
+                case 7: // 5
+                    point.x = letter->star[j].x;
+                    point.y = letter->star[j].y - 600;
+                    break;
+                case 8: // .
+                case 9: // 0
                 default:
                     {
                         int x, y;
@@ -288,13 +290,16 @@ static void setup_animations(void)
                         if (x > 0 && y > 0) {
                             point.x = win_rc.right;
                             point.y = y;
-                        }else if (x > 0 && y < 0) {
+                        }
+                        else if (x > 0 && y < 0) {
                             point.x = x;
                             point.y = win_rc.top - BLK_SIZE;
-                        }else if (x < 0 && y > 0) {
+                        }
+                        else if (x < 0 && y > 0) {
                             point.x = win_rc.left - BLK_SIZE - 1;
                             point.y = y;
-                        }else{
+                        }
+                        else {
                             point.x = -x;
                             point.y = win_rc.bottom;
                         }
@@ -304,42 +309,43 @@ static void setup_animations(void)
 
             // curve
             switch (i) {
-                case 0: // m
+                case 0: // M
                     mGEffAnimationSetCurve(animation, InCubic);
                     break;
-                case 1: // G
+                case 1: // i
                     mGEffAnimationSetCurve(animation, OutBounce);
                     break;
-                case 6: // 0
-                    mGEffAnimationSetCurve(animation, OutInBounce);
-                    break;
-                case 5: // _
-                    mGEffAnimationSetCurve(animation, InQuad);
-                    break;
-                case 2: // E
+                case 2: // n
                     mGEffAnimationSetCurve(animation, OutQuad);
                     break;
-                case 3: // f
+                case 3: // i
                     mGEffAnimationSetCurve(animation, InBounce);
                     break;
-                case 7: // .
-                    mGEffAnimationSetCurve(animation, InBounce);
-                    break;
-                case 4: // f
+                case 4: // G
                     mGEffAnimationSetCurve(animation, OutCubic);
                     break;
-                case 8: // 4
+                case 5: // U
+                    mGEffAnimationSetCurve(animation, InQuad);
+                    break;
+                case 6: // I
+                    mGEffAnimationSetCurve(animation, OutInBounce);
+                    break;
+                case 7: // 5
+                    mGEffAnimationSetCurve(animation, InBounce);
+                    break;
+                case 8: // .
+                case 9: // 0
                 default:
                     mGEffAnimationSetCurve(animation, OutBounce);
                     break;
             }
 
             // color
-            if (i < s_nrLetters-1) {
+            if (i < 7) {
                 s_allstar[id].color = letter->star[j].color;
-            }else{
-                s_allstar[id].color = MakeRGBA(
-                        0xe8, 0xd1, 0x06, 0xff);
+            }
+            else {
+                s_allstar[id].color = MakeRGBA (0xe8, 0xd1, 0x06, 0xff);
             }
             
             s_allstar[id].x = point.x;
@@ -367,11 +373,14 @@ int MiniGUIMain (int argc, const char *argv[])
 #endif
 
     srand (time(NULL));
-    gen_letters();
-    mGEffInit();
-    setup_animations();
 
-    SetTimer (HWND_DESKTOP, (LINT)argv, 500);    // 5s
+    gen_letters();
+
+    mGEffInit();
+    play_animations();
+    mGEffDeinit();
+
+    SetTimer (HWND_DESKTOP, (LINT)argv, 100);    // quit after 1s
     while (GetMessage(&msg, HWND_DESKTOP)) {
         if (msg.message == MSG_TIMER && msg.wParam == (WPARAM)argv)
             break;
@@ -380,7 +389,6 @@ int MiniGUIMain (int argc, const char *argv[])
         DispatchMessage(&msg);
     }
 
-    mGEffDeinit();
-
     return 0;
 }
+
