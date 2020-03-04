@@ -11,10 +11,6 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 /*
-** $Id: menubutton.c 741 2009-03-31 07:16:18Z weiym $
-** 
-** Listing 24.1
-**
 ** combobox.c: Sample program for MiniGUI Programming Guide
 **      The usage of COMBOBOX control.
 ** 

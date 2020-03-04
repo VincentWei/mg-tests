@@ -11,8 +11,6 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 /*
-** $Id: combobox.c 759 2009-09-21 05:22:47Z dongjunjie $
-** 
 ** Listing 23.1
 **
 ** combobox.c: Sample program for MiniGUI Programming Guide
