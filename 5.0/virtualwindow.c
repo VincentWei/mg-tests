@@ -47,6 +47,9 @@
 **      SetWindowAdditionalData
 **      GetWindowAdditionalData2
 **      SetWindowAdditionalData2
+**      SetWindowLocalData
+**      GetWindowLocalData
+**      RemoveWindowLocalData
 **      MSG_IDLE
 **      MSG_CREATE
 **      MSG_DESTROY
@@ -77,7 +80,7 @@
 
 #ifdef _MGHAVE_VIRTUAL_WINDOW
 
-#define MAX_DEPTH_HOSTED        8
+#define MAX_DEPTH_HOSTED        4
 #define MAX_BREADTH_HOSTED      4
 
 enum {
@@ -108,15 +111,16 @@ static void* general_entry (void* arg)
     pthread_t self = pthread_self ();
     pthread_detach (self);
 
-    _WRN_PRINTF ("thread for owner is running %p\n", owner);
+    _WRN_PRINTF ("thread (0x%lx) for owner (%p) is running\n",
+            self, owner);
 
     NotifyWindow (owner, (LINT)owner, NC_GTH_RUNNING, (DWORD)&self);
 
     sleep (random() % 10);
 
     snprintf (buff, sizeof (buff),
-            "Payload from general thread (%p): my owner is %s",
-            &self, GetWindowCaption (owner));
+            "Payload from general thread (0x%lx) to owner (%p)",
+            self, owner);
 
     char* payload = strdup (buff);
     SendMessage (owner, MSG_GTH_DONE, (WPARAM)payload, (LPARAM)&self);
@@ -124,17 +128,21 @@ static void* general_entry (void* arg)
 
     NotifyWindow (owner, (LINT)owner, NC_GTH_QUITING, (DWORD)&self);
 
-    _WRN_PRINTF ("Sending MSG_GTH_QUIT to %p\n", owner);
-    SendMessage (owner, MSG_GTH_QUIT, (WPARAM)0, (LPARAM)&self);
+    _WRN_PRINTF ("Sending MSG_GTH_QUIT to %p from thread (0x%lx)\n",
+            owner, self);
+    LRESULT retval = SendMessage (owner, MSG_GTH_QUIT, (WPARAM)0, (LPARAM)self);
+
+    _WRN_PRINTF ("Got result of MSG_GTH_QUIT from window %p for thread (0x%lx): "
+            "0x%lx\n",
+            owner, self, retval);
     return NULL;
 }
 
 /* create a general threads */
-static int start_general_thread (HWND owner)
+static int start_general_thread (pthread_t *th, HWND owner)
 {
-    pthread_t th;
-    if (pthread_create (&th, NULL, general_entry, (void*)owner)) {
-        _ERR_PRINTF ("Failed to create the general thread\n");
+    if (pthread_create (th, NULL, general_entry, (void*)owner)) {
+        _WRN_PRINTF ("FAILED to create the general thread\n");
         return -1;
     }
 
@@ -218,7 +226,7 @@ static void create_hosted_windows (HWND hwnd)
             }
         }
         else {
-            _ERR_PRINTF ("FAILED to create a hosted window\n");
+            _WRN_PRINTF ("FAILED to create a hosted window\n");
         }
     }
 }
@@ -226,6 +234,7 @@ static void create_hosted_windows (HWND hwnd)
 struct _travel_context {
     int nr_wins;
     int depth;
+    BOOL print;
     HWND hosting;
 };
 
@@ -235,16 +244,18 @@ static HWND travel_win_tree_bfs (struct _travel_context *ctxt)
     HWND hosted = GetFirstHosted (hosting);
 
     while (hosted) {
-        const char* spaces = "    ";
-        const WINDOWINFO* win_info;
+        if (ctxt->print) {
+            const char* spaces = "    ";
+            const WINDOWINFO* win_info;
 
-        for (int i = 0; i < ctxt->depth; i++) {
-            _MG_PRINTF ("%s", spaces);
+            for (int i = 0; i < ctxt->depth; i++) {
+                _MG_PRINTF ("%s", spaces);
+            }
+
+            win_info = GetWindowInfo (hosted);
+            _MG_PRINTF ("Got a window in depth (%d): %p (%ld, %s)\n",
+                    ctxt->depth, hosted, win_info->id, win_info->spCaption);
         }
-
-        win_info = GetWindowInfo (hosted);
-        _MG_PRINTF ("Got a window in depth (%d): %p (%ld, %s)\n",
-                ctxt->depth, hosted, win_info->id, win_info->spCaption);
 
         ctxt->nr_wins++;
 
@@ -312,19 +323,13 @@ static void print_hosting_tree (HWND hwnd)
         struct test_info *info;
         info = (struct test_info*)GetWindowAdditionalData (hwnd);
 
-        struct _travel_context ctxt = { 0, 0, root_wnd };
+        struct _travel_context ctxt = { 0, 0, TRUE, root_wnd };
         travel_win_tree_bfs (&ctxt);
-
-        _WRN_PRINTF ("%d <> %d\n", ctxt.nr_wins, info->nr_thread_wins);
-
-        if (ctxt.nr_wins != info->nr_thread_wins) {
-            _ERR_PRINTF ("number of windows does not match\n");
-        }
 
         test_get_hosted_by_id (root_wnd, info);
     }
     else {
-        _ERR_PRINTF ("try to travel a non message thread\n");
+        _ERR_PRINTF ("FATAL ERROR: try to travel a non message thread\n");
     }
 }
 
@@ -385,15 +390,24 @@ static void my_notif_proc (HWND hwnd, LINT id, int nc, DWORD add_data)
 
 static int on_create (HWND hwnd)
 {
+    pthread_t th;
+
     assert (GetWindowAdditionalData (hwnd));
 
     /* start a general thread for every window */
-    if (start_general_thread (hwnd)) {
+    if (start_general_thread (&th, hwnd)) {
         _WRN_PRINTF ("Failed to create my work thread: %p\n", hwnd);
         return -1;
     }
 
+    SetWindowLocalData (hwnd, "worker", (DWORD)th, NULL);
     return 0;
+}
+
+static void free_paylod (DWORD local_data)
+{
+    _WRN_PRINTF ("called for local data: %p\n", (void*)local_data);
+    free ((void*)local_data);
 }
 
 static LRESULT
@@ -415,7 +429,7 @@ test_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
             if (info == NULL) {
                 const WINDOWINFO* win_info = GetWindowInfo(hwnd);
 
-                _ERR_PRINTF ("A bad window (%p, %0lx): %s...\n",
+                _ERR_PRINTF ("FATAL ERROR: A bad window (%p, %0lx): %s...\n",
                         hwnd, win_info->id, win_info->spCaption);
                 break;
             }
@@ -430,19 +444,11 @@ test_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
                 if (IsVirtualWindow (hwnd)) {
                     if (DestroyVirtualWindow (hwnd)) {
                         VirtualWindowCleanup (hwnd);
-                        info->nr_thread_wins--;
-                        _WRN_PRINTF ("A HOSTED virutal window destroyed "
-                                "(%p, %0lx), %d left\n",
-                                hwnd, add_data2, info->nr_thread_wins);
                     }
                 }
                 else if (IsMainWindow (hwnd)) {
                     if (DestroyMainWindow (hwnd)) {
                         MainWindowCleanup (hwnd);
-                        info->nr_thread_wins--;
-                        _WRN_PRINTF ("A HOSTED main window destroyed "
-                                "(%p, %0lx), %d left\n",
-                                hwnd, add_data2, info->nr_thread_wins);
                     }
                 }
                 else {
@@ -451,7 +457,10 @@ test_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
             }
             else {
                 int nr_wins;
-                struct _travel_context ctxt = { 0, 0, GetRootWindow (&nr_wins) };
+                HWND root_wnd = GetRootWindow (&nr_wins);
+                struct _travel_context ctxt = { 0, 0, FALSE, root_wnd };
+
+                // this will not count the root window itself
                 travel_win_tree_bfs (&ctxt);
 
                 _MG_PRINTF ("It's time to quit the message loop (%p, %0lx): "
@@ -459,16 +468,9 @@ test_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
                         hwnd, add_data2, info->nr_mths,
                         nr_wins, ctxt.nr_wins, info->nr_thread_wins);
 
-                if (hwnd == info->main_main_wnd) {
-                    assert (ctxt.nr_wins == info->nr_thread_wins);
-                }
-                else {
-                    assert ((ctxt.nr_wins + 1) == info->nr_thread_wins);
-                }
+                assert (nr_wins == info->nr_thread_wins);
 
-                if (info->nr_mths == 0 &&
-                        ((hwnd == info->main_main_wnd && ctxt.nr_wins == 1) ||
-                        (hwnd != info->main_main_wnd && ctxt.nr_wins == 0))) {
+                if (info->nr_mths == 0 && ctxt.nr_wins == 0) {
                     // all hosted windows are destroyed.
                     PostQuitMessage (hwnd);
                 }
@@ -476,17 +478,20 @@ test_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
         }
         break;
 
-    case MSG_GTH_DONE:
+    case MSG_GTH_DONE: {
         _MG_PRINTF ("general thread (%p) done: payload (%s)\n",
                 (void*)lparam, (char*)wparam);
+        char* payload = strdup ((char*)wparam);
+        SetWindowLocalData (hwnd, "payload", (DWORD)payload, free_paylod);
         break;
+    }
 
     case MSG_GTH_QUIT: {
-        _WRN_PRINTF ("the general thread (%p) of window (%p) quited\n",
-                (void*)lparam, hwnd);
+        _WRN_PRINTF ("the general thread (0x%lx) of window (%p) quited\n",
+                lparam, hwnd);
             /* when the general thread quits, set the identifier to -1 */
         if (SetWindowId (hwnd, -1L) == -1L) {
-            _ERR_PRINTF ("failed to call SetWindowId\n");
+            _ERR_PRINTF ("FATAL ERROR: failed to call SetWindowId\n");
             assert (0);
         }
         return 0;
@@ -511,8 +516,36 @@ test_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
     case MSG_DESTROY: {
         LINT id = GetWindowId (hwnd);
         if (id != -1L) {
+            DWORD th;
             // if the identifier is not -1, do not destroy me */
+            GetWindowLocalData (hwnd, "worker", &th, NULL);
+            _WRN_PRINTF ("I (handle: %p, id: %ld) can not de destroyed, "
+                    "because my worker (0x%lx) is still running\n",
+                    hwnd, id, th);
             return -1;
+        }
+
+        char* payload;
+        GetWindowLocalData (hwnd, "payload", (DWORD*)&payload, NULL);
+
+        _WRN_PRINTF ("I am ok to be destroyed. "
+                "The payload got from my worker: %s\n", payload);
+        RemoveWindowLocalData (hwnd, "payload");
+
+        struct test_info* info;
+        info = (struct test_info*)GetWindowAdditionalData (hwnd);
+        DWORD add_data2 = GetWindowAdditionalData2 (hwnd);
+        info->nr_thread_wins--;
+
+        if (IsVirtualWindow (hwnd)) {
+            _WRN_PRINTF ("A HOSTED virutal window destroyed "
+                    "(%p, %0lx), %d left\n",
+                    hwnd, add_data2, info->nr_thread_wins);
+        }
+        else {
+            _WRN_PRINTF ("A HOSTED main window destroyed "
+                    "(%p, %0lx), %d left\n",
+                    hwnd, add_data2, info->nr_thread_wins);
         }
         return 0;
     }
@@ -638,14 +671,14 @@ static void* test_entry (void* arg)
     NotifyWindow (info.main_main_wnd, (LINT)info.main_main_wnd,
             NC_MTH_RUNNING, (DWORD)&self);
 
-#if 0 // def _MGRM_THREADS
+#ifdef _MGRM_THREADS
     info.root_wnd = create_test_main_window (&info, HWND_NULL);
     if (info.root_wnd == HWND_INVALID) {
         info.root_wnd = create_test_virtual_window (&info, HWND_NULL);
     }
 #else
-    //info.root_wnd = create_test_main_window (&info, HWND_NULL);
-    //assert (info.root_wnd == HWND_INVALID);
+    info.root_wnd = create_test_main_window (&info, HWND_NULL);
+    assert (info.root_wnd == HWND_INVALID);
 
     info.root_wnd = create_test_virtual_window (&info, HWND_NULL);
 #endif
@@ -653,7 +686,7 @@ static void* test_entry (void* arg)
     if (info.root_wnd == HWND_INVALID) {
         NotifyWindow (info.main_main_wnd, (LINT)info.main_main_wnd,
                 NC_MTH_QUITING, (DWORD)&self);
-        _ERR_PRINTF ("FAILED to create root window of message threads\n");
+        _ERR_PRINTF ("FATAL ERROR: failed to create root window of message threads\n");
         return NULL;
     }
 
@@ -723,7 +756,7 @@ static int test_main_entry (int nr_threads)
     /* we use dwAddData to record the global test info */
     info.main_main_wnd = create_test_main_window (&info, HWND_NULL);
     if (info.main_main_wnd == HWND_INVALID) {
-        _ERR_PRINTF ("FAILED to create the main window in main thread\n");
+        _ERR_PRINTF ("FATAL ERROR: failed to create the main window in main thread\n");
         return -1;
     }
 
@@ -737,7 +770,7 @@ static int test_main_entry (int nr_threads)
         pthread_t th;
         if (CreateThreadForMessaging (&th, NULL, test_entry,
                     (void*)info.main_main_wnd, TRUE, 16)) {
-            _ERR_PRINTF ("FAILED to create message thread: %d\n", i);
+            _ERR_PRINTF ("FATAL ERROR: failed to create message thread: %d\n", i);
             return -1;
         }
     }
@@ -762,7 +795,7 @@ static int test_main_entry (int nr_threads)
 int MiniGUIMain (int argc, const char* argv[])
 {
     int nr_loops = 10;
-    int nr_threads = 4;
+    int nr_threads = 8;
 
     JoinLayer (NAME_DEF_LAYER , "virtual window" , 0 , 0);
 
