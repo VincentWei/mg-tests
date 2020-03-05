@@ -39,6 +39,7 @@
 **      GetWindowInfo
 **      PostQuitMessage
 **      NotifyWindow
+**      PostMessage
 **      SendMessage
 **      SetNotificationCallback
 **      GetWindowId
@@ -98,14 +99,17 @@ enum {
    it's owner synchronously. */
 #define MSG_GTH_DONE    (MSG_USER + 1)
 #define MSG_GTH_QUIT    (MSG_USER + 2)
+#define MSG_GTH_SLEEP   (MSG_USER + 3)
+#define MSG_GTH_WAKEUP  (MSG_USER + 4)
 
 /* these message will be sent by a message thread to
    the main window in the main thread synchronously. */
-#define MSG_MTH_READY   (MSG_USER + 3)
-#define MSG_MTH_QUIT    (MSG_USER + 4)
+#define MSG_MTH_READY   (MSG_USER + 11)
+#define MSG_MTH_QUIT    (MSG_USER + 12)
 
 static void* general_entry (void* arg)
 {
+    int sleep_seconds;
     char buff [256];
     HWND owner = (HWND)arg;
     pthread_t self = pthread_self ();
@@ -116,12 +120,15 @@ static void* general_entry (void* arg)
 
     NotifyWindow (owner, (LINT)owner, NC_GTH_RUNNING, (DWORD)&self);
 
-    sleep (random() % 10);
+    sleep_seconds = random() % 10;
+    PostMessage (owner, MSG_GTH_SLEEP, GetTickCount(), sleep_seconds);
+
+    sleep (sleep_seconds);
+    PostMessage (owner, MSG_GTH_WAKEUP, GetTickCount(), 0);
 
     snprintf (buff, sizeof (buff),
             "Payload from general thread (0x%lx) to owner (%p)",
             self, owner);
-
     char* payload = strdup (buff);
     SendMessage (owner, MSG_GTH_DONE, (WPARAM)payload, (LPARAM)&self);
     free (payload);
@@ -176,14 +183,14 @@ static void create_hosted_windows (HWND hwnd)
 
     _DBG_PRINTF ("current hosting depth: %d\n", depth_hosted);
     if (depth_hosted > info->max_depth_hosted) {
-        _WRN_PRINTF ("Reached the maximal hosting depth: %d\n", depth_hosted);
+        _DBG_PRINTF ("Reached the maximal hosting depth: %d\n", depth_hosted);
         return;
     }
 
     int max_hosted = info->max_breadth_hosted;
     if (max_hosted <= 0) max_hosted = 1;
 
-    _WRN_PRINTF ("max hosted: %d\n", max_hosted);
+    _DBG_PRINTF ("max hosted: %d\n", max_hosted);
     for (int i = 0; i < max_hosted; i++) {
         HWND hosted_wnd;
 #ifdef _MGRM_THREADS
@@ -470,13 +477,28 @@ test_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
 
                 assert (nr_wins == info->nr_thread_wins);
 
+#ifdef _MGRM_THREADS
                 if (info->nr_mths == 0 && ctxt.nr_wins == 0) {
+#else
+                if (info->nr_mths == 0 && info->nr_thread_wins == 1) {
+#endif
                     // all hosted windows are destroyed.
                     PostQuitMessage (hwnd);
                 }
             }
         }
         break;
+
+    case MSG_GTH_SLEEP: {
+        _WRN_PRINTF ("the general thread will sleep %d seconds\n",
+                (int)lparam);
+        break;
+    }
+
+    case MSG_GTH_WAKEUP: {
+        _WRN_PRINTF ("the general thread wakes up\n");
+        break;
+    }
 
     case MSG_GTH_DONE: {
         _MG_PRINTF ("general thread (%p) done: payload (%s)\n",
