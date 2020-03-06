@@ -152,7 +152,6 @@ static int start_general_thread (pthread_t *th, HWND owner)
         _WRN_PRINTF ("FAILED to create the general thread\n");
         return -1;
     }
-
     return 0;
 }
 
@@ -791,7 +790,7 @@ static int test_main_entry (int nr_threads)
     for (int i = 0; i < nr_threads; i++) {
         pthread_t th;
         if (CreateThreadForMessaging (&th, NULL, test_entry,
-                    (void*)info.main_main_wnd, TRUE, 16)) {
+                    (void*)info.main_main_wnd, FALSE, 16)) {
             _ERR_PRINTF ("FATAL ERROR: failed to create message thread: %d\n", i);
             return -1;
         }

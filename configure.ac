@@ -56,7 +56,7 @@ AC_CHECK_DECLS(_MGSCHEMA_COMPOSITING, schema_compositing="yes", foo=bar, [#inclu
 dnl ========================================================================
 dnl Write Output
 
-LIBS="$LIBS $MINIGUI_LIBS -lefence"
+LIBS="$LIBS $MINIGUI_LIBS"
 
 if test "$ac_cv_prog_gcc" = "yes"; then
     CPPFLAGS="$CPPFLAGS -D_DEFAULT_SOURCE -D_GNU_SOURCE"
