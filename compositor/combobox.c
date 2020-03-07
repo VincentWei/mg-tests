@@ -170,9 +170,9 @@ static void daxia_notif_proc (HWND hwnd, LINT id, int nc, DWORD add_data)
 {
     if (nc == CBN_SELCHANGE) {
         int cur_sel = SendMessage (hwnd, CB_GETCURSEL, 0, 0);
-	if (cur_sel >= 0) {
-		SetWindowText (GetDlgItem (GetParent(hwnd), IDC_PROMPT), daxia_char [cur_sel]);
-	}
+        if (cur_sel >= 0) {
+            SetWindowText (GetDlgItem (GetParent(hwnd), IDC_PROMPT), daxia_char [cur_sel]);
+        }
     }
 }
 
@@ -206,10 +206,8 @@ static LRESULT MyDateBoxProc (HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
         }
 
         SetNotificationCallback (GetDlgItem (hDlg, IDL_DAXIA), daxia_notif_proc);
-        SendDlgItemMessage(hDlg, IDL_DAXIA, CB_SETCURSEL, 0, 0);
-#ifdef _LANG_ZHCN
-	SetWindowText (GetDlgItem (hDlg, IDC_PROMPT), daxia_char [0]);
-#endif
+        SendDlgItemMessage (hDlg, IDL_DAXIA, CB_SETCURSEL, 0, 0);
+	    SetWindowText (GetDlgItem (hDlg, IDC_PROMPT), daxia_char [0]);
         return 1;
         
     case MSG_COMMAND:
@@ -221,7 +219,6 @@ static LRESULT MyDateBoxProc (HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
             break;
         }
         break;
-        
     }
     
     return DefaultDialogProc (hDlg, message, wParam, lParam);
