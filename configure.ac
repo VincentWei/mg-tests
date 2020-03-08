@@ -32,7 +32,7 @@ AC_HEADER_TIME
 AC_CHECK_HEADERS(sys/time.h unistd.h)
 
 PKG_CHECK_MODULES([MINIGUI], [minigui >= 4.9.0])
-PKG_CHECK_MODULES([MGEFF], [mgeff >= 1.4.0])
+PKG_CHECK_MODULES([MGEFF], [mgeff >= 1.5.0])
 
 PKG_CHECK_MODULES(DRM, [libudev >= 200, libdrm >= 2.4], video_drm="yes",
     video_drm="no; the test code requires libdrm 2.4+ and libudev 200+")
