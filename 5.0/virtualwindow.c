@@ -469,11 +469,6 @@ test_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
                 // this will not count the root window itself
                 travel_win_tree_bfs (&ctxt);
 
-                _MG_PRINTF ("It's time to quit the message loop (%p, %0lx): "
-                        "nr_mths (%d), nr_thread_wins (%d, %d, %d)\n",
-                        hwnd, add_data2, info->nr_mths,
-                        nr_wins, ctxt.nr_wins, info->nr_thread_wins);
-
                 assert (nr_wins == info->nr_thread_wins);
 
 #ifdef _MGRM_THREADS
@@ -481,6 +476,11 @@ test_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
 #else
                 if (info->nr_mths == 0 && info->nr_thread_wins == 1) {
 #endif
+                    _MG_PRINTF ("It's time to quit the message loop (%p, %s): "
+                            "nr_mths (%d), nr_thread_wins (%d, %d, %d)\n",
+                            hwnd, GetWindowCaption (hwnd), info->nr_mths,
+                            nr_wins, ctxt.nr_wins, info->nr_thread_wins);
+
                     // all hosted windows are destroyed.
                     PostQuitMessage (hwnd);
                 }
@@ -586,7 +586,10 @@ create_test_main_window (struct test_info* info, HWND hosting)
     create_info.dwStyle = 
         WS_VISIBLE | WS_BORDER | WS_CAPTION;
     create_info.dwExStyle = WS_EX_NONE;
-    create_info.spCaption = "A Main window";
+    if (hosting)
+        create_info.spCaption = "A Main window";
+    else
+        create_info.spCaption = "The main main window";
     create_info.hMenu = 0;
     create_info.hCursor = GetSystemCursor(0);
     create_info.hIcon = 0;
