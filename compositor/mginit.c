@@ -51,8 +51,11 @@
 
 static BOOL quit = FALSE;
 static int nr_clients = 0;
-static pid_t pid_welcomer = 0;
+#ifdef _MGSCHEMA_COMPOSITING
+static pid_t pid_welcome = 0;
+static pid_t pid_dynamic = 0;
 static char* exe_cmd;
+#endif
 
 static pid_t exec_app (const char* file_name, const char* app_name)
 {
@@ -89,14 +92,16 @@ static void on_new_del_client (int op, int cli)
             _ERR_PRINTF ("Serious error: nr_clients less than zero.\n");
         }
 
-        if (pid_welcomer == mgClients[cli].pid) {
-            pid_welcomer = 0;
+#ifdef _MGSCHEMA_COMPOSITING
+        if (pid_welcome == mgClients[cli].pid) {
+            pid_welcome = 0;
             if (exe_cmd) {
                 exec_app (exe_cmd, exe_cmd);
                 free (exe_cmd);
                 exe_cmd = NULL;
             }
         }
+#endif
     }
     else
         _ERR_PRINTF ("Serious error: incorrect operations.\n");
@@ -125,8 +130,12 @@ static int my_event_hook (PMSG msg)
             break;
 
         case SCANCODE_SPACE:
-           exec_app ("./wallpaper-dynamic", "wallpaper-dynamic");
+#ifdef _MGSCHEMA_COMPOSITING
+            if (pid_welcome == 0 && pid_dynamic == 0)
+                pid_dynamic = exec_app ("./wallpaper-dynamic", "wallpaper-dynamic");
+#endif
            break;
+
         case SCANCODE_F1:
            exec_app ("./edit", "edit");
            break;
@@ -177,7 +186,7 @@ int MiniGUIMain (int argc, const char* argv[])
 
 #ifdef _MGSCHEMA_COMPOSITING
     if (argc > 1 && strcasecmp (argv[1], "auto") == 0) {
-        exec_app ("./wallpaper-dynamic", "wallpaper-dynamic");
+        pid_dynamic = exec_app ("./wallpaper-dynamic", "wallpaper-dynamic");
         exec_app ("./static", "static");
         exec_app ("./edit", "edit");
         exec_app ("./eventdumper", "eventdumper");
@@ -186,7 +195,7 @@ int MiniGUIMain (int argc, const char* argv[])
         // do not start any child
     }
     else {
-        pid_welcomer = exec_app ("./wallpaper-welcome", "wallpaper-welcome");
+        pid_welcome = exec_app ("./wallpaper-welcome", "wallpaper-welcome");
         if (argc > 1)
             exe_cmd = strdup (argv[1]);
     }
