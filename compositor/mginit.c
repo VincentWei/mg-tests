@@ -52,29 +52,7 @@
 static BOOL quit = FALSE;
 static int nr_clients = 0;
 static pid_t pid_welcomer = 0;
-
-static void on_new_del_client (int op, int cli)
-{
-    if (op == LCO_NEW_CLIENT) {
-        nr_clients ++;
-        _MG_PRINTF ("A new client: %d.\n", mgClients[cli].pid);
-    }
-    else if (op == LCO_DEL_CLIENT) {
-        _MG_PRINTF ("A client left: %d.\n", mgClients[cli].pid);
-        nr_clients --;
-        if (nr_clients == 0) {
-            _MG_PRINTF ("There is no any client.\n");
-        }
-        else if (nr_clients < 0) {
-            _ERR_PRINTF ("Serious error: nr_clients less than zero.\n");
-        }
-
-        if (pid_welcomer == mgClients[cli].pid)
-            pid_welcomer = 0;
-    }
-    else
-        _ERR_PRINTF ("Serious error: incorrect operations.\n");
-}
+static char* exe_cmd;
 
 static pid_t exec_app (const char* file_name, const char* app_name)
 {
@@ -93,6 +71,35 @@ static pid_t exec_app (const char* file_name, const char* app_name)
     }
 
     return pid;
+}
+
+static void on_new_del_client (int op, int cli)
+{
+    if (op == LCO_NEW_CLIENT) {
+        nr_clients ++;
+        _MG_PRINTF ("A new client: %d.\n", mgClients[cli].pid);
+    }
+    else if (op == LCO_DEL_CLIENT) {
+        _MG_PRINTF ("A client left: %d.\n", mgClients[cli].pid);
+        nr_clients --;
+        if (nr_clients == 0) {
+            _MG_PRINTF ("There is no any client.\n");
+        }
+        else if (nr_clients < 0) {
+            _ERR_PRINTF ("Serious error: nr_clients less than zero.\n");
+        }
+
+        if (pid_welcomer == mgClients[cli].pid) {
+            pid_welcomer = 0;
+            if (exe_cmd) {
+                exec_app (exe_cmd, exe_cmd);
+                free (exe_cmd);
+                exe_cmd = NULL;
+            }
+        }
+    }
+    else
+        _ERR_PRINTF ("Serious error: incorrect operations.\n");
 }
 
 static unsigned int old_tick_count;
@@ -117,17 +124,20 @@ static int my_event_hook (PMSG msg)
             }
             break;
 
+        case SCANCODE_SPACE:
+           exec_app ("./wallpaper-dynamic", "wallpaper-dynamic");
+           break;
         case SCANCODE_F1:
            exec_app ("./edit", "edit");
            break;
         case SCANCODE_F2:
-           exec_app ("./timeeditor", "timeeditor");
+           exec_app ("./menubutton", "menubutton");
            break;
         case SCANCODE_F3:
-           exec_app ("./propsheet", "propsheet");
+           exec_app ("./combobox", "combobox");
            break;
         case SCANCODE_F4:
-           exec_app ("./bmpbkgnd", "bmpbkgnd");
+           exec_app ("./eventdumper", "eventdumper");
            break;
     }
     }
@@ -177,14 +187,8 @@ int MiniGUIMain (int argc, const char* argv[])
     }
     else {
         pid_welcomer = exec_app ("./wallpaper-welcome", "wallpaper-welcome");
-        while (pid_welcomer && GetMessage (&msg, HWND_DESKTOP)) {
-            DispatchMessage (&msg);
-        }
-
-        if (argc > 1) {
-            if (exec_app (argv[1], argv[1]) == 0)
-                return 3;
-        }
+        if (argc > 1)
+            exe_cmd = strdup (argv[1]);
     }
 #endif
 
@@ -193,12 +197,6 @@ int MiniGUIMain (int argc, const char* argv[])
     old_tick_count = GetTickCount ();
 
     while (!quit && GetMessage (&msg, HWND_DESKTOP)) {
-#if 0
-        if (pid_scrnsaver == 0 && GetTickCount () > old_tick_count + 1000) {
-            ShowCursor (FALSE);
-            pid_scrnsaver = exec_app ("./scrnsaver", "scrnsaver");
-        }
-#endif
         DispatchMessage (&msg);
     }
 
