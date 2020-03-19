@@ -13,30 +13,9 @@
 /*
 ** intel_i915_driver.c: A sample DRM driver for MiniGUI 4.0.7 or later.
 **
-** This driver is derived from early version of Plymouth and Mesa.
+** This driver is derived from Mesa.
 **
 ** Copyright (C) 2020 FMSoft (http://www.fmsoft.cn).
-**
-** Copyright notice of Plymouth:
-**
-** Copyright (C) 2009 Red Hat, Inc.
-**
-** This program is free software; you can redistribute it and/or modify
-** it under the terms of the GNU General Public License as published by
-** the Free Software Foundation; either version 2, or (at your option)
-** any later version.
-**
-** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-** GNU General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with this program; if not, write to the Free Software
-** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-** 02111-1307, USA.
-**
-** Written by: Ray Strode <rstrode@redhat.com>
 **
 ** Copyright notice of Mesa:
 **
@@ -90,16 +69,18 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 
-#include <drm.h>
-#include <drm_fourcc.h>
+#include <libudev.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
-#include <i915_drm.h>
+#include <libdrm/drm.h>
+#include <libdrm/drm_fourcc.h>
 #include <libdrm/intel_bufmgr.h>
+#include <libdrm/i915_drm.h>
 
 #include "intel_reg.h"
 #include "intel_context.h"
 #include "intel_batchbuffer.h"
+#include "intel_chipset.h"
 
 static void intel_batchbuffer_reset(struct _DrmDriver *driver)
 {
@@ -137,11 +118,7 @@ static int intel_do_flush_locked(struct _DrmDriver *driver, unsigned int flags)
                 flags);
     }
     else {
-        _ERR_PRINTF("drm_intel_bo_subdata failed: %s\n", strerror(-ret));
-    }
-
-    if (ret != 0) {
-        _ERR_PRINTF("intel_do_flush_locked failed(%p): %s\n",
+        _ERR_PRINTF("drm_intel_bo_subdata failed (%p): %s\n",
                 batch->bo, strerror(-ret));
         assert(0);
     }
@@ -172,31 +149,6 @@ static int intel_batchbuffer_flush(struct _DrmDriver *driver, unsigned int flags
     return ret;
 }
 
-#if 0
-static bool intel_batchbuffer_emit_reloc(struct _DrmDriver *driver,
-        drm_intel_bo *buffer,
-        uint32_t read_domains, uint32_t write_domain,
-        uint32_t delta)
-{
-    int ret;
-
-    ret = drm_intel_bo_emit_reloc(driver->batch.bo, 4*driver->batch.used,
-            buffer, delta,
-            read_domains, write_domain);
-    assert(ret == 0);
-    (void)ret;
-
-    /*
-     * Using the old buffer offset, write in what the right data would be, in case
-     * the buffer doesn't move and we can short-circuit the relocation processing
-     * in the kernel
-     */
-    intel_batchbuffer_emit_dword(driver, buffer->offset + delta);
-
-    return true;
-}
-#endif
-
 static bool intel_batchbuffer_emit_reloc_fenced(struct _DrmDriver *driver,
         drm_intel_bo *buffer,
         uint32_t read_domains,
@@ -221,17 +173,6 @@ static bool intel_batchbuffer_emit_reloc_fenced(struct _DrmDriver *driver,
     return true;
 }
 
-#if 0
-static void intel_batchbuffer_data(struct _DrmDriver *driver,
-        const void *data, GLuint bytes)
-{
-    assert((bytes & 3) == 0);
-    intel_batchbuffer_require_space(driver, bytes);
-    memcpy(driver->batch.map + driver->batch.used, data, bytes);
-    driver->batch.used += bytes >> 2;
-}
-#endif
-
 /* Emit a pipelined flush to either flush render and texture cache for
  * reading from a FBO-drawn texture, or flush so that frontbuffer
  * render appears on the screen in DRI1.
@@ -246,11 +187,102 @@ static void intel_batchbuffer_emit_mi_flush(struct _DrmDriver *driver)
     intel_batchbuffer_flush(driver, I915_EXEC_RENDER);
 }
 
+static const char *
+get_udev_property(struct udev_device *device, const char *name)
+{
+    struct udev_list_entry *entry;
+
+    udev_list_entry_foreach (entry,
+                            udev_device_get_properties_list_entry (device))
+    {
+       if (strcmp (udev_list_entry_get_name (entry), name) == 0)
+           return udev_list_entry_get_value (entry);
+    }
+
+    return NULL;
+}
+
+static int get_intel_chip_id (DrmDriver *driver, int fd)
+{
+    struct stat st;
+    struct udev *udev = NULL;
+    struct udev_device *device = NULL;
+
+    if (fstat (fd, &st) < 0 || ! S_ISCHR (st.st_mode)) {
+        _ERR_PRINTF ("%s: bad file descriptor: %d.\n",
+            __func__, fd);
+        return -1;
+    }
+
+    udev = udev_new ();
+    device = udev_device_new_from_devnum (udev, 'c', st.st_rdev);
+    if (device != NULL) {
+        struct udev_device *parent;
+        const char *pci_id;
+        uint32_t vendor_id;
+        uint32_t chip_id;
+
+        parent = udev_device_get_parent (device);
+        pci_id = get_udev_property (parent, "PCI_ID");
+        if (pci_id == NULL || sscanf (pci_id, "%x:%x", &vendor_id, &chip_id) != 2) {
+            _ERR_PRINTF ("%s: bad udev property %s.\n",
+                __func__, pci_id);
+            goto failed;
+        }
+
+        if (vendor_id != 0x8086) {
+            _ERR_PRINTF ("%s: Not an Intel GPU (%X:%X).\n",
+                __func__, vendor_id, chip_id);
+            goto failed;
+        }
+
+        driver->chip_id = chip_id;
+        if (intel_get_genx(chip_id, &driver->gen))
+            ;
+        else if (IS_GEN8(chip_id))
+            driver->gen = 8;
+        else if (IS_GEN7(chip_id))
+            driver->gen = 7;
+        else if (IS_GEN6(chip_id))
+            driver->gen = 6;
+        else if (IS_GEN5(chip_id))
+            driver->gen = 5;
+        else if (IS_GEN4(chip_id))
+            driver->gen = 4;
+        else if (IS_9XX(chip_id))
+            driver->gen = 3;
+        else {
+            assert(IS_GEN2(chip_id));
+            driver->gen = 2;
+        }
+
+        _DBG_PRINTF("chip id: %u, generation: %d\n", chip_id, driver->gen);
+    }
+
+    udev_device_unref (device);
+    udev_unref (udev);
+    return 0;
+
+failed:
+    if (device)
+        udev_device_unref (device);
+    if (udev)
+        udev_unref (udev);
+
+    return -1;
+}
+
 static DrmDriver* i915_create_driver (int device_fd)
 {
     DrmDriver *driver;
 
     driver = calloc (1, sizeof (DrmDriver));
+    if (get_intel_chip_id (driver, device_fd)) {
+        _WRN_PRINTF ("failed to get genenration of the Intel GPU.\n");
+        free (driver);
+        return NULL;
+    }
+
     driver->device_fd = device_fd;
 
     driver->manager = drm_intel_bufmgr_gem_init (driver->device_fd, BATCH_SZ);
@@ -262,6 +294,7 @@ static DrmDriver* i915_create_driver (int device_fd)
     }
 
     drm_intel_bufmgr_gem_enable_fenced_relocs(driver->manager);
+
     driver->nr_buffers = 0;
 
     driver->maxBatchSize = BATCH_SIZE;
@@ -272,8 +305,8 @@ static DrmDriver* i915_create_driver (int device_fd)
 
 static void i915_destroy_driver (DrmDriver *driver)
 {
-    _DBG_PRINTF ("%s: destroying driver buffer manager: %d buffers left\n",
-            __func__, driver->nr_buffers);
+    _DBG_PRINTF ("destroying driver buffer manager: %d buffers left\n",
+            driver->nr_buffers);
 
     intel_batchbuffer_free(driver);
     drm_intel_bufmgr_destroy (driver->manager);
@@ -622,18 +655,15 @@ static inline int i915_clear_buffer (DrmDriver *driver,
     drm_intel_bo *aper_array[2];
     uint32_t BR13, CMD;
     int x1, y1, x2, y2;
-    int bpp, cpp;
 
     buffer = (my_surface_buffer*)dst_buf;
     assert (buffer != NULL);
-
-    drm_format_to_bpp(dst_buf->drm_format, &bpp, &cpp);
 
     BR13 = 0xf0 << 16;
     CMD = XY_COLOR_BLT_CMD;
 
     /* Setup the blit command */
-    if (cpp == 4) {
+    if (buffer->base.cpp == 4) {
         /* clearing RGBA */
         CMD |= XY_BLT_WRITE_ALPHA | XY_BLT_WRITE_RGB;
     }
@@ -655,7 +685,8 @@ static inline int i915_clear_buffer (DrmDriver *driver,
 
     if (drm_intel_bufmgr_check_aperture_space(aper_array,
                 TABLESIZE(aper_array)) != 0) {
-        intel_batchbuffer_flush(driver, I915_EXEC_RENDER);
+        intel_batchbuffer_flush(driver,
+                (driver->gen > 4) ? I915_EXEC_BLT : I915_EXEC_RENDER);
     }
 
     intel_batchbuffer_begin(driver, 6);
@@ -668,7 +699,8 @@ static inline int i915_clear_buffer (DrmDriver *driver,
             dst_buf->offset);
     intel_batchbuffer_emit_dword(driver, clear_value);
     intel_batchbuffer_advance(driver);
-    intel_batchbuffer_flush(driver, I915_EXEC_BLT);
+    intel_batchbuffer_flush(driver,
+            (driver->gen > 4) ? I915_EXEC_BLT : I915_EXEC_RENDER);
 
     intel_batchbuffer_emit_mi_flush(driver);
     return 0;
@@ -677,11 +709,22 @@ static inline int i915_clear_buffer (DrmDriver *driver,
 static inline int i915_check_blit (DrmDriver *driver,
             DrmSurfaceBuffer* src_buf, DrmSurfaceBuffer* dst_buf)
 {
-    if (src_buf->drm_format == dst_buf->drm_format)
+    drm_intel_bo *src_bo, *dst_bo;
+    uint32_t src_tiling_mode, src_swizzle_mode;
+    uint32_t dst_tiling_mode, dst_swizzle_mode;
+
+    src_bo = ((my_surface_buffer*)src_buf)->bo;
+    dst_bo = ((my_surface_buffer*)dst_buf)->bo;
+    drm_intel_bo_get_tiling(src_bo, &src_tiling_mode, &src_swizzle_mode);
+    drm_intel_bo_get_tiling(dst_bo, &dst_tiling_mode, &dst_swizzle_mode);
+
+    if (src_tiling_mode == dst_tiling_mode &&
+            src_swizzle_mode == dst_swizzle_mode &&
+            src_buf->drm_format == dst_buf->drm_format)
         return 0;
 
-    _DBG_PRINTF("%s: CANNOT blit src_buf(%p) to dst_buf(%p)\n",
-            __func__, src_buf, dst_buf);
+    _DBG_PRINTF("CANNOT blit src_buf(%p) to dst_buf(%p)\n",
+            src_buf, dst_buf);
     return -1;
 }
 
@@ -726,7 +769,8 @@ static inline int i915_copy_blit (DrmDriver *driver,
         aper_array[2] = src_bo;
 
         if (dri_bufmgr_check_aperture_space(aper_array, 3) != 0) {
-            intel_batchbuffer_flush(driver, I915_EXEC_RENDER);
+            intel_batchbuffer_flush(driver,
+                    (driver->gen > 4) ? I915_EXEC_BLT : I915_EXEC_RENDER);
             pass++;
         } else
             break;
@@ -737,17 +781,18 @@ static inline int i915_copy_blit (DrmDriver *driver,
 
     intel_batchbuffer_require_space(driver, 8 * 4);
 
-    _DBG_PRINTF("%s src:buf(%p)/%d+%d %d,%d dst:buf(%p)/%d+%d %d,%d sz:%dx%d\n",
-            __func__,
+    _DBG_PRINTF("src:buf(%p)/%d+%d %d,%d dst:buf(%p)/%d+%d %d,%d sz:%dx%d\n",
             src_bo, src_pitch, src_offset, src_x, src_y,
             dst_bo, dst_pitch, dst_offset, dst_x, dst_y, w, h);
+
+    _DBG_PRINTF("src cpp: %d src offset(%d)\n", cpp, src_offset);
 
     /* Blit pitch must be dword-aligned.  Otherwise, the hardware appears to drop
      * the low bits.  Offsets must be naturally aligned.
      */
     if (src_pitch % 4 != 0 || dst_pitch % 4 != 0) {
-        _DBG_PRINTF("%s pitches are not dword-aligned: src_pitch(%d), dst_pitch(%d)\n",
-                __func__, src_pitch, dst_pitch);
+        _DBG_PRINTF("pitches are not dword-aligned: src_pitch(%d), dst_pitch(%d)\n",
+                src_pitch, dst_pitch);
         return -1;
     }
 
@@ -788,7 +833,8 @@ static inline int i915_copy_blit (DrmDriver *driver,
             I915_GEM_DOMAIN_RENDER, 0,
             src_offset);
     intel_batchbuffer_advance(driver);
-    intel_batchbuffer_flush(driver, I915_EXEC_RENDER);
+    intel_batchbuffer_flush(driver,
+            (driver->gen > 4) ? I915_EXEC_BLT : I915_EXEC_RENDER);
 
     intel_batchbuffer_emit_mi_flush(driver);
     return -1;
