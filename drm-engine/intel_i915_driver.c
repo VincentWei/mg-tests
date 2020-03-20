@@ -513,15 +513,15 @@ static DrmSurfaceBuffer* i915_create_buffer (DrmDriver *driver,
     return &buffer->base;
 }
 
-#undef HAVE_CREATE_FROM_HANDLE
-
-#ifdef HAVE_CREATE_FROM_HANDLE
+#ifdef DRM_INTEL_HAVE_CREATE_FROM_HANDLE
 
 static inline drm_intel_bo * create_bo_from_handle (DrmDriver *driver,
         uint32_t handle, size_t size)
 {
+    char name [64];
+    sprintf(name, "buffer %u", handle);
     return drm_intel_bo_gem_create_from_handle (driver->manager,
-            handle, size);
+            name, handle, size);
 }
 
 #else   /* defined HAVE_CREATE_FROM_HANDLE */
