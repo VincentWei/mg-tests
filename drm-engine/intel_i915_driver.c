@@ -235,7 +235,7 @@ static inline int pci_id_to_gen (int chip_id)
    the function get_pci_device_id will fail, while the function executing
    ioctl DRM_IOCTL_I915_GETPARAM to get the PCI device id.
 */
-static void override_devid (int pci_id, int gen)
+static inline void override_devid (int pci_id, int gen)
 {
     static const struct {
         const char *name;
@@ -306,10 +306,10 @@ static int get_intel_chip_id (DrmDriver *driver, int fd)
     udev_device_unref (device);
     udev_unref (udev);
 
-#ifdef _MGRM_PROCESSES
+#if 0
     if (!mgIsServer)
-#endif
         override_devid (driver->chip_id, driver->gen);
+#endif
     return 0;
 
 failed:
