@@ -51,7 +51,7 @@ else
     AC_MSG_WARN([$video_drm_intel])
 fi
 
-AC_CHECK_DECLS(_MGSCHEMA_COMPOSITING, schema_compositing="yes", foo=bar, [#include <minigui/common.h>])
+AC_CHECK_DECLS(_MGRM_PROCESSES, runmode_procs="yes", foo=bar, [#include <minigui/common.h>])
 
 dnl ========================================================================
 dnl Write Output
@@ -63,7 +63,7 @@ if test "$ac_cv_prog_gcc" = "yes"; then
     CFLAGS="$CFLAGS -std=c99 -Wall -Werror -Wstrict-prototypes -pipe"
 fi
 
-AM_CONDITIONAL(MGSCHEMA_COMPOSITING, test "x$schema_compositing" = "xyes")
+AM_CONDITIONAL(MGRM_PROCESSES, test "x$runmode_procs" = "xyes")
 
 AC_OUTPUT(
     Makefile
