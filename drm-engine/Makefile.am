@@ -11,7 +11,7 @@ testdrm_LDADD = -lmgeff
 lib_LTLIBRARIES = libtestdrmdriver.la
 
 libtestdrmdriver_la_SOURCES = intel_i915_driver.c intel_batchbuffer.h intel_context.h intel_reg.h \
-    ply-hashtable.c ply-hashtable.h ply-bitarray.h
+                              intel_chipset.c intel_chipset.h i915_pciids.h libdrm_macros.h
 
 libtestdrmdriver_la_LIBADD = -ldrm_intel
 

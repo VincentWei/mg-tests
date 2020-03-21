@@ -48,13 +48,6 @@
 #include <i915_drm.h>
 #include <libdrm/intel_bufmgr.h>
 
-//#define WITH_BUFFER_MANAGEMENT
-#undef WITH_BUFFER_MANAGEMENT
-
-#ifdef WITH_BUFFER_MANAGEMENT
-#include "ply-hashtable.h"
-#endif
-
 #define DV_PF_555  (1<<8)
 #define DV_PF_565  (2<<8)
 #define DV_PF_8888 (3<<8)
@@ -98,36 +91,8 @@ struct _DrmDriver {
     struct intel_batchbuffer batch;
     unsigned int maxBatchSize;
 
-#ifdef WITH_BUFFER_MANAGEMENT
-    ply_hashtable_t *buffers;
-#endif
     int nr_buffers;
-
-#if 0
-    drm_intel_bo *first_post_swapbuffers_batch;
-    uint32_t no_batch_wrap:1;
-
-    struct {
-        drm_intel_bo *bo;
-        GLuint offset;
-        uint32_t buffer_len;
-        uint32_t buffer_offset;
-        char buffer[4096];
-    } upload;
-
-    // i915-specific context
-    struct i915_hw_state
-    {
-       GLuint active;               /* I915_UPLOAD_* */
-       GLuint emitted;              /* I915_UPLOAD_* */
-    } state;
-
-    drm_intel_bo *current_vb_bo;
-    unsigned int current_vertex_size;
-
-    uint32_t last_draw_offset;
-    GLuint last_sampler;
-#endif
+    int chip_id, gen;
 };
 
 #endif
