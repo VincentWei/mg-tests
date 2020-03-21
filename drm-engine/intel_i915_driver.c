@@ -49,7 +49,7 @@
 #include <string.h>
 #include <time.h>
 
-#undef _DEBUG
+#define _DEBUG
 
 #include <minigui/common.h>
 #include <minigui/minigui.h>
@@ -299,7 +299,7 @@ static int get_intel_chip_id (DrmDriver *driver, int fd)
         driver->chip_id = chip_id;
         driver->gen = pci_id_to_gen (chip_id);
 
-        _DBG_PRINTF("chip id: %u, generation: %d\n", chip_id,->gen);
+        _DBG_PRINTF("chip id: %u, generation: %d\n", chip_id, driver->gen);
     }
 
     udev_device_unref (device);
@@ -689,7 +689,7 @@ static void i915_destroy_buffer (DrmDriver *driver,
     _DBG_PRINTF("Buffer object (%u) destroied\n", my_buffer->base.handle);
 }
 
-static unsigned int translate_raster_op(enum DrmColorLogicOp logicop)
+static unsigned int translate_raster_op(ColorLogicalOp logicop)
 {
     return logicop | (logicop << 4);
 }
@@ -807,7 +807,7 @@ static inline int i915_check_blit (DrmDriver *driver,
 static inline int i915_copy_blit (DrmDriver *driver,
         DrmSurfaceBuffer* src_buf, const GAL_Rect* src_rc,
         DrmSurfaceBuffer* dst_buf, const GAL_Rect* dst_rc,
-        enum DrmColorLogicOp logic_op)
+        ColorLogicalOp logic_op)
 {
     my_surface_buffer *buffer;
     unsigned int cpp;
@@ -939,6 +939,7 @@ DrmDriverOps* __drm_ex_driver_get(const char* driver_name, int device_fd,
             .clear_buffer = i915_clear_buffer,
             .check_blit = i915_check_blit,
             .copy_blit = i915_copy_blit,
+            .alpha_pixel_blit = NULL,
         };
 
         return &i915_driver;
