@@ -177,8 +177,8 @@ int MiniGUIMain (int argc, const char* argv[])
 int main (int argc, const char* argv[])
 {
     _WRN_PRINTF ("This test program is the server for MiniGUI-Prcesses "
-           "runtime mode. But your MiniGUI was not configured as "
-           "MiniGUI-Processes\n");
+           "runtime mode.\n"
+           "    But your MiniGUI was not configured as MiniGUI-Processes\n");
     return 0;
 }
 
