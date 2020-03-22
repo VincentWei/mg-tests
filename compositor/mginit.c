@@ -111,6 +111,16 @@ static unsigned int old_tick_count;
 
 static pid_t pid_scrnsaver = 0;
 
+static inline void dump_key_messages (PMSG msg)
+{
+    if (msg->message == MSG_KEYDOWN || msg->message == MSG_KEYUP) {
+        _WRN_PRINTF ("%s (%d) %s KS_REPEATED\n",
+                (msg->message == MSG_KEYDOWN)?"MSG_KEYDOWN":"MSG_KEYUP",
+                (int)msg->wParam,
+                (msg->lParam & KS_REPEATED)?"with":"without");
+    }
+}
+
 static int my_event_hook (PMSG msg)
 {
     old_tick_count = GetTickCount ();
@@ -120,6 +130,8 @@ static int my_event_hook (PMSG msg)
         ShowCursor (TRUE);
         pid_scrnsaver = 0;
     }
+
+    dump_key_messages(msg);
 
     if (msg->message == MSG_KEYDOWN) {
         switch (msg->wParam) {
@@ -147,6 +159,9 @@ static int my_event_hook (PMSG msg)
            break;
         case SCANCODE_F4:
            exec_app ("./eventdumper", "eventdumper");
+           break;
+        case SCANCODE_F5:
+           exec_app ("./helloworld", "helloworld");
            break;
     }
     }

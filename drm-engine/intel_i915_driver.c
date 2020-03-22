@@ -49,7 +49,7 @@
 #include <string.h>
 #include <time.h>
 
-#define _DEBUG
+#undef _DEBUG
 
 #include <minigui/common.h>
 #include <minigui/minigui.h>

@@ -193,7 +193,7 @@ int MiniGUIMain (int argc, const char* argv[])
 
     CreateInfo.dwStyle = 
         WS_VISIBLE | WS_BORDER | WS_CAPTION;
-    CreateInfo.dwExStyle = WS_EX_NONE;
+    CreateInfo.dwExStyle = WS_EX_AUTOPOSITION;
     CreateInfo.spCaption = HL_ST_CAP;
     CreateInfo.hMenu = 0;
     CreateInfo.hCursor = GetSystemCursor(0);
@@ -201,8 +201,8 @@ int MiniGUIMain (int argc, const char* argv[])
     CreateInfo.MainWindowProc = HelloWinProc;
     CreateInfo.lx = 0;
     CreateInfo.ty = 0;
-    CreateInfo.rx = g_rcScr.right;
-    CreateInfo.by = g_rcScr.bottom;
+    CreateInfo.rx = 480;
+    CreateInfo.by = 640;
     CreateInfo.iBkColor = COLOR_lightwhite;
     CreateInfo.dwAddData = 0;
     CreateInfo.hHosting = HWND_DESKTOP;
