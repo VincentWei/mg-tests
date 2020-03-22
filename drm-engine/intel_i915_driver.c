@@ -499,8 +499,9 @@ static DrmSurfaceBuffer* i915_create_buffer (DrmDriver *driver,
     buffer->base.offset = nr_hdr_lines * pitch;
     buffer->base.buff = NULL;
 
-    _DBG_PRINTF ("Allocate GEM object for surface buffer: "
+    _DBG_PRINTF ("Allocate GEM object for surface buffer (%u): "
             "width (%d), height (%d), (pitch: %d), size (%lu), offset (%ld)\n",
+            buffer->base.handle,
             buffer->base.width, buffer->base.height, buffer->base.pitch,
             buffer->base.size, buffer->base.offset);
 
@@ -682,11 +683,11 @@ static void i915_destroy_buffer (DrmDriver *driver,
     }
 
     drm_intel_bo_unreference (my_buffer->bo);
-    free (my_buffer);
-
-    driver->nr_buffers--;
 
     _DBG_PRINTF("Buffer object (%u) destroied\n", my_buffer->base.handle);
+
+    free (my_buffer);
+    driver->nr_buffers--;
 }
 
 static unsigned int translate_raster_op(ColorLogicalOp logicop)
