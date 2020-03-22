@@ -435,6 +435,7 @@ static LRESULT EventDumperProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lP
     }
 
     case MSG_CLOSE:
+        SendMessage (flying_window, MSG_CLOSE, 0, 0);
         DestroyMainWindow (hwnd);
         PostQuitMessage (hwnd);
         return 0;
