@@ -51,7 +51,7 @@ else
     AC_MSG_WARN([$video_drm_intel])
 fi
 
-LIBS="$LIBS $MINIGUI_LIBS -lefence"
+LIBS="$LIBS $MINIGUI_LIBS"
 
 if test "$ac_cv_prog_gcc" = "yes"; then
     CPPFLAGS="$CPPFLAGS -D_DEFAULT_SOURCE -D_GNU_SOURCE"
