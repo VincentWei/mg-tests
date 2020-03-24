@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 //
-//                        IMPORTANT LEGAL NOTICE
+//                          IMPORTANT NOTICE
 //
 // The following open source license statement does not apply to any
 // entity in the Exception List published by FMSoft.
@@ -10,10 +10,15 @@
 // https://www.fmsoft.cn/exception-list
 //
 //////////////////////////////////////////////////////////////////////////////
-/*
-** helloworld.c: Sample program for MiniGUI.
+/* 
+** $Id: helloworld.c 767 2009-12-08 06:42:19Z houhuihua $
 **
-** Copyright (C) 2019 FMSoft (http://www.fmsoft.cn).
+** Listing 1.1
+**
+** helloworld.c: Sample program for MiniGUI Programming Guide
+**      The first MiniGUI application.
+**
+** Copyright (C) 2003 ~ 2017 FMSoft (http://www.fmsoft.cn).
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -31,6 +36,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#define _DEBUG
 #include <minigui/common.h>
 #include <minigui/minigui.h>
 #include <minigui/gdi.h>
@@ -134,9 +140,10 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
         case MSG_SYSKEYDOWN:
             syskey = HL_ST_SYS;
         case MSG_KEYDOWN:
-            if (last_key == wParam)
+            if(last_key == wParam)
                 last_key_count++;
-            else {
+            else
+            {
                 last_key = wParam;
                 last_key_count = 1;
             }
@@ -176,19 +183,17 @@ int MiniGUIMain (int argc, const char* argv[])
     HWND hMainWnd;
     MAINWINCREATE CreateInfo;
 
-    RECT rc_scr = GetScreenRect();
-
-    _MG_PRINTF("Screen rect: %d, %d, %d, %d\n",
-            rc_scr.left, rc_scr.top,
-            rc_scr.right, rc_scr.bottom);
-
 #ifdef _MGRM_PROCESSES
     JoinLayer(NAME_DEF_LAYER , "helloworld" , 0 , 0);
 #endif
 
+    _DBG_PRINTF("Screen rect: %d, %d, %d, %d\n",
+        g_rcScr.left, g_rcScr.top,
+        g_rcScr.right, g_rcScr.bottom);
+
     CreateInfo.dwStyle = 
         WS_VISIBLE | WS_BORDER | WS_CAPTION;
-    CreateInfo.dwExStyle = WS_EX_NONE;
+    CreateInfo.dwExStyle = WS_EX_AUTOPOSITION;
     CreateInfo.spCaption = HL_ST_CAP;
     CreateInfo.hMenu = 0;
     CreateInfo.hCursor = GetSystemCursor(0);
@@ -196,14 +201,14 @@ int MiniGUIMain (int argc, const char* argv[])
     CreateInfo.MainWindowProc = HelloWinProc;
     CreateInfo.lx = 0;
     CreateInfo.ty = 0;
-    CreateInfo.rx = g_rcScr.right;
-    CreateInfo.by = g_rcScr.bottom;
+    CreateInfo.rx = 480;
+    CreateInfo.by = 640;
     CreateInfo.iBkColor = COLOR_lightwhite;
     CreateInfo.dwAddData = 0;
     CreateInfo.hHosting = HWND_DESKTOP;
-
+    
     hMainWnd = CreateMainWindow (&CreateInfo);
-
+    
     if (hMainWnd == HWND_INVALID)
         return -1;
 

@@ -5,11 +5,7 @@ in this repository.
 
 ## Prerequisites
 
-* Always run the test programs on Ubuntu Linux 16.04 LTS or later.
-* Configure MiniGUI as MiniGUI-Threads runmode.
-* Install the electric fence package:
-
-    $ sudo apt install electric-fence
+* Always run the test programs on Ubuntu Linux 18.04 LTS or later.
 
 ## Building
 
@@ -19,7 +15,7 @@ in this repository.
 
 ## Copying
 
-Copyright (C) 2018 ~ 2019, Beijing FMSoft Technologies Co., Ltd.
+Copyright (C) 2018 ~ 2020, Beijing FMSoft Technologies Co., Ltd.
 
 Most programs of mg-tests are licensed under the Apache License,
 Version 2.0. Some programs of mg-tests are licensed under GPL,

@@ -11,32 +11,11 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 /*
-** mydridriver.c: A sample DRM driver for MiniGUI 4.0.
+** intel_i915_driver.c: A sample DRM driver for MiniGUI 4.0.7 or later.
 **
-** This driver is derived from early version of Plymouth and Mesa.
+** This driver is derived from Mesa.
 **
-** Copyright (C) 2019 FMSoft (http://www.fmsoft.cn).
-**
-** Copyright notice of Plymouth:
-**
-** Copyright (C) 2009 Red Hat, Inc.
-**
-** This program is free software; you can redistribute it and/or modify
-** it under the terms of the GNU General Public License as published by
-** the Free Software Foundation; either version 2, or (at your option)
-** any later version.
-**
-** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-** GNU General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with this program; if not, write to the Free Software
-** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-** 02111-1307, USA.
-**
-** Written by: Ray Strode <rstrode@redhat.com>
+** Copyright (C) 2020 FMSoft (http://www.fmsoft.cn).
 **
 ** Copyright notice of Mesa:
 **
@@ -70,11 +49,9 @@
 #include <string.h>
 #include <time.h>
 
-#define _DEBUG
+#undef _DEBUG
+
 #include <minigui/common.h>
-
-#ifdef __TARGET_EXTERNAL__
-
 #include <minigui/minigui.h>
 #include <minigui/gdi.h>
 #include <minigui/exstubs.h>
@@ -92,6 +69,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 
+#include <libudev.h>
 #include <drm.h>
 #include <drm_fourcc.h>
 #include <xf86drm.h>
@@ -102,6 +80,7 @@
 #include "intel_reg.h"
 #include "intel_context.h"
 #include "intel_batchbuffer.h"
+#include "intel_chipset.h"
 
 static void intel_batchbuffer_reset(struct _DrmDriver *driver)
 {
@@ -139,13 +118,8 @@ static int intel_do_flush_locked(struct _DrmDriver *driver, unsigned int flags)
                 flags);
     }
     else {
-        _ERR_PRINTF("drm_intel_bo_subdata failed: %s\n", strerror(-ret));
-    }
-
-    if (ret != 0) {
-        _ERR_PRINTF("intel_do_flush_locked failed(%p): %s\n",
+        _DBG_PRINTF("drm_intel_bo_subdata failed (%p): %s\n",
                 batch->bo, strerror(-ret));
-        assert(0);
     }
 
     return ret;
@@ -174,31 +148,6 @@ static int intel_batchbuffer_flush(struct _DrmDriver *driver, unsigned int flags
     return ret;
 }
 
-#if 0
-static bool intel_batchbuffer_emit_reloc(struct _DrmDriver *driver,
-        drm_intel_bo *buffer,
-        uint32_t read_domains, uint32_t write_domain,
-        uint32_t delta)
-{
-    int ret;
-
-    ret = drm_intel_bo_emit_reloc(driver->batch.bo, 4*driver->batch.used,
-            buffer, delta,
-            read_domains, write_domain);
-    assert(ret == 0);
-    (void)ret;
-
-    /*
-     * Using the old buffer offset, write in what the right data would be, in case
-     * the buffer doesn't move and we can short-circuit the relocation processing
-     * in the kernel
-     */
-    intel_batchbuffer_emit_dword(driver, buffer->offset + delta);
-
-    return true;
-}
-#endif
-
 static bool intel_batchbuffer_emit_reloc_fenced(struct _DrmDriver *driver,
         drm_intel_bo *buffer,
         uint32_t read_domains,
@@ -223,17 +172,6 @@ static bool intel_batchbuffer_emit_reloc_fenced(struct _DrmDriver *driver,
     return true;
 }
 
-#if 0
-static void intel_batchbuffer_data(struct _DrmDriver *driver,
-        const void *data, GLuint bytes)
-{
-    assert((bytes & 3) == 0);
-    intel_batchbuffer_require_space(driver, bytes);
-    memcpy(driver->batch.map + driver->batch.used, data, bytes);
-    driver->batch.used += bytes >> 2;
-}
-#endif
-
 /* Emit a pipelined flush to either flush render and texture cache for
  * reading from a FBO-drawn texture, or flush so that frontbuffer
  * render appears on the screen in DRI1.
@@ -245,7 +183,136 @@ static void intel_batchbuffer_emit_mi_flush(struct _DrmDriver *driver)
     intel_batchbuffer_begin(driver, 1);
     intel_batchbuffer_emit_dword(driver, MI_FLUSH);
     intel_batchbuffer_advance(driver);
-    intel_batchbuffer_flush(driver, I915_EXEC_RENDER);
+    intel_batchbuffer_flush(driver,
+            (driver->gen > 4) ? I915_EXEC_BLT : I915_EXEC_RENDER);
+}
+
+    static const char *
+get_udev_property(struct udev_device *device, const char *name)
+{
+    struct udev_list_entry *entry;
+
+    udev_list_entry_foreach (entry,
+            udev_device_get_properties_list_entry (device))
+    {
+        if (strcmp (udev_list_entry_get_name (entry), name) == 0)
+            return udev_list_entry_get_value (entry);
+    }
+
+    return NULL;
+}
+
+static inline int pci_id_to_gen (int chip_id)
+{
+    int gen;
+
+    if (intel_get_genx(chip_id, &gen))
+        ;
+    else if (IS_GEN8(chip_id))
+        gen = 8;
+    else if (IS_GEN7(chip_id))
+        gen = 7;
+    else if (IS_GEN6(chip_id))
+        gen = 6;
+    else if (IS_GEN5(chip_id))
+        gen = 5;
+    else if (IS_GEN4(chip_id))
+        gen = 4;
+    else if (IS_9XX(chip_id))
+        gen = 3;
+    else {
+        assert(IS_GEN2(chip_id));
+        gen = 2;
+    }
+
+    return gen;
+}
+
+#if 0   /* deprecated code */
+/* This function overrides the INTEL_DEVID_OVERRIDE environment variable
+   to avoid executing ioctl DRM_IOCTL_I915_GETPARAM.
+   Because when a client of MiniGUI-Processes initializes the buffer manager,
+   the function get_pci_device_id will fail, while the function executing
+   ioctl DRM_IOCTL_I915_GETPARAM to get the PCI device id.
+ */
+static inline void override_devid (int pci_id, int gen)
+{
+    static const struct {
+        const char *name;
+        int pci_id;
+    } name_map[] = {
+        { "brw", PCI_CHIP_I965_GM },
+        { "g4x", PCI_CHIP_GM45_GM },
+        { "ilk", PCI_CHIP_ILD_G },
+        { "snb", PCI_CHIP_SANDYBRIDGE_M_GT2_PLUS },
+        { "ivb", PCI_CHIP_IVYBRIDGE_S_GT2 },    // gen 7
+        { "hsw", PCI_CHIP_HASWELL_CRW_E_GT3 },
+        { "byt", PCI_CHIP_VALLEYVIEW_3 },
+        { "bdw", 0x1620 | BDW_ULX },
+        { "skl", PCI_CHIP_SKYLAKE_DT_GT2 },
+        { "kbl", PCI_CHIP_KABYLAKE_DT_GT2 },
+    };
+    unsigned int i;
+
+    for (i = 0; i < TABLESIZE(name_map); i++) {
+        if (pci_id_to_gen (name_map[i].pci_id) == gen) {
+            setenv("INTEL_DEVID_OVERRIDE", name_map[i].name, 1);
+            _WRN_PRINTF ("override devid: %s\n", name_map[i].name);
+            break;
+        }
+    }
+}
+#endif  /* deprecated code */
+
+static int get_intel_chip_id (DrmDriver *driver, int fd)
+{
+    struct stat st;
+    struct udev *udev = NULL;
+    struct udev_device *device = NULL;
+
+    if (fstat (fd, &st) < 0 || ! S_ISCHR (st.st_mode)) {
+        _DBG_PRINTF ("bad file descriptor (%d): %m\n", fd);
+        return -1;
+    }
+
+    udev = udev_new ();
+    device = udev_device_new_from_devnum (udev, 'c', st.st_rdev);
+    if (device != NULL) {
+        struct udev_device *parent;
+        const char *pci_id;
+        uint32_t vendor_id;
+        uint32_t chip_id;
+
+        parent = udev_device_get_parent (device);
+        pci_id = get_udev_property (parent, "PCI_ID");
+        if (pci_id == NULL ||
+                sscanf (pci_id, "%x:%x", &vendor_id, &chip_id) != 2) {
+            _DBG_PRINTF ("bad udev property %s.\n", pci_id);
+            goto failed;
+        }
+
+        if (vendor_id != 0x8086) {
+            _DBG_PRINTF ("not an Intel GPU (%X:%X).\n", vendor_id, chip_id);
+            goto failed;
+        }
+
+        driver->chip_id = chip_id;
+        driver->gen = pci_id_to_gen (chip_id);
+
+        _DBG_PRINTF("chip id: %u, generation: %d\n", chip_id, driver->gen);
+    }
+
+    udev_device_unref (device);
+    udev_unref (udev);
+    return 0;
+
+failed:
+    if (device)
+        udev_device_unref (device);
+    if (udev)
+        udev_unref (udev);
+
+    return -1;
 }
 
 static DrmDriver* i915_create_driver (int device_fd)
@@ -255,20 +322,21 @@ static DrmDriver* i915_create_driver (int device_fd)
     driver = calloc (1, sizeof (DrmDriver));
     driver->device_fd = device_fd;
 
+    if (get_intel_chip_id (driver, device_fd)) {
+        _ERR_PRINTF ("DRM>i915: failed to get genenration.\n");
+        free (driver);
+        return NULL;
+    }
+
     driver->manager = drm_intel_bufmgr_gem_init (driver->device_fd, BATCH_SZ);
     if (driver->manager == NULL) {
-        _ERR_PRINTF ("%s: failed to initialize the Intel buffer manager\n",
-            __func__);
+        _ERR_PRINTF ("DRM>i915: failed to initialize buffer manager\n");
         free (driver);
         return NULL;
     }
 
     drm_intel_bufmgr_gem_enable_fenced_relocs(driver->manager);
 
-#ifdef WITH_BUFFER_MANAGEMENT
-    driver->buffers = ply_hashtable_new (ply_hashtable_direct_hash,
-            ply_hashtable_direct_compare);
-#endif
     driver->nr_buffers = 0;
 
     driver->maxBatchSize = BATCH_SIZE;
@@ -279,12 +347,10 @@ static DrmDriver* i915_create_driver (int device_fd)
 
 static void i915_destroy_driver (DrmDriver *driver)
 {
-    _DBG_PRINTF ("%s: destroying driver buffer manager: %d buffers left\n",
-            __func__, driver->nr_buffers);
+    if (driver->nr_buffers) {
+        _WRN_PRINTF ("There is still %d buffers left\n", driver->nr_buffers);
+    }
 
-#ifdef WITH_BUFFER_MANAGEMENT
-    ply_hashtable_free (driver->buffers);
-#endif
     intel_batchbuffer_free(driver);
     drm_intel_bufmgr_destroy (driver->manager);
     free (driver);
@@ -297,330 +363,169 @@ static void i915_flush_driver (DrmDriver *driver)
 
 typedef struct _my_surface_buffer {
     DrmSurfaceBuffer base;
-
     drm_intel_bo *bo;
-
-    uint32_t added_fb:1;
 } my_surface_buffer;
 
 #define ROUND_TO_MULTIPLE(n, m) (((n) + (((m) - 1))) & ~((m) - 1))
-
-static my_surface_buffer * drm_buffer_new (DrmDriver *driver,
-        drm_intel_bo *buffer_object,
-        uint32_t id,
-        uint32_t width,
-        uint32_t height,
-        uint32_t pitch)
-{
-    my_surface_buffer *buffer;
-
-    buffer = calloc (1, sizeof (my_surface_buffer));
-    buffer->base.name = 0;
-    buffer->base.handle = buffer_object->handle;
-    buffer->base.id = id;
-    buffer->base.width = width;
-    buffer->base.height = height;
-    buffer->base.pitch = pitch;
-    buffer->base.size = buffer_object->size;
-
-    buffer->bo = buffer_object;
-    _DBG_PRINTF ("returning %ux%u buffer with stride %u\n",
-            width, height, pitch);
-
-    return buffer;
-}
 
 static int drm_format_to_bpp(uint32_t drm_format,
         int* bpp, int* cpp)
 {
     switch (drm_format) {
-    case DRM_FORMAT_RGB332:
-    case DRM_FORMAT_BGR233:
-        *bpp = 8;
-        *cpp = 1;
-        break;
+        case DRM_FORMAT_RGB332:
+        case DRM_FORMAT_BGR233:
+            *bpp = 8;
+            *cpp = 1;
+            break;
 
-    case DRM_FORMAT_XRGB4444:
-    case DRM_FORMAT_XBGR4444:
-    case DRM_FORMAT_RGBX4444:
-    case DRM_FORMAT_BGRX4444:
-    case DRM_FORMAT_ARGB4444:
-    case DRM_FORMAT_ABGR4444:
-    case DRM_FORMAT_RGBA4444:
-    case DRM_FORMAT_BGRA4444:
-    case DRM_FORMAT_XRGB1555:
-    case DRM_FORMAT_XBGR1555:
-    case DRM_FORMAT_RGBX5551:
-    case DRM_FORMAT_BGRX5551:
-    case DRM_FORMAT_ARGB1555:
-    case DRM_FORMAT_ABGR1555:
-    case DRM_FORMAT_RGBA5551:
-    case DRM_FORMAT_BGRA5551:
-    case DRM_FORMAT_RGB565:
-    case DRM_FORMAT_BGR565:
-        *bpp = 16;
-        *cpp = 2;
-        break;
+        case DRM_FORMAT_XRGB4444:
+        case DRM_FORMAT_XBGR4444:
+        case DRM_FORMAT_RGBX4444:
+        case DRM_FORMAT_BGRX4444:
+        case DRM_FORMAT_ARGB4444:
+        case DRM_FORMAT_ABGR4444:
+        case DRM_FORMAT_RGBA4444:
+        case DRM_FORMAT_BGRA4444:
+        case DRM_FORMAT_XRGB1555:
+        case DRM_FORMAT_XBGR1555:
+        case DRM_FORMAT_RGBX5551:
+        case DRM_FORMAT_BGRX5551:
+        case DRM_FORMAT_ARGB1555:
+        case DRM_FORMAT_ABGR1555:
+        case DRM_FORMAT_RGBA5551:
+        case DRM_FORMAT_BGRA5551:
+        case DRM_FORMAT_RGB565:
+        case DRM_FORMAT_BGR565:
+            *bpp = 16;
+            *cpp = 2;
+            break;
 
-/* 24 bpp is not supported by i915 driver
-    case DRM_FORMAT_RGB888:
-    case DRM_FORMAT_BGR888:
-        bpp = 24;
-        cpp = 3;
-        break;
-*/
+            /* 24 bpp is not supported by i915
+               case DRM_FORMAT_RGB888:
+               case DRM_FORMAT_BGR888:
+               bpp = 24;
+               cpp = 3;
+               break;
+             */
 
-    case DRM_FORMAT_XRGB8888:
-    case DRM_FORMAT_XBGR8888:
-    case DRM_FORMAT_RGBX8888:
-    case DRM_FORMAT_BGRX8888:
-    case DRM_FORMAT_ARGB8888:
-    case DRM_FORMAT_ABGR8888:
-    case DRM_FORMAT_RGBA8888:
-    case DRM_FORMAT_BGRA8888:
-        *bpp = 32;
-        *cpp = 4;
-        break;
+        case DRM_FORMAT_XRGB8888:
+        case DRM_FORMAT_XBGR8888:
+        case DRM_FORMAT_RGBX8888:
+        case DRM_FORMAT_BGRX8888:
+        case DRM_FORMAT_ARGB8888:
+        case DRM_FORMAT_ABGR8888:
+        case DRM_FORMAT_RGBA8888:
+        case DRM_FORMAT_BGRA8888:
+            *bpp = 32;
+            *cpp = 4;
+            break;
 
-    default:
-        return 0;
-        break;
+        default:
+            return 0;
+            break;
     }
 
     return 1;
 }
 
 static my_surface_buffer* i915_create_buffer_helper (DrmDriver *driver,
-            drm_intel_bo *buffer_object,
-            uint32_t drm_format,
-            unsigned int width, unsigned int height,
-            unsigned int pitch)
+        drm_intel_bo *bo)
 {
-    uint32_t buffer_id = 0;
     my_surface_buffer *buffer;
 
-#if 0
-    uint32_t handles[4], pitches[4], offsets[4];
-    handles[0] = buffer_object->handle;
-    pitches[0] = pitch;
-    offsets[0] = 0;
-
-    if (drmModeAddFB2(driver->device_fd, width, height, drm_format,
-            handles, pitches, offsets, &buffer_id, 0) != 0) {
-        drm_intel_bo_unreference (buffer_object);
-        return 0;
+    buffer = calloc (1, sizeof (my_surface_buffer));
+    if (buffer == NULL) {
+        _ERR_PRINTF ("DRM>i915: could not allocate surface buffer\n");
+        return NULL;
     }
-#endif
 
-    buffer = drm_buffer_new (driver,
-            buffer_object, buffer_id, width, height, pitch);
+    buffer->base.handle = bo->handle;
+    buffer->base.size = bo->size;
+    buffer->bo = bo;
 
-#ifdef WITH_BUFFER_MANAGEMENT
-    ply_hashtable_insert (driver->buffers,
-            (void *) (uintptr_t) buffer_id, buffer);
-#endif
     driver->nr_buffers++;
 
-    _DBG_PRINTF("%s: Buffer object (%u) created\n", __func__, buffer_id);
+    _DBG_PRINTF("Buffer object (%u) created: size (%lu)\n",
+            buffer->base.handle, buffer->base.size);
     return buffer;
 }
 
 static DrmSurfaceBuffer* i915_create_buffer (DrmDriver *driver,
-            uint32_t drm_format,
-            unsigned int width, unsigned int height)
+        uint32_t drm_format, uint32_t hdr_size,
+        uint32_t width, uint32_t height)
 {
-    drm_intel_bo *buffer_object;
+    drm_intel_bo *bo;
     my_surface_buffer *buffer;
     int bpp, cpp;
-    unsigned int pitch;
+    uint32_t pitch, nr_hdr_lines = 0;
 
     if (drm_format_to_bpp(drm_format, &bpp, &cpp) == 0) {
-        _ERR_PRINTF ("Not supported DRM format: %d\n", drm_format);
+        _ERR_PRINTF ("DRM>i915: not supported format: %d\n", drm_format);
         return NULL;
     }
 
     pitch = ROUND_TO_MULTIPLE (width * cpp, 256);
-    buffer_object = drm_intel_bo_alloc_for_render (driver->manager,
-            "surface", height * pitch, 0);
+    if (hdr_size) {
+        nr_hdr_lines = hdr_size / pitch;
+        if (hdr_size % pitch)
+            nr_hdr_lines++;
+    }
 
-    if (buffer_object == NULL) {
-        _ERR_PRINTF ("Could not allocate GEM object for frame buffer (pitch: %d): %m\n",
-            pitch);
+    bo = drm_intel_bo_alloc_for_render (driver->manager,
+            "surface", (height + nr_hdr_lines) * pitch, 0);
+
+    if (bo == NULL) {
+        _DBG_PRINTF ("Could not allocate GEM object for surface buffer: "
+                "width (%d), height (%d), (pitch: %d): %m\n",
+                width, height, pitch);
         return NULL;
     }
 
-    buffer = i915_create_buffer_helper (driver, buffer_object, drm_format,
-            width, height, pitch);
+    buffer = i915_create_buffer_helper (driver, bo);
     if (buffer == NULL) {
-        _ERR_PRINTF ("Could not set up GEM object as frame buffer (%dx%d-%dbpp) 0x%08x: %m\n",
-            width, height, bpp, drm_format);
+        drm_intel_bo_unreference (bo);
         return NULL;
     }
 
     buffer->base.prime_fd = -1;
     buffer->base.name = 0;
+    buffer->base.fb_id = 0;
+    buffer->base.drm_format = drm_format;
     buffer->base.bpp = bpp;
     buffer->base.cpp = cpp;
-    buffer->added_fb = 1;
+    buffer->base.width = width;
+    buffer->base.height = height;
+    buffer->base.pitch = pitch;
+    buffer->base.offset = nr_hdr_lines * pitch;
+    buffer->base.buff = NULL;
+
+    _DBG_PRINTF ("Allocate GEM object for surface buffer: "
+            "width (%d), height (%d), (pitch: %d), size (%lu), offset (%ld)\n",
+            buffer->base.width, buffer->base.height, buffer->base.pitch,
+            buffer->base.size, buffer->base.offset);
+
     return &buffer->base;
 }
 
-static DrmSurfaceBuffer* i915_create_buffer_from_handle (DrmDriver *driver,
-            uint32_t handle, unsigned long size, uint32_t drm_format,
-            unsigned int width, unsigned int height, unsigned int pitch)
+#ifdef DRM_INTEL_HAVE_CREATE_FROM_HANDLE
+
+static inline drm_intel_bo * create_bo_from_handle (DrmDriver *driver,
+        uint32_t handle, size_t size)
 {
-#if 0 // TODO: add drm_intel_bo_gem_create_from_handle
-    drm_intel_bo *buffer_object;
-    my_surface_buffer *buffer;
-    int bpp, cpp;
-
-    if (drm_format_to_bpp(drm_format, &bpp, &cpp) == 0) {
-        _ERR_PRINTF ("Not supported DRM format: %d\n", drm_format);
-        return NULL;
-    }
-
-    buffer_object = drm_intel_bo_gem_create_from_handle (driver->manager,
-            handle, size);
-    if (buffer_object == NULL) {
-        _ERR_PRINTF ("Could not open GEM object with handle %u for frame buffer: %m\n",
-                handle);
-        return NULL;
-    }
-
-    if (buffer_object->size < height * pitch) {
-        _ERR_PRINTF ("Specified surface size is larger than the size of the buffer object: %u.\n",
-                handle);
-        drm_intel_bo_unreference (buffer_object);
-        return NULL;
-    }
-
-    buffer = i915_create_buffer_helper (driver, buffer_object, drm_format,
-            width, height, pitch);
-    if (buffer == NULL) {
-        _ERR_PRINTF ("Could not set up GEM object as frame buffer (%dx%d-%dbpp) 0x%08x: %m\n",
-            width, height, bpp, drm_format);
-        return NULL;
-    }
-
-    buffer->base.prime_fd = -1;
-    buffer->base.name = 0;
-    buffer->base.bpp = bpp;
-    buffer->base.cpp = cpp;
-    buffer->added_fb = 1;
-    return &buffer->base;
-#else
-    return NULL;
-#endif
+    char name [64];
+    sprintf(name, "buffer %u", handle);
+    return drm_intel_bo_gem_create_from_handle (driver->manager,
+            name, handle, size);
 }
 
-static DrmSurfaceBuffer* i915_create_buffer_from_name (DrmDriver *driver,
-            uint32_t name, uint32_t drm_format,
-            unsigned int width, unsigned int height, unsigned int pitch)
-{
-    drm_intel_bo *buffer_object;
-    my_surface_buffer *buffer;
-    char sz_name [64];
-    int bpp, cpp;
+#else   /* defined HAVE_CREATE_FROM_HANDLE */
 
-    if (drm_format_to_bpp(drm_format, &bpp, &cpp) == 0) {
-        _ERR_PRINTF ("Not supported DRM format: %d\n", drm_format);
-        return NULL;
-    }
-
-    sprintf(sz_name, "buffer %u", name);
-    buffer_object = drm_intel_bo_gem_create_from_name (driver->manager,
-            sz_name, name);
-    if (buffer_object == NULL) {
-        _ERR_PRINTF ("Could not open GEM object with name %u for frame buffer: %m\n",
-                name);
-        return NULL;
-    }
-
-    if (buffer_object->size < height * pitch) {
-        _ERR_PRINTF ("Specified surface size is larger than the size of the buffer object: %u.\n",
-                name);
-        drm_intel_bo_unreference (buffer_object);
-        return NULL;
-    }
-
-    buffer = i915_create_buffer_helper (driver, buffer_object, drm_format,
-            width, height, pitch);
-    if (buffer == NULL) {
-        _ERR_PRINTF ("Could not set up GEM object as frame buffer (%dx%d-%dbpp) 0x%08x: %m\n",
-            width, height, bpp, drm_format);
-        return NULL;
-    }
-
-    buffer->base.prime_fd = -1;
-    buffer->base.name = name;
-    buffer->base.bpp = bpp;
-    buffer->base.cpp = cpp;
-    buffer->added_fb = 1;
-    return &buffer->base;
-}
-
-static DrmSurfaceBuffer* i915_create_buffer_from_prime_fd (DrmDriver *driver,
-            int prime_fd, unsigned long size, uint32_t drm_format,
-            unsigned int width, unsigned int height, unsigned int pitch)
-{
-    drm_intel_bo *buffer_object;
-    my_surface_buffer *buffer;
-    int bpp, cpp;
-
-    if (drm_format_to_bpp(drm_format, &bpp, &cpp) == 0) {
-        _ERR_PRINTF ("Not supported DRM format: %d\n", drm_format);
-        return NULL;
-    }
-
-    buffer_object = drm_intel_bo_gem_create_from_prime (driver->manager,
-            prime_fd, size);
-    if (buffer_object == NULL) {
-        _ERR_PRINTF ("Could not open GEM object with prime fd (%d) for frame buffer: %m\n",
-                prime_fd);
-        return NULL;
-    }
-
-    if (buffer_object->size < height * pitch) {
-        _ERR_PRINTF ("Specified surface size is larger than the size of the buffer object: %u.\n",
-                buffer_object->handle);
-        drm_intel_bo_unreference (buffer_object);
-        return NULL;
-    }
-
-    buffer = i915_create_buffer_helper (driver, buffer_object, drm_format,
-            width, height, pitch);
-    if (buffer == NULL) {
-        _ERR_PRINTF ("Could not set up GEM object as frame buffer (%dx%d-%dbpp) 0x%08x: %m\n",
-            width, height, bpp, drm_format);
-        return NULL;
-    }
-
-    buffer->base.prime_fd = prime_fd;
-    buffer->base.name = 0;
-    buffer->base.bpp = bpp;
-    buffer->base.cpp = cpp;
-    buffer->added_fb = 1;
-    return &buffer->base;
-}
-
-#if 0
-static my_surface_buffer *get_buffer_from_id (DrmDriver *driver,
-        uint32_t buffer_id)
-{
-    static my_surface_buffer *buffer;
-
-    buffer = ply_hashtable_lookup (driver->buffers,
-            (void *) (uintptr_t) buffer_id);
-
-    return buffer;
-}
-
-static drm_intel_bo * create_intel_bo_from_handle (DrmDriver *driver,
-        uint32_t handle)
+static drm_intel_bo * create_bo_from_handle (DrmDriver *driver,
+        uint32_t handle, size_t size)
 {
     struct drm_gem_flink flink_request;
     char name [64];
-    drm_intel_bo *buffer_object;
+    drm_intel_bo *bo;
 
     /* FIXME: This can't be the right way to do this.
      *
@@ -641,184 +546,174 @@ static drm_intel_bo * create_intel_bo_from_handle (DrmDriver *driver,
         return NULL;
     }
 
-    buffer_object = drm_intel_bo_gem_create_from_name (driver->manager,
+    bo = drm_intel_bo_gem_create_from_name (driver->manager,
             name, flink_request.name);
 
-    return buffer_object;
+    return bo;
 }
+#endif  /* not defined HAVE_CREATE_FROM_HANDLE */
 
-static my_surface_buffer* drm_buffer_new_from_id (DrmDriver *driver,
-        uint32_t buffer_id)
+static DrmSurfaceBuffer* i915_create_buffer_from_handle (DrmDriver *driver,
+        uint32_t handle, size_t size)
 {
+    drm_intel_bo *bo;
     my_surface_buffer *buffer;
-    drmModeFB *fb;
-    drm_intel_bo *buffer_object;
 
-    fb = drmModeGetFB (driver->device_fd, buffer_id);
-
-    if (fb == NULL)
-    {
-        _DBG_PRINTF ("could not get FB with buffer id %u", buffer_id);
+    bo = create_bo_from_handle (driver, handle, size);
+    if (bo == NULL) {
+        _ERR_PRINTF ("DRM>i915: could not open GEM object with handle %u: %m\n",
+                handle);
         return NULL;
     }
 
-    buffer_object = create_intel_bo_from_handle (driver, fb->handle);
-
-    if (buffer_object == NULL)
-    {
-        _DBG_PRINTF ("could not create buffer object from handle %lu",
-                (unsigned long) fb->handle);
-        drmModeFreeFB (fb);
+    buffer = i915_create_buffer_helper (driver, bo);
+    if (buffer == NULL) {
+        drm_intel_bo_unreference (bo);
         return NULL;
     }
 
-    buffer = drm_buffer_new (driver, buffer_object, buffer_id,
-            fb->width, fb->height, fb->pitch);
-    drmModeFreeFB (fb);
-
-    return buffer;
+    buffer->base.prime_fd = -1;
+    buffer->base.name = 0;
+    buffer->base.fb_id = 0;
+    return &buffer->base;
 }
 
-static BOOL i915_fetch_buffer (DrmDriver *driver,
-            uint32_t buffer_id,
-            unsigned int *width, unsigned int *height,
-            unsigned int *pitch)
+static DrmSurfaceBuffer* i915_create_buffer_from_name (DrmDriver *driver,
+        uint32_t name)
 {
+    drm_intel_bo *bo;
     my_surface_buffer *buffer;
+    char sz_name [64];
 
-    buffer = get_buffer_from_id (driver, buffer_id);
-
-    if (buffer == NULL)
-    {
-        _DBG_PRINTF ("could not fetch buffer %u, creating one\n", buffer_id);
-        buffer = drm_buffer_new_from_id (driver, buffer_id);
-
-        if (buffer == NULL)
-        {
-            _DBG_PRINTF ("could not create buffer either %u\n", buffer_id);
-            return FALSE;
-        }
-
-        ply_hashtable_insert (driver->buffers,
-                (void *) (uintptr_t) buffer_id,
-                buffer);
-        driver->nr_buffers++;
+    sprintf(sz_name, "buffer %u", name);
+    bo = drm_intel_bo_gem_create_from_name (driver->manager,
+            sz_name, name);
+    if (bo == NULL) {
+        _ERR_PRINTF ("DRM>i915: could not open GEM object with name %u: %m\n",
+                name);
+        return NULL;
     }
 
-    if (width != NULL)
-        *width = buffer->base.width;
+    buffer = i915_create_buffer_helper (driver, bo);
+    if (buffer == NULL) {
+        drm_intel_bo_unreference (bo);
+        return NULL;
+    }
 
-    if (height != NULL)
-        *height = buffer->base.height;
-
-    if (pitch != NULL)
-        *pitch = buffer->base.pitch;
-
-    _DBG_PRINTF ("fetched %ux%u buffer with stride %u\n",
-            buffer->base.width, buffer->base.height, buffer->base.pitch);
-    return TRUE;
+    buffer->base.prime_fd = -1;
+    buffer->base.name = name;
+    buffer->base.fb_id = 0;
+    return &buffer->base;
 }
-#endif
+
+static DrmSurfaceBuffer* i915_create_buffer_from_prime_fd (DrmDriver *driver,
+        int prime_fd, size_t size)
+{
+    drm_intel_bo *bo;
+    my_surface_buffer *buffer;
+
+    bo = drm_intel_bo_gem_create_from_prime (driver->manager,
+            prime_fd, size);
+    if (bo == NULL) {
+        _ERR_PRINTF ("DRM>i915: cannot create GEM object with fd (%d): %m\n",
+                prime_fd);
+        return NULL;
+    }
+
+    buffer = i915_create_buffer_helper (driver, bo);
+    if (buffer == NULL) {
+        drm_intel_bo_unreference (bo);
+        return NULL;
+    }
+
+    buffer->base.prime_fd = prime_fd;
+    buffer->base.name = 0;
+    buffer->base.fb_id = 0;
+    return &buffer->base;
+}
 
 static uint8_t* i915_map_buffer (DrmDriver *driver,
-            DrmSurfaceBuffer* buffer)
+        DrmSurfaceBuffer* buffer, int scanout)
 {
     my_surface_buffer *my_buffer = (my_surface_buffer *)buffer;
 
     assert (my_buffer != NULL);
-    assert (my_buffer->base.pixels == NULL);
+    assert (my_buffer->base.buff == NULL);
 
-    drm_intel_gem_bo_map_gtt (my_buffer->bo);
-    my_buffer->base.pixels = my_buffer->bo->virtual;
-    return my_buffer->base.pixels;
+    if (scanout) {
+        drm_intel_gem_bo_map_gtt (my_buffer->bo);
+        buffer->scanout = 1;
+    }
+    else {
+        drm_intel_bo_map (my_buffer->bo, 1);
+        buffer->scanout = 0;
+    }
+
+    my_buffer->base.buff = my_buffer->bo->virtual;
+    return my_buffer->base.buff;
 }
 
 static void i915_unmap_buffer (DrmDriver *driver,
-            DrmSurfaceBuffer* buffer)
+        DrmSurfaceBuffer* buffer)
 {
     my_surface_buffer *my_buffer = (my_surface_buffer *)buffer;
     assert (my_buffer != NULL);
-    assert (my_buffer->base.pixels != NULL);
+    assert (my_buffer->base.buff != NULL);
 
-    drm_intel_gem_bo_unmap_gtt (my_buffer->bo);
-    my_buffer->base.pixels = NULL;
+    if (buffer->scanout)
+        drm_intel_gem_bo_unmap_gtt (my_buffer->bo);
+    else
+        drm_intel_bo_unmap (my_buffer->bo);
+
+    my_buffer->base.buff = NULL;
 }
-
-#if 0
-static uint8_t * i915_begin_flush (DrmDriver *driver,
-            uint32_t buffer_id)
-{
-    my_surface_buffer *buffer;
-
-    buffer = get_buffer_from_id (driver, buffer_id);
-    assert (buffer != NULL);
-
-    return buffer->bo->virtual;
-}
-
-static void i915_end_flush (DrmDriver *driver,
-            uint32_t buffer_id)
-{
-    my_surface_buffer *buffer;
-
-    buffer = get_buffer_from_id (driver, buffer_id);
-    assert (buffer != NULL);
-}
-#endif
 
 static void i915_destroy_buffer (DrmDriver *driver,
-            DrmSurfaceBuffer* buffer)
+        DrmSurfaceBuffer* buffer)
 {
     my_surface_buffer *my_buffer = (my_surface_buffer *)buffer;
     assert (my_buffer != NULL);
 
-    if (my_buffer->base.pixels) {
-        drm_intel_gem_bo_unmap_gtt (my_buffer->bo);
-        my_buffer->base.pixels = NULL;
+    if (my_buffer->base.buff) {
+        if (buffer->scanout)
+            drm_intel_gem_bo_unmap_gtt (my_buffer->bo);
+        else
+            drm_intel_bo_unmap (my_buffer->bo);
     }
 
-    if (my_buffer->added_fb)
-        drmModeRmFB (driver->device_fd, my_buffer->base.id);
-
     drm_intel_bo_unreference (my_buffer->bo);
-
-#ifdef WITH_BUFFER_MANAGEMENT
-    ply_hashtable_remove (driver->buffers,
-            (void *) (uintptr_t) my_buffer->base.id);
-#endif
-    driver->nr_buffers--;
-
     free (my_buffer);
 
-    _DBG_PRINTF("%s: Buffer object (%u) destroied\n",
-            __func__, my_buffer->base.id);
+    driver->nr_buffers--;
+
+    _DBG_PRINTF("Buffer object (%u) destroied\n", my_buffer->base.handle);
 }
 
-static unsigned int translate_raster_op(enum DrmColorLogicOp logicop)
+static unsigned int translate_raster_op(ColorLogicalOp logicop)
 {
-   return logicop | (logicop << 4);
+    return logicop | (logicop << 4);
 }
 
 static inline uint32_t br13_for_cpp(int cpp)
 {
-   switch (cpp) {
-   case 4:
-      return BR13_8888;
-      break;
-   case 2:
-      return BR13_565;
-      break;
-   case 1:
-      return BR13_8;
-      break;
-   default:
-      assert(0);
-      return 0;
-   }
+    switch (cpp) {
+        case 4:
+            return BR13_8888;
+            break;
+        case 2:
+            return BR13_565;
+            break;
+        case 1:
+            return BR13_8;
+            break;
+        default:
+            assert(0);
+            return 0;
+    }
 }
 
-static int i915_clear_buffer (DrmDriver *driver,
-            DrmSurfaceBuffer* dst_buf, const GAL_Rect* rc, uint32_t clear_value)
+static inline int i915_clear_buffer (DrmDriver *driver,
+        DrmSurfaceBuffer* dst_buf, const GAL_Rect* rc, uint32_t clear_value)
 {
     my_surface_buffer *buffer;
     drm_intel_bo *aper_array[2];
@@ -837,6 +732,10 @@ static int i915_clear_buffer (DrmDriver *driver,
         CMD |= XY_BLT_WRITE_ALPHA | XY_BLT_WRITE_RGB;
     }
 
+    _DBG_PRINTF ("buffer info: pitch (%u), cpp (%u), width (%u), height (%u)\n",
+            buffer->base.pitch, buffer->base.cpp,
+            buffer->base.width, buffer->base.height);
+
     BR13 |= buffer->base.pitch;
     BR13 |= br13_for_cpp(buffer->base.cpp);
 
@@ -844,6 +743,14 @@ static int i915_clear_buffer (DrmDriver *driver,
     y1 = rc->y;
     x2 = rc->x + rc->w;
     y2 = rc->y + rc->h;
+
+#if 0
+    if (dst_buf->offset) {
+        int nr_lines = dst_buf->offset/dst_buf->pitch;
+        y1 += nr_lines;
+        y2 += nr_lines;
+    }
+#endif
 
     assert(x1 < x2);
     assert(y1 < y2);
@@ -854,7 +761,8 @@ static int i915_clear_buffer (DrmDriver *driver,
 
     if (drm_intel_bufmgr_check_aperture_space(aper_array,
                 TABLESIZE(aper_array)) != 0) {
-        intel_batchbuffer_flush(driver, I915_EXEC_RENDER);
+        intel_batchbuffer_flush(driver,
+                (driver->gen > 4) ? I915_EXEC_BLT : I915_EXEC_RENDER);
     }
 
     intel_batchbuffer_begin(driver, 6);
@@ -864,39 +772,51 @@ static int i915_clear_buffer (DrmDriver *driver,
     intel_batchbuffer_emit_dword(driver, (y2 << 16) | x2);
     intel_batchbuffer_emit_reloc_fenced(driver, buffer->bo,
             I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER,
-            0);
+            dst_buf->offset);
     intel_batchbuffer_emit_dword(driver, clear_value);
     intel_batchbuffer_advance(driver);
-    intel_batchbuffer_flush(driver, I915_EXEC_BLT);
+    intel_batchbuffer_flush(driver,
+            (driver->gen > 4) ? I915_EXEC_BLT : I915_EXEC_RENDER);
 
     intel_batchbuffer_emit_mi_flush(driver);
     return 0;
 }
 
-static int i915_check_blit (DrmDriver *driver,
-            DrmSurfaceBuffer* src_buf, DrmSurfaceBuffer* dst_buf)
+static inline int i915_check_blit (DrmDriver *driver,
+        DrmSurfaceBuffer* src_buf, DrmSurfaceBuffer* dst_buf)
 {
-    if (src_buf->drm_format == dst_buf->drm_format)
+    drm_intel_bo *src_bo, *dst_bo;
+    uint32_t src_tiling_mode, src_swizzle_mode;
+    uint32_t dst_tiling_mode, dst_swizzle_mode;
+
+    src_bo = ((my_surface_buffer*)src_buf)->bo;
+    dst_bo = ((my_surface_buffer*)dst_buf)->bo;
+    drm_intel_bo_get_tiling(src_bo, &src_tiling_mode, &src_swizzle_mode);
+    drm_intel_bo_get_tiling(dst_bo, &dst_tiling_mode, &dst_swizzle_mode);
+
+    if (src_tiling_mode == dst_tiling_mode &&
+            src_swizzle_mode == dst_swizzle_mode &&
+            src_buf->drm_format == dst_buf->drm_format)
         return 0;
 
-    _DBG_PRINTF("%s: CANNOT blit src_buf(%p) to dst_buf(%p)\n",
-            __func__, src_buf, dst_buf);
+    _DBG_PRINTF("CANNOT blit src_buf(%p) to dst_buf(%p)\n",
+            src_buf, dst_buf);
     return -1;
 }
 
-static int i915_copy_blit (DrmDriver *driver,
-            DrmSurfaceBuffer* src_buf, const GAL_Rect* src_rc,
-            DrmSurfaceBuffer* dst_buf, const GAL_Rect* dst_rc,
-            enum DrmColorLogicOp logic_op)
+static inline int i915_copy_blit (DrmDriver *driver,
+        DrmSurfaceBuffer* src_buf, const GAL_Rect* src_rc,
+        DrmSurfaceBuffer* dst_buf, const GAL_Rect* dst_rc,
+        ColorLogicalOp logic_op)
 {
     my_surface_buffer *buffer;
     unsigned int cpp;
     int src_pitch;
     drm_intel_bo *src_bo;
-    unsigned int src_offset = 0;
+    unsigned int src_offset = src_buf->offset;
     int dst_pitch;
     drm_intel_bo *dst_bo;
-    unsigned int dst_offset = 0;
+    unsigned int dst_offset = dst_buf->offset;
     int src_x = src_rc->x, src_y = src_rc->y;
     int dst_x = dst_rc->x, dst_y = dst_rc->y;
     int w = src_rc->w, h = src_rc->h;
@@ -925,7 +845,8 @@ static int i915_copy_blit (DrmDriver *driver,
         aper_array[2] = src_bo;
 
         if (dri_bufmgr_check_aperture_space(aper_array, 3) != 0) {
-            intel_batchbuffer_flush(driver, I915_EXEC_BLT);
+            intel_batchbuffer_flush(driver,
+                    (driver->gen > 4) ? I915_EXEC_BLT : I915_EXEC_RENDER);
             pass++;
         } else
             break;
@@ -936,17 +857,18 @@ static int i915_copy_blit (DrmDriver *driver,
 
     intel_batchbuffer_require_space(driver, 8 * 4);
 
-    _DBG_PRINTF("%s src:buf(%p)/%d+%d %d,%d dst:buf(%p)/%d+%d %d,%d sz:%dx%d\n",
-            __func__,
+    _DBG_PRINTF("src:buf(%p)/%d+%d %d,%d dst:buf(%p)/%d+%d %d,%d sz:%dx%d\n",
             src_bo, src_pitch, src_offset, src_x, src_y,
             dst_bo, dst_pitch, dst_offset, dst_x, dst_y, w, h);
+
+    _DBG_PRINTF("src cpp: %d src offset(%d)\n", cpp, src_offset);
 
     /* Blit pitch must be dword-aligned.  Otherwise, the hardware appears to drop
      * the low bits.  Offsets must be naturally aligned.
      */
     if (src_pitch % 4 != 0 || dst_pitch % 4 != 0) {
-        _DBG_PRINTF("%s pitches are not dword-aligned: src_pitch(%d), dst_pitch(%d)\n",
-                __func__, src_pitch, dst_pitch);
+        _WRN_PRINTF("pitches are not dword-aligned: src(%d), dst(%d)\n",
+                src_pitch, dst_pitch);
         return -1;
     }
 
@@ -966,6 +888,8 @@ static int i915_copy_blit (DrmDriver *driver,
     }
 
     if (dst_y2 <= dst_y || dst_x2 <= dst_x) {
+        _WRN_PRINTF("bad destination rectangle: (%d, %d, %d, %d)\n",
+                dst_x, dst_y, dst_x2, dst_y2);
         return -1;
     }
 
@@ -987,16 +911,19 @@ static int i915_copy_blit (DrmDriver *driver,
             I915_GEM_DOMAIN_RENDER, 0,
             src_offset);
     intel_batchbuffer_advance(driver);
-    intel_batchbuffer_flush(driver, I915_EXEC_BLT);
+    intel_batchbuffer_flush(driver,
+            (driver->gen > 4) ? I915_EXEC_BLT : I915_EXEC_RENDER);
 
     intel_batchbuffer_emit_mi_flush(driver);
-    return -1;
+    return 0;
 }
 
-DrmDriverOps* __drm_ex_driver_get(const char* driver_name, int device_fd)
+DrmDriverOps* __drm_ex_driver_get(const char* driver_name, int device_fd,
+        int* version)
 {
-    _MG_PRINTF("%s called with driver name: %s\n", __func__, driver_name);
+    _MG_PRINTF("%s called with name: %s\n", __func__, driver_name);
 
+    *version = DRM_DRIVER_VERSION;
     if (strcmp(driver_name, "i915") == 0) {
         static DrmDriverOps i915_driver = {
             .create_driver = i915_create_driver,
@@ -1012,12 +939,13 @@ DrmDriverOps* __drm_ex_driver_get(const char* driver_name, int device_fd)
             .clear_buffer = i915_clear_buffer,
             .check_blit = i915_check_blit,
             .copy_blit = i915_copy_blit,
+            .alpha_pixel_blit = NULL,
         };
 
         return &i915_driver;
     }
     else {
-        _MG_PRINTF("%s unknown DRM driver: %s\n", __func__, driver_name);
+        _MG_PRINTF("%s unknown DRM: %s\n", __func__, driver_name);
     }
 
     return NULL;
@@ -1025,14 +953,13 @@ DrmDriverOps* __drm_ex_driver_get(const char* driver_name, int device_fd)
 
 #else /* HAVE_DRM_INTEL */
 
-DrmDriverOps* __drm_ex_driver_get(const char* driver_name, int device_fd)
+DrmDriverOps* __drm_ex_driver_get(const char* driver_name,int device_fd,
+        int* version)
 {
-    _WRN_PRINTF("This external DRM driver is a NULL implementation!");
+    _WRN_PRINTF("This external DRM is a NULL implementation!");
     return NULL;
 }
 
 #endif /* !HAVE_DRM_INTEL */
 
 #endif /* _MGGAL_DRM */
-
-#endif /* __TARGET_EXTERNAL__ */

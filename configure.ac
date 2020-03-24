@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.60)
-AC_INIT(mg-tests,4.0.5)
+AC_INIT(mg-tests, 5.0.0)
 AC_CONFIG_SRCDIR(src/helloworld.c)
 
 dnl ========================================================================
@@ -31,8 +31,8 @@ AC_HEADER_SYS_WAIT
 AC_HEADER_TIME
 AC_CHECK_HEADERS(sys/time.h unistd.h)
 
-PKG_CHECK_MODULES([MINIGUI], [minigui >= 4.0.5])
-PKG_CHECK_MODULES([MGEFF], [mgeff >= 1.2.0])
+PKG_CHECK_MODULES([MINIGUI], [minigui >= 5.0.0])
+PKG_CHECK_MODULES([MGEFF], [mgeff >= 1.5.0])
 
 PKG_CHECK_MODULES(DRM, [libudev >= 200, libdrm >= 2.4], video_drm="yes",
     video_drm="no; the test code requires libdrm 2.4+ and libudev 200+")
@@ -43,7 +43,7 @@ else
     AC_MSG_WARN([$video_drm])
 fi
 
-PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4], video_drm_intel="yes",
+PKG_CHECK_MODULES(DRMINTEL, [libdrm_intel >= 2.4], video_drm_intel="yes",
     video_drm_intel="no; the test code requires libdrm_intel 2.4+")
 if test "x$video_drm_intel" = "xyes"; then
     CPPFLAGS="$CPPFLAGS -DHAVE_DRM_INTEL"
@@ -51,26 +51,29 @@ else
     AC_MSG_WARN([$video_drm_intel])
 fi
 
-LIBS="$LIBS $MINIGUI_LIBS -lefence"
+AC_CHECK_DECLS(_MGRM_PROCESSES, runmode_procs="yes", foo=bar, [#include <minigui/common.h>])
+
+dnl ========================================================================
+dnl Write Output
+
+LIBS="$LIBS $MINIGUI_LIBS"
 
 if test "$ac_cv_prog_gcc" = "yes"; then
     CPPFLAGS="$CPPFLAGS -D_DEFAULT_SOURCE -D_GNU_SOURCE"
     CFLAGS="$CFLAGS -std=c99 -Wall -Werror -Wstrict-prototypes -pipe"
 fi
 
-dnl ========================================================================
-dnl Write Output
-
-AC_CHECK_DECLS(_MGRM_PROCESSES, minigui_runmode="procs", foo=bar, [#include <minigui/common.h>])
-AM_CONDITIONAL(MGRM_PROCESSES, test "x$minigui_runmode" = "xprocs")
+AM_CONDITIONAL(MGRM_PROCESSES, test "x$runmode_procs" = "xyes")
 
 AC_OUTPUT(
     Makefile
     m4/Makefile
     src/Makefile
     4.0/Makefile
+    5.0/Makefile
     extra-input/Makefile
     drm-engine/Makefile
     comm-engines/Makefile
     resmgr/Makefile
+    compositor/Makefile
 )
