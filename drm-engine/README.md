@@ -2,7 +2,8 @@
 
 ## Introduction
 
-This test program covers the `drm` NEWGAL engine of MiniGUI 4.0.0.
+This test program covers the `drm` NEWGAL engine of MiniGUI 4.0.7/5.0.0
+or later.
 It implements a sub driver of `drm` engine for `i915` GPU, and
 gives an example to exploit the GPU's accelerated rendering
 capabilities:
@@ -20,7 +21,7 @@ Please make sure to install `libdrm-dev` package to your Linux system:
 
 ## Copying
 
-Copyright (C) 2019, Beijing FMSoft Technologies Co., Ltd.
+Copyright (C) 2019 ~ 2020, Beijing FMSoft Technologies Co., Ltd.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
