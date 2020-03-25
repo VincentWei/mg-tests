@@ -549,7 +549,6 @@ HWND create_flying_window (HWND hosting)
             ST_PIXEL_ARGB8888,
             MakeRGBA (0, 0, 0, 0x80),
             CT_ALPHAPIXEL, 0);
-//            CT_COLORKEY, MakeRGBA (0, 0, 0, 0x80));
 
     if (hMainWnd != HWND_INVALID) {
         ShowWindow(hMainWnd, SW_SHOW);
