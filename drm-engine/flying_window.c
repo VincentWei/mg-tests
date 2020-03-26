@@ -466,13 +466,13 @@ static LRESULT FlyingGUIWinProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 
     case MSG_CLOSE:
         KillTimer (hWnd, 100);
-        TermFlyingGUI (hWnd);
-        DestroyMainWindow (hWnd);
-        MainWindowThreadCleanup (hWnd);
+        DestroyMainWindow(hWnd);
+        MainWindowCleanup(hWnd);
         return 0;
 
     case MSG_DESTROY:
         mGEffDeinit();
+        TermFlyingGUI(hWnd);
         return 0;
     }
 
