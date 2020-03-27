@@ -72,6 +72,7 @@ Makefile.in
 /*config.h.in
 
 # executables
+src/mginit
 src/helloworld
 4.0/basicshapingengine
 4.0/bidicharactertest
