@@ -54,6 +54,8 @@ dkms.conf
 # autoconf intermediate files
 Makefile
 Makefile.in
+\#
+am--include-marker
 .deps/
 .libs/
 /acinclude.m4
