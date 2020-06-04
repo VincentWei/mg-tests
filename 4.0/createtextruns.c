@@ -1012,6 +1012,12 @@ int MiniGUIMain (int argc, const char* argv[])
 }
 
 #else
-#error "To test APIs related to text runs, please use MiniGUI 4.0.0, enable support for UNICODE, and enable developer mode."
+
+int main (int argc, const char* argv[])
+{
+    _WRN_PRINTF ("To test APIs related to text runs, please use MiniGUI 4.0.0 or later, enable support for UNICODE, and enable developer mode.\n");
+    return 0;
+}
+
 #endif /* checking version */
 

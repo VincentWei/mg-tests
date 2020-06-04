@@ -481,6 +481,10 @@ int MiniGUIMain (int argc, const char* argv[])
 #endif
 
 #else
-#error "To compile this program, please use MiniGUI 4.0.x and configure MiniGUI with --enable-msgstr"
+int main (int argc, const char* argv[])
+{
+    _WRN_PRINTF ("To run this program, please use MiniGUI 4.0.x or later and configure MiniGUI with --enable-msgstr\n");
+    return 0;
+}
 #endif
 
