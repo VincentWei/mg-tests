@@ -29,17 +29,23 @@
 #include <minigui/gdi.h>
 #include <minigui/exstubs.h>
 
-#define SCREEN_WIDTH    240
-#define SCREEN_HEIGHT   240
-#define BYTES_PER_PIXEL 4
-#define COLOR_DEPTH     32
+#include <wiringPi.h>
+#include "ips.h"
+
+#define SCREEN_WIDTH    160//240
+#define SCREEN_HEIGHT   80//240
+#define BYTES_PER_PIXEL 2//4
+#define COLOR_DEPTH     16//32
 #define PITCH           (SCREEN_WIDTH * BYTES_PER_PIXEL)
 #define FB_SIZE (SCREEN_WIDTH * SCREEN_HEIGHT * BYTES_PER_PIXEL)
 
 /* all methods for COMMLCD engine should return zero for success */
-
 int __commlcd_drv_init (void)
 {
+    wiringPiSetup();
+    Lcd_Init();
+    Lcd_Clear(GRAY0);
+
     return 0;
 }
 
@@ -54,7 +60,7 @@ int __commlcd_drv_getinfo (struct commlcd_info *li, int width, int height, int d
         return -1;
     }
 
-    li->type = COMMLCD_TRUE_ARGB8888;
+    li->type = COMMLCD_TRUE_RGB565;//COMMLCD_TRUE_ARGB8888;
     li->height = SCREEN_HEIGHT;
     li->width = SCREEN_WIDTH;
     li->bpp = COLOR_DEPTH;
@@ -63,31 +69,26 @@ int __commlcd_drv_getinfo (struct commlcd_info *li, int width, int height, int d
     li->fb = sg_fb;
     return 0;
 }
-
+#define uint16_t short int
 /* this method will be called async; do not call. */
 int __commlcd_drv_update (const RECT* rc_dirty)
 {
-    char filename [PATH_MAX + 1];
-    struct timeval tv;
 
-    MYBITMAP my_bmp = {
-        flags: MYBMP_TYPE_RGB | MYBMP_FLOW_DOWN,
-        frames: 1,
-        depth: 32,
-        w: SCREEN_WIDTH,
-        h: SCREEN_HEIGHT,
-        pitch: PITCH,
-        size: FB_SIZE,
-        bits: sg_fb
-    };
+    
+    for(uint16_t y=0;y<SCREEN_HEIGHT;y++)
+    {
+        for(uint16_t x=0;x<SCREEN_WIDTH;x++)
+        {
+            uint16_t Color=sg_fb[(y*SCREEN_WIDTH+x)*2]+sg_fb[(y*SCREEN_WIDTH+x)*2+1]*256;
+            Gui_DrawPoint(x,y,Color);
+        }     
+    }
 
     printf ("__commlcd_drv_update called (%d, %d, %d, %d)\n",
             rc_dirty->left, rc_dirty->top,
             rc_dirty->right, rc_dirty->bottom);
 
-    gettimeofday (&tv, NULL);
-    sprintf (filename, "screenshot-%d.%d.bmp", (int)tv.tv_sec, (int)tv.tv_usec);
-    SaveMyBitmapToFile (&my_bmp, NULL, filename);
+
     return 0;
 }
 

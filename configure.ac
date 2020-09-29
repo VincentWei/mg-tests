@@ -60,7 +60,7 @@ LIBS="$LIBS $MINIGUI_LIBS"
 
 if test "$ac_cv_prog_gcc" = "yes"; then
     CPPFLAGS="$CPPFLAGS -D_DEFAULT_SOURCE -D_GNU_SOURCE"
-    CFLAGS="$CFLAGS -std=c99 -Wall -Werror -Wstrict-prototypes -pipe"
+    CFLAGS="$CFLAGS -std=c99 -Wall -Werror -Wstrict-prototypes -pipe   -lmygpio -lfreertos  -I /usr/local/include "
 fi
 
 AM_CONDITIONAL(MGRM_PROCESSES, test "x$runmode_procs" = "xyes")
