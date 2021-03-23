@@ -121,6 +121,22 @@ static inline void dump_key_messages (PMSG msg)
     }
 }
 
+static MG_Layer* my_layers [4];
+
+static void create_or_switch_layer (int slot, const char* name)
+{
+    if (my_layers[slot]) {
+        ServerSetTopmostLayer (my_layers[slot]);
+    }
+    else {
+        my_layers[slot] = ServerCreateLayer (name, 0, 0);
+        if (my_layers[slot]) {
+            MessageBox (HWND_DESKTOP, "A new layer created.", name, MB_OK);
+        }
+    }
+}
+
+
 static int my_event_hook (PMSG msg)
 {
     old_tick_count = GetTickCount ();
@@ -163,6 +179,28 @@ static int my_event_hook (PMSG msg)
         case SCANCODE_F5:
            exec_app ("./helloworld", "helloworld");
            break;
+
+        case SCANCODE_F8: {
+            MG_Layer* def_layer = ServerCreateLayer (NAME_DEF_LAYER, 0, 0);
+            ServerSetTopmostLayer (def_layer);
+            break;
+        }
+
+        case SCANCODE_F9:
+            create_or_switch_layer (0, "F9");
+            break;
+
+        case SCANCODE_F10:
+            create_or_switch_layer (1, "F10");
+            break;
+
+        case SCANCODE_F11:
+            create_or_switch_layer (2, "F11");
+            break;
+
+        case SCANCODE_F12:
+            create_or_switch_layer (3, "F12");
+            break;
     }
     }
 

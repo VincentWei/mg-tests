@@ -481,7 +481,7 @@ int MiniGUIMain (int args, const char* arg[])
     HWND hMainWnd;
 
 #ifndef _MGRM_THREADS
-    JoinLayer(NAME_DEF_LAYER , "scrnsaver" , 0 , 0);
+    JoinLayer(NAME_TOPMOST_LAYER, "scrnsaver" , 0 , 0);
 #endif
 
     InitCreateInfo (&CreateInfo);

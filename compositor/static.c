@@ -84,7 +84,7 @@ int MiniGUIMain (int argc, const char* argv[])
     MAINWINCREATE CreateInfo;
 
 #ifdef _MGRM_PROCESSES
-    JoinLayer(NAME_DEF_LAYER , "static" , 0 , 0);
+    JoinLayer(NAME_TOPMOST_LAYER, "static" , 0 , 0);
 #endif
 
     CreateInfo.dwStyle = WS_VISIBLE | WS_BORDER | WS_CAPTION;

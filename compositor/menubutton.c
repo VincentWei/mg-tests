@@ -231,7 +231,7 @@ static LRESULT MyDateBoxProc (HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 int MiniGUIMain (int argc, const char* argv[])
 {
 #ifdef _MGRM_PROCESSES
-    JoinLayer(NAME_DEF_LAYER , "menubutton" , 0 , 0);
+    JoinLayer(NAME_TOPMOST_LAYER, "menubutton" , 0 , 0);
 #endif
     
     DlgMyDate.controls = CtrlMyDate;

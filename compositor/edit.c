@@ -143,7 +143,7 @@ int MiniGUIMain (int argc, const char* argv[])
 {
 
 #ifdef _MGRM_PROCESSES
-    JoinLayer(NAME_DEF_LAYER , "edit" , 0 , 0);
+    JoinLayer (NAME_TOPMOST_LAYER, "edit" , 0 , 0);
 #endif
 
 #ifndef _MGRM_THREADS
