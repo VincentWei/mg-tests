@@ -104,6 +104,9 @@ compositor/menubutton
 compositor/eventdumper
 compositor/wallpaper-welcome
 compositor/wallpaper-dynamic
+compositor/docker
+compositor/launcher
+compositor/screenlock
 5.0/mginit
 5.0/timer
 5.0/virtualwindow
