@@ -17,5 +17,6 @@ mginit_SOURCES = mginit.c
 
 wallpaper_welcome_LDADD = -lmgeff
 eventdumper_LDADD = -lmgeff
+mginit_LDADD = -lmgeff
 
 EXTRA_DIST=res

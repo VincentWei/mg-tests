@@ -97,7 +97,7 @@ int MiniGUIMain (int argc, const char* argv[])
     MSG Msg;
 
 #ifdef _MGRM_PROCESSES
-    JoinLayer (NAME_DEF_LAYER, "dockerbar", 0, 0);
+    JoinLayer (NAME_DEF_LAYER, "screenlock", 0, 0);
 #endif
 
     CreateInfo.dwStyle = WS_VISIBLE;

@@ -180,6 +180,14 @@ static int my_event_hook (PMSG msg)
            exec_app ("./helloworld", "helloworld");
            break;
 
+        case SCANCODE_F6:
+           exec_app ("./docker", "docker");
+           break;
+
+        case SCANCODE_F7:
+           exec_app ("./screenlock", "screenlock");
+           break;
+
         case SCANCODE_F8: {
             MG_Layer* def_layer = ServerCreateLayer (NAME_DEF_LAYER, 0, 0);
             ServerSetTopmostLayer (def_layer);
@@ -220,6 +228,65 @@ static void child_wait (int sig)
     }
 }
 
+#ifdef _MGSCHEMA_COMPOSITING
+#include <mgeff/mgeff.h>
+
+static void (*old_transit_to_layer)(CompositorCtxt*, MG_Layer*);
+static CompositorOps* fallback_ops;
+
+struct _my_ctxt {
+    CompositorCtxt* ctxt;
+    MG_Layer* layers [2];
+};
+
+static void animated_cb (MGEFF_ANIMATION handle, struct _my_ctxt *my_ctxt,
+       int id, int *value)
+{
+    COMBPARAMS_FALLBACK cp = { FCM_MOVE_HORIZONTAL, 0 };
+    cp.percent = *value;
+
+    fallback_ops->composite_layers (my_ctxt->ctxt, my_ctxt->layers, 2, &cp);
+}
+
+static void my_transit_to_layer (CompositorCtxt* ctxt, MG_Layer* to_layer)
+{
+    MGEFF_ANIMATION handle;
+    struct _my_ctxt my_ctxt = { ctxt, { mgTopmostLayer, to_layer } };
+
+    handle = mGEffAnimationCreate ((void *)&my_ctxt, (void *)animated_cb, 0, MGEFF_INT);
+
+    if (handle) {
+        int start_value, end_value;
+
+        start_value = 20;
+        end_value = 80;
+
+        mGEffAnimationSetStartValue (handle, &start_value);
+        mGEffAnimationSetEndValue (handle, &end_value);
+        mGEffAnimationSetDuration (handle, 100);
+        mGEffAnimationSetProperty (handle, MGEFF_PROP_LOOPCOUNT, 1);
+        mGEffAnimationSetCurve (handle, InOutQuart);
+        mGEffAnimationSyncRun (handle);
+        mGEffAnimationDelete (handle);
+    }
+    else {
+        old_transit_to_layer (ctxt, to_layer);
+    }
+}
+
+static void override_fallback_compositor (void)
+{
+    fallback_ops = (CompositorOps*)ServerGetCompositorOps (COMPSOR_NAME_FALLBACK);
+    if (fallback_ops) {
+        old_transit_to_layer = fallback_ops->transit_to_layer;
+        fallback_ops->transit_to_layer = my_transit_to_layer;
+    }
+    else {
+        _ERR_PRINTF("Can not get operations of the fallback compositor.\n");
+    }
+}
+#endif
+
 int MiniGUIMain (int argc, const char* argv[])
 {
     MSG msg;
@@ -252,6 +319,9 @@ int MiniGUIMain (int argc, const char* argv[])
         if (argc > 1)
             exe_cmd = strdup (argv[1]);
     }
+
+    mGEffInit();
+    override_fallback_compositor ();
 #endif
 
     SetServerEventHook (my_event_hook);
@@ -261,6 +331,10 @@ int MiniGUIMain (int argc, const char* argv[])
     while (!quit && GetMessage (&msg, HWND_DESKTOP)) {
         DispatchMessage (&msg);
     }
+
+#ifdef _MGSCHEMA_COMPOSITING
+    mGEffDeinit();
+#endif
 
     return 0;
 }
