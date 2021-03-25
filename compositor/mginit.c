@@ -242,7 +242,7 @@ struct _my_ctxt {
 static void animated_cb (MGEFF_ANIMATION handle, struct _my_ctxt *my_ctxt,
        int id, int *value)
 {
-    COMBPARAMS_FALLBACK cp = { FCM_MOVE_HORIZONTAL, 0 };
+    COMBPARAMS_FALLBACK cp = { FCM_HORIZONTAL, 0 };
     cp.percent = *value;
 
     fallback_ops->composite_layers (my_ctxt->ctxt, my_ctxt->layers, 2, &cp);
@@ -251,15 +251,53 @@ static void animated_cb (MGEFF_ANIMATION handle, struct _my_ctxt *my_ctxt,
 static void my_transit_to_layer (CompositorCtxt* ctxt, MG_Layer* to_layer)
 {
     MGEFF_ANIMATION handle;
-    struct _my_ctxt my_ctxt = { ctxt, { mgTopmostLayer, to_layer } };
+    struct _my_ctxt my_ctxt = { ctxt };
 
     handle = mGEffAnimationCreate ((void *)&my_ctxt, (void *)animated_cb, 0, MGEFF_INT);
 
     if (handle) {
         int start_value, end_value;
+        MG_Layer* layer = mgLayers;
+        int idx_layer_0 = -1;
+        int idx_layer_1 = -1;
+        int i = 0, nr_layers = 0;
 
-        start_value = 20;
-        end_value = 80;
+        while (layer) {
+            if (layer == mgTopmostLayer)
+                idx_layer_0 = i;
+            if (layer == to_layer)
+                idx_layer_1 = i;
+
+            layer = layer->next;
+            i++;
+            nr_layers++;
+        }
+
+        if (idx_layer_0 == idx_layer_1 || idx_layer_0 < 0 || idx_layer_1 < 0) {
+            _WRN_PRINTF("Bad layers to transit to (%d, %d).\n",
+                    idx_layer_0, idx_layer_1);
+            return;
+        }
+
+        idx_layer_0 = nr_layers - 1 - idx_layer_0;
+        idx_layer_1 = nr_layers - 1 - idx_layer_1;
+
+        if (idx_layer_1 > idx_layer_0) {
+            /* to_layer is to the right of the topmost layer */
+            my_ctxt.layers[0] = mgTopmostLayer;
+            my_ctxt.layers[1] = to_layer;
+
+            start_value = 95;
+            end_value = 5;
+        }
+        else {
+            /* to_layer is to the left of the topmost layer */
+            my_ctxt.layers[0] = to_layer;
+            my_ctxt.layers[1] = mgTopmostLayer;
+
+            start_value = 5;
+            end_value = 95;
+        }
 
         mGEffAnimationSetStartValue (handle, &start_value);
         mGEffAnimationSetEndValue (handle, &end_value);
@@ -274,7 +312,7 @@ static void my_transit_to_layer (CompositorCtxt* ctxt, MG_Layer* to_layer)
     }
 }
 
-static void override_fallback_compositor (void)
+static inline void override_fallback_compositor (void)
 {
     fallback_ops = (CompositorOps*)ServerGetCompositorOps (COMPSOR_NAME_FALLBACK);
     if (fallback_ops) {
