@@ -236,6 +236,7 @@ static CompositorOps* fallback_ops;
 
 struct _my_ctxt {
     CompositorCtxt* ctxt;
+    int last_percent;
     MG_Layer* layers [2];
 };
 
@@ -245,13 +246,16 @@ static void animated_cb (MGEFF_ANIMATION handle, struct _my_ctxt *my_ctxt,
     COMBPARAMS_FALLBACK cp = { FCM_HORIZONTAL, 0 };
     cp.percent = *value;
 
-    fallback_ops->composite_layers (my_ctxt->ctxt, my_ctxt->layers, 2, &cp);
+    if (my_ctxt->last_percent != cp.percent) {
+        fallback_ops->composite_layers (my_ctxt->ctxt, my_ctxt->layers, 2, &cp);
+        my_ctxt->last_percent = cp.percent;
+    }
 }
 
 static void my_transit_to_layer (CompositorCtxt* ctxt, MG_Layer* to_layer)
 {
     MGEFF_ANIMATION handle;
-    struct _my_ctxt my_ctxt = { ctxt };
+    struct _my_ctxt my_ctxt = { ctxt, 0 };
 
     handle = mGEffAnimationCreate ((void *)&my_ctxt, (void *)animated_cb, 0, MGEFF_INT);
 
