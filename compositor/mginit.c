@@ -46,6 +46,7 @@
 #include <minigui/minigui.h>
 #include <minigui/gdi.h>
 #include <minigui/window.h>
+#include <minigui/control.h>
 
 #ifdef _MGRM_PROCESSES
 
@@ -121,8 +122,20 @@ static inline void dump_key_messages (PMSG msg)
     }
 }
 
-static MG_Layer* my_layers [4];
+static HWND my_tooltip_win;
+static void show_layer_messsage (const char* name)
+{
+    if (my_tooltip_win) {
+        ResetToolTipWin (my_tooltip_win, 10, 10,
+                "A new layer created: %s", name);
+    }
+    else {
+        my_tooltip_win = CreateToolTipWin (HWND_DESKTOP, 10, 10, 3000,
+                "A new layer created: %s", name);
+    }
+}
 
+static MG_Layer* my_layers [4];
 static void create_or_switch_layer (int slot, const char* name)
 {
     if (my_layers[slot]) {
@@ -131,7 +144,7 @@ static void create_or_switch_layer (int slot, const char* name)
     else {
         my_layers[slot] = ServerCreateLayer (name, 0, 0);
         if (my_layers[slot]) {
-            MessageBox (HWND_DESKTOP, "A new layer created.", name, MB_OK);
+            show_layer_messsage (name);
         }
     }
 }
@@ -305,9 +318,9 @@ static void my_transit_to_layer (CompositorCtxt* ctxt, MG_Layer* to_layer)
 
         mGEffAnimationSetStartValue (handle, &start_value);
         mGEffAnimationSetEndValue (handle, &end_value);
-        mGEffAnimationSetDuration (handle, 100);
+        mGEffAnimationSetDuration (handle, 200);
         mGEffAnimationSetProperty (handle, MGEFF_PROP_LOOPCOUNT, 1);
-        mGEffAnimationSetCurve (handle, InOutQuart);
+        mGEffAnimationSetCurve (handle, OutCubic);
         mGEffAnimationSyncRun (handle);
         mGEffAnimationDelete (handle);
     }
@@ -373,6 +386,9 @@ int MiniGUIMain (int argc, const char* argv[])
     while (!quit && GetMessage (&msg, HWND_DESKTOP)) {
         DispatchMessage (&msg);
     }
+
+    if (my_tooltip_win)
+        DestroyToolTipWin (my_tooltip_win);
 
 #ifdef _MGSCHEMA_COMPOSITING
     mGEffDeinit();

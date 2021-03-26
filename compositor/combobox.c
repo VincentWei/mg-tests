@@ -227,7 +227,7 @@ static LRESULT MyDateBoxProc (HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 int MiniGUIMain (int argc, const char* argv[])
 {
 #ifdef _MGRM_PROCESSES
-    JoinLayer(NAME_TOPMOST_LAYER, "combobox" , 0 , 0);
+    JoinLayer("F9", "combobox" , 0 , 0);
 #endif
     
     DlgMyDate.controls = CtrlMyDate;
