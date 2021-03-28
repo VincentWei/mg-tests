@@ -113,4 +113,5 @@ compositor/screenlock
 5.0/tickcount
 5.0/zorder
 5.0/setwindowregion
+5.0/slotset
 
