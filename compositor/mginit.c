@@ -50,7 +50,6 @@
 
 #ifdef _MGRM_PROCESSES
 
-static BOOL quit = FALSE;
 static int nr_clients = 0;
 #ifdef _MGSCHEMA_COMPOSITING
 static pid_t pid_welcome = 0;
@@ -166,7 +165,7 @@ static int my_event_hook (PMSG msg)
         switch (msg->wParam) {
         case SCANCODE_ESCAPE:
             if (nr_clients == 0) {
-                quit = TRUE;
+                SendNotifyMessage (HWND_DESKTOP, MSG_ENDSESSION, 0, 0);
             }
             break;
 
@@ -383,7 +382,7 @@ int MiniGUIMain (int argc, const char* argv[])
 
     old_tick_count = GetTickCount ();
 
-    while (!quit && GetMessage (&msg, HWND_DESKTOP)) {
+    while (GetMessage (&msg, HWND_DESKTOP)) {
         DispatchMessage (&msg);
     }
 

@@ -138,6 +138,8 @@ int MiniGUIMain (int argc, const char* argv[])
         DispatchMessage (&msg);
     }
 
+    SendMessage (HWND_DESKTOP, MSG_ENDSESSION, 0, 0);
+
     return 0;
 }
 

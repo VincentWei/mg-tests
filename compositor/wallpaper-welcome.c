@@ -189,14 +189,10 @@ static void paint_all_star (HDC dc)
     }
 }
 
+static HDC memdc;
 static void moveStar(MGEFF_ANIMATION animation, star_t *star, int id, POINT *point)
 {
-    static HDC memdc;
     int real_id = id;
-
-    if (!memdc) {
-        memdc = CreateCompatibleDC (HDC_SCREEN);
-    }
 
     if (real_id < 0) {
         real_id = -real_id;
@@ -219,6 +215,8 @@ static void play_animations(void)
     int id=0;
     int w, h;
     RECT win_rc = GetScreenRect ();
+
+    memdc = CreateCompatibleDC (HDC_SCREEN);
 
     w = RECTW(win_rc);
     h = RECTH(win_rc);
@@ -362,6 +360,7 @@ static void play_animations(void)
     }
     mGEffAnimationSyncRun(sequence_group);
     mGEffAnimationDelete (sequence_group);
+    DeleteMemDC (memdc);
 }
 
 int MiniGUIMain (int argc, const char *argv[])
@@ -389,6 +388,7 @@ int MiniGUIMain (int argc, const char *argv[])
         DispatchMessage(&msg);
     }
 
+    SendMessage (HWND_DESKTOP, MSG_ENDSESSION, 0, 0);
     return 0;
 }
 
