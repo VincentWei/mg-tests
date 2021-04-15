@@ -248,14 +248,14 @@ static CompositorOps* fallback_ops;
 
 struct _my_ctxt {
     CompositorCtxt* ctxt;
-    int last_percent;
+    float last_percent;
     MG_Layer* layers [2];
 };
 
 static void animated_cb (MGEFF_ANIMATION handle, struct _my_ctxt *my_ctxt,
-       int id, int *value)
+       int id, float *value)
 {
-    COMBPARAMS_FALLBACK cp = { FCM_HORIZONTAL, 0 };
+    COMBPARAMS_FALLBACK cp = { FCM_HORIZONTAL | FCM_SCALE, 0.0f, 0.8f };
     cp.percent = *value;
 
     if (my_ctxt->last_percent != cp.percent) {
@@ -269,10 +269,15 @@ static void my_transit_to_layer (CompositorCtxt* ctxt, MG_Layer* to_layer)
     MGEFF_ANIMATION handle;
     struct _my_ctxt my_ctxt = { ctxt, 0 };
 
-    handle = mGEffAnimationCreate ((void *)&my_ctxt, (void *)animated_cb, 0, MGEFF_INT);
+    if ((time(NULL) % 2) == 0) {
+        old_transit_to_layer (ctxt, to_layer);
+        return;
+    }
+
+    handle = mGEffAnimationCreate ((void *)&my_ctxt, (void *)animated_cb, 0, MGEFF_FLOAT);
 
     if (handle) {
-        int start_value, end_value;
+        float start_value, end_value;
         MG_Layer* layer = mgLayers;
         int idx_layer_0 = -1;
         int idx_layer_1 = -1;
@@ -303,16 +308,16 @@ static void my_transit_to_layer (CompositorCtxt* ctxt, MG_Layer* to_layer)
             my_ctxt.layers[0] = mgTopmostLayer;
             my_ctxt.layers[1] = to_layer;
 
-            start_value = 95;
-            end_value = 5;
+            start_value = 95.0f;
+            end_value = 5.0f;
         }
         else {
             /* to_layer is to the left of the topmost layer */
             my_ctxt.layers[0] = to_layer;
             my_ctxt.layers[1] = mgTopmostLayer;
 
-            start_value = 5;
-            end_value = 95;
+            start_value = 5.0f;
+            end_value = 95.0f;
         }
 
         mGEffAnimationSetStartValue (handle, &start_value);
