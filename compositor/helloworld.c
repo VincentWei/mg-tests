@@ -184,7 +184,7 @@ int MiniGUIMain (int argc, const char* argv[])
     MAINWINCREATE CreateInfo;
 
 #ifdef _MGRM_PROCESSES
-    JoinLayer(NAME_DEF_LAYER , "helloworld" , 0 , 0);
+    JoinLayer(NAME_TOPMOST_LAYER , "helloworld" , 0 , 0);
 #endif
 
     _DBG_PRINTF("Screen rect: %d, %d, %d, %d\n",
@@ -201,13 +201,17 @@ int MiniGUIMain (int argc, const char* argv[])
     CreateInfo.MainWindowProc = HelloWinProc;
     CreateInfo.lx = 0;
     CreateInfo.ty = 0;
-    CreateInfo.rx = 480;
-    CreateInfo.by = 640;
-    CreateInfo.iBkColor = COLOR_lightwhite;
+    CreateInfo.rx = g_rcScr.right;
+    CreateInfo.by = g_rcScr.bottom;
+    CreateInfo.iBkColor = COLOR_black;
     CreateInfo.dwAddData = 0;
     CreateInfo.hHosting = HWND_DESKTOP;
     
-    hMainWnd = CreateMainWindow (&CreateInfo);
+    //hMainWnd = CreateMainWindow (&CreateInfo);
+    hMainWnd = CreateMainWindowEx2 (&CreateInfo, 0, NULL, NULL,
+            ST_PIXEL_ARGB8888,
+            MakeRGBA (0, 0, 0, 0x80),
+            CT_ALPHAPIXEL, 0);
     
     if (hMainWnd == HWND_INVALID)
         return -1;

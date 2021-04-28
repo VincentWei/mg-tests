@@ -183,13 +183,13 @@ static int my_event_hook (PMSG msg)
            exec_app ("./menubutton", "menubutton");
            break;
         case SCANCODE_F3:
+           exec_app ("./helloworld", "helloworld");
+           break;
+        case SCANCODE_F5:
            exec_app ("./combobox", "combobox");
            break;
         case SCANCODE_F4:
            exec_app ("./eventdumper", "eventdumper");
-           break;
-        case SCANCODE_F5:
-           exec_app ("./helloworld", "helloworld");
            break;
 
         case SCANCODE_F6:
