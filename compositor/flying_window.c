@@ -548,7 +548,7 @@ HWND create_flying_window (HWND hosting)
     hMainWnd = CreateMainWindowEx2 (&CreateInfo, 0, NULL, NULL,
             ST_PIXEL_ARGB8888,
             MakeRGBA (0, 0, 0, 0x80),
-            CT_ALPHAPIXEL, 0);
+            CT_ALPHAPIXEL, COLOR_BLEND_PD_DST);
 
     if (hMainWnd != HWND_INVALID) {
         ShowWindow(hMainWnd, SW_SHOW);

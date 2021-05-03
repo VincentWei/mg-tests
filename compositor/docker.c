@@ -121,7 +121,7 @@ int MiniGUIMain (int argc, const char* argv[])
                 SysPixelColor[IDX_COLOR_darkgray].g,
                 SysPixelColor[IDX_COLOR_darkgray].b,
                 0xA0),
-            CT_ALPHAPIXEL, 0x80);
+            CT_ALPHAPIXEL, COLOR_BLEND_PD_SRC);
 
     if (hMainWnd == HWND_INVALID)
         return -1;

@@ -11,14 +11,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 /* 
-** $Id: helloworld.c 767 2009-12-08 06:42:19Z houhuihua $
-**
-** Listing 1.1
-**
-** helloworld.c: Sample program for MiniGUI Programming Guide
-**      The first MiniGUI application.
-**
-** Copyright (C) 2003 ~ 2017 FMSoft (http://www.fmsoft.cn).
+** Copyright (C) 2003 ~ 2021 FMSoft (http://www.fmsoft.cn).
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -102,7 +95,7 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
     switch (message) {
         case MSG_CREATE:
             make_welcome_text ();
-            SetTimer (hWnd, 100, 200);
+            SetTimer (hWnd, 100, 100);
             break;
 
         case MSG_TIMER:
@@ -211,7 +204,7 @@ int MiniGUIMain (int argc, const char* argv[])
     hMainWnd = CreateMainWindowEx2 (&CreateInfo, 0, NULL, NULL,
             ST_PIXEL_ARGB8888,
             MakeRGBA (0, 0, 0, 0x80),
-            CT_ALPHAPIXEL, 0);
+            CT_ALPHAPIXEL, COLOR_BLEND_SP_MULTIPLY);
     
     if (hMainWnd == HWND_INVALID)
         return -1;
