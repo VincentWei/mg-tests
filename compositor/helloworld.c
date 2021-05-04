@@ -204,7 +204,7 @@ int MiniGUIMain (int argc, const char* argv[])
     hMainWnd = CreateMainWindowEx2 (&CreateInfo, 0, NULL, NULL,
             ST_PIXEL_ARGB8888,
             MakeRGBA (0, 0, 0, 0x80),
-            CT_ALPHAPIXEL, COLOR_BLEND_SP_MULTIPLY);
+            CT_ALPHAPIXEL, COLOR_BLEND_PD_SRC_OVER);
     
     if (hMainWnd == HWND_INVALID)
         return -1;
