@@ -203,7 +203,7 @@ static void moveStar(MGEFF_ANIMATION animation, star_t *star, int id, POINT *poi
 
     if (id < 0) {
         paint_all_star (memdc);
-        BitBlt(memdc, 0, 0, 0, 0, HDC_SCREEN, 0, 0, -1);
+        BitBlt(memdc, 0, 0, 0, 0, HDC_SCREEN, 0, 0, 0);
         SyncUpdateDC (HDC_SCREEN);
     }
 }
