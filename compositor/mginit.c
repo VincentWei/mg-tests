@@ -165,6 +165,10 @@ static int my_event_hook (PMSG msg)
         switch (msg->wParam) {
         case SCANCODE_ESCAPE:
             if (nr_clients == 0) {
+                if (my_tooltip_win) {
+                    DestroyToolTipWin (my_tooltip_win);
+                    my_tooltip_win = HWND_NULL;
+                }
                 SendNotifyMessage (HWND_DESKTOP, MSG_ENDSESSION, 0, 0);
             }
             break;
@@ -371,7 +375,8 @@ int MiniGUIMain (int argc, const char* argv[])
         exec_app ("./eventdumper", "eventdumper");
     }
     else if (argc > 1 && strcasecmp (argv[1], "none") == 0) {
-        // do not start any child
+        // start null-loop
+        // exec_app ("./null-loop", "null-loop");
     }
     else {
         pid_welcome = exec_app ("./wallpaper-welcome", "wallpaper-welcome");
