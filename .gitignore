@@ -107,6 +107,7 @@ compositor/wallpaper-dynamic
 compositor/docker
 compositor/launcher
 compositor/screenlock
+compositor/null-loop
 5.0/mginit
 5.0/timer
 5.0/virtualwindow
