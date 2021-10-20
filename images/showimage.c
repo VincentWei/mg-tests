@@ -161,11 +161,25 @@ static void next_image(HWND hWnd)
     InvalidateRect(hWnd, NULL, TRUE);
 }
 
+static BOOL _use_loadbitmap = FALSE;
+
 static void show_image(HDC hdc)
 {
     struct image_file *image = list_entry(_curr, struct image_file, list);
 
-    PaintImageFromFile(hdc, 0, 0, image->path);
+    if (_use_loadbitmap) {
+        BITMAP bmp;
+
+        _MG_PRINTF("LoadBitmapFromFile: %s\n", image->path);
+        if (LoadBitmapFromFile(hdc, &bmp, image->path) == ERR_BMP_OK) {
+            FillBoxWithBitmap(hdc, 0, 0, 0, 0, &bmp);
+            UnloadBitmap(&bmp);
+        }
+    }
+    else {
+        _MG_PRINTF("PaintImageFromFile: %s\n", image->path);
+        PaintImageFromFile(hdc, 0, 0, image->path);
+    }
 }
 
 static LRESULT win_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -220,15 +234,20 @@ int MiniGUIMain(int argc, const char* argv[])
     MAINWINCREATE CreateInfo;
 
     for (i = 1; i < argc; i++) {
-        n = append_image_files(argv[i]);
-        if (n < 0) {
-            _MG_PRINTF("can not open dir: %s\n", argv[i]);
+        if (strcmp(argv[i], "--load") == 0) {
+            _use_loadbitmap = TRUE;
         }
-        else if (n == 0) {
-            _MG_PRINTF("No image files found in dir: %s\n", argv[i]);
+        else {
+            n = append_image_files(argv[i]);
+            if (n < 0) {
+                _MG_PRINTF("can not open dir: %s\n", argv[i]);
+            }
+            else if (n == 0) {
+                _MG_PRINTF("No image files found in dir: %s\n", argv[i]);
+            }
+            else
+                nr_files += n;
         }
-        else
-            nr_files += n;
     }
 
     if (nr_files <= 0) {
@@ -241,7 +260,7 @@ int MiniGUIMain(int argc, const char* argv[])
 #endif
 
     CreateInfo.dwStyle = WS_VISIBLE | WS_BORDER | WS_CAPTION;
-    CreateInfo.dwExStyle = WS_EX_NONE;
+    CreateInfo.dwExStyle = WS_EX_AUTOPOSITION;
     CreateInfo.spCaption = "Show Image";
     CreateInfo.hMenu = 0;
     CreateInfo.hCursor = GetSystemCursor(0);
@@ -251,7 +270,7 @@ int MiniGUIMain(int argc, const char* argv[])
     CreateInfo.ty = 0;
     CreateInfo.rx = 0;
     CreateInfo.by = 0;
-    CreateInfo.iBkColor = PIXEL_lightwhite;
+    CreateInfo.iBkColor = PIXEL_darkgray;
     CreateInfo.dwAddData = 0;
     CreateInfo.hHosting = HWND_DESKTOP;
 
