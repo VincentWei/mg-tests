@@ -171,6 +171,10 @@ static int my_event_hook (PMSG msg)
                 }
                 SendNotifyMessage (HWND_DESKTOP, MSG_ENDSESSION, 0, 0);
             }
+            else if (nr_clients == 1 && pid_dynamic) {
+                kill (pid_dynamic, SIGINT);
+                pid_dynamic = 0;
+            }
             break;
 
         case SCANCODE_SPACE:

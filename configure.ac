@@ -76,4 +76,5 @@ AC_OUTPUT(
     comm-engines/Makefile
     resmgr/Makefile
     compositor/Makefile
+    images/Makefile
 )
