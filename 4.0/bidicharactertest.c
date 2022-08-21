@@ -519,7 +519,7 @@ static int bidi_character_test(const char* filename)
     FILE* fp = NULL;
     int line = 0;
     char buff[MAX_LINE_LEN + 1];
-    struct test_case tc;
+    struct test_case tc = {};
 
     fp = fopen(filename, "r");
     if (fp == NULL) {
