@@ -8,11 +8,10 @@
 
 static LRESULT pwdlogin_ime_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    printf("message in : %d \n", message);
     switch (message) {
         case MSG_CREATE:
             {
-                hWnd = CreateWindowEx(CTRL_BUTTON,
+                CreateWindowEx(CTRL_BUTTON,
                         "333333333",
                         WS_CHILD | WS_VISIBLE ,
                         WS_EX_NONE,
@@ -31,11 +30,10 @@ static LRESULT pwdlogin_ime_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 
 static LRESULT pwdlogin_window_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    printf("message in : %d \n", message);
     switch (message) {
         case MSG_CREATE:
             {
-                hWnd = CreateWindowEx(CTRL_BUTTON,
+                CreateWindowEx(CTRL_BUTTON,
                         "222222",
                         WS_CHILD | WS_VISIBLE ,
                         WS_EX_NONE,
@@ -71,7 +69,7 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 {
     switch (message) {
         case MSG_CREATE:
-            hWnd = CreateWindowEx(CTRL_BUTTON,
+            CreateWindowEx(CTRL_BUTTON,
                     "11111111111",
                     WS_CHILD | WS_VISIBLE ,
                     WS_EX_TRANSPARENT,
