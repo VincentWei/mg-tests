@@ -72,6 +72,7 @@ am--include-marker
 /*.pc
 /*config.h
 /*config.h.in
+/configure~
 
 # executables
 src/mginit
