@@ -24,7 +24,7 @@
 **      DestroyLayout
 **      DestroyTextRuns
 **
-** Copyright (C) 2019 FMSoft (http://www.fmsoft.cn).
+** Copyright (C) 2019~2022 FMSoft (http://www.fmsoft.cn).
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -442,7 +442,7 @@ static void do_test(const struct test_case* tc)
         exit(1);
     }
 
-    int pel;
+    int pel = -1;
     switch (base_dir) {
     case BIDI_PGDIR_LTR:
         pel = 0;
@@ -567,7 +567,7 @@ static void do_test_persist(const struct test_case* tc)
         exit(1);
     }
 
-    int pel;
+    int pel = -1;
     switch (base_dir) {
     case BIDI_PGDIR_LTR:
         pel = 0;
@@ -836,7 +836,7 @@ static void do_test_reorder(const struct test_case* tc)
         exit(1);
     }
 
-    int pel;
+    int pel = -1;
     switch (base_dir) {
     case BIDI_PGDIR_LTR:
         pel = 0;
@@ -968,7 +968,7 @@ static void do_test_ellipsis(const struct test_case* tc)
         exit(1);
     }
 
-    int pel;
+    int pel = -1;
     switch (base_dir) {
     case BIDI_PGDIR_LTR:
         pel = 0;

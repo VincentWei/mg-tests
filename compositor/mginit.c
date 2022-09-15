@@ -11,14 +11,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 /*
-** $Id: mginit.c 322 2007-08-30 01:20:10Z xwyan $
-**
-** Listing 31.1
-**
-** mginit.c: Sample program for MiniGUI Programming Guide
-**      A simple mginit program.
-**
-** Copyright (C) 2003 ~ 2017 FMSoft (http://www.fmsoft.cn).
+** Copyright (C) 2003 ~ 2020 FMSoft (http://www.fmsoft.cn).
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -51,9 +44,9 @@
 #ifdef _MGRM_PROCESSES
 
 static int nr_clients = 0;
+static pid_t pid_dynamic = 0;
 #ifdef _MGSCHEMA_COMPOSITING
 static pid_t pid_welcome = 0;
-static pid_t pid_dynamic = 0;
 static char* exe_cmd;
 #endif
 
