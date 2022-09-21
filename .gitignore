@@ -115,6 +115,7 @@ compositor/null-loop
 5.0/tickcount
 5.0/zorder
 5.0/deadlock
+5.0/broadcastmessage
 5.0/setwindowregion
 5.0/slotset
 images/showimage

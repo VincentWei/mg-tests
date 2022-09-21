@@ -1,3 +1,31 @@
+///////////////////////////////////////////////////////////////////////////////
+//
+//                        IMPORTANT LEGAL NOTICE
+//
+// The following open source license statement does not apply to any
+// entity in the Exception List published by FMSoft.
+//
+// For more information, please visit:
+//
+// https://www.fmsoft.cn/exception-list
+//
+//////////////////////////////////////////////////////////////////////////////
+/*
+**  Test code for issue #89 (https://github.com/VincentWei/MiniGUI/issues/89)
+**
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+** You may obtain a copy of the License at
+**
+**     http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS,
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+** See the License for the specific language governing permissions and
+** limitations under the License.
+*/
+
 #include <minigui/common.h>
 #include <minigui/minigui.h>
 #include <minigui/gdi.h>
@@ -10,12 +38,11 @@ HWND hMainWnd;
 static void pwdlogin_ime_next_deal(HWND hWnd, UINT dwId, WPARAM dwNc, LPARAM add_data)
 {
     HWND hWndParent = GetParent(hWnd);
-    HWND hWndHosting =HWND_INVALID;
     switch (dwId)
     {
         case 104:
             do
-            { printf("close hwnd id is : %x\n",hWndParent);
+            { printf("close hwnd id is : %p\n",hWndParent);
                 PostMessage(hWndParent, MSG_CLOSE, 0, 0);
             }while((hWndParent = GetHosting(hWndParent))!= hMainWnd);
             break;
@@ -28,6 +55,7 @@ static void pwdlogin_ime_next_deal(HWND hWnd, UINT dwId, WPARAM dwNc, LPARAM add
     }
     return ;
 }
+
 static LRESULT pwdlogin_ime_next_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 
@@ -35,7 +63,7 @@ static LRESULT pwdlogin_ime_next_proc(HWND hWnd, UINT message, WPARAM wParam, LP
     {
         case MSG_CREATE:
             {
-                printf("44444444 hwnd id is : %x\n",hWnd);
+                printf("44444444 hwnd id is : %p\n",hWnd);
                 HWND pwdlogin_ime_next_hWnd = CreateWindowEx(CTRL_BUTTON,
                         "44444444444",
                         WS_CHILD | WS_VISIBLE ,  
@@ -55,7 +83,6 @@ static LRESULT pwdlogin_ime_next_proc(HWND hWnd, UINT message, WPARAM wParam, LP
 
         case MSG_CLOSE:
             DestroyMainWindow (hWnd);
-            MainWindowThreadCleanup (hWnd);
             break ;
     }
 
@@ -76,7 +103,7 @@ static void pwdlogin_ime_deal(HWND hWnd, UINT dwId, WPARAM dwNc, LPARAM add_data
             stDlg.y = 0;
             stDlg.w = 200;
             stDlg.h = 200;
-            stDlg.caption = "";
+            stDlg.caption = "Win3";
             CreateMainWindowIndirectParam(&stDlg, hWndParent, pwdlogin_ime_next_proc, 0);
             break;
 
@@ -91,7 +118,7 @@ static LRESULT pwdlogin_ime_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
     {
         case MSG_CREATE:
             {
-                printf("33333 hwnd id is : %x\n",hWnd);
+                printf("33333 hwnd id is : %p\n",hWnd);
                 HWND pwdlogin_ime_hWnd = CreateWindowEx(CTRL_BUTTON,
                         "333333333",
                         WS_CHILD | WS_VISIBLE ,  
@@ -103,7 +130,6 @@ static LRESULT pwdlogin_ime_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
             }
         case MSG_CLOSE:
             DestroyMainWindow (hWnd);
-            MainWindowThreadCleanup (hWnd);
             break ;
 
     }
@@ -125,7 +151,7 @@ static void pwdlogin_window_deal(HWND hWnd, UINT dwId, WPARAM dwNc, LPARAM add_d
             stDlg.y = 0;
             stDlg.w = 200;
             stDlg.h = 200;
-            stDlg.caption = "";
+            stDlg.caption = "Win2";
             CreateMainWindowIndirectParam(&stDlg, hWndParent, pwdlogin_ime_proc, 0);
             break;
 
@@ -139,7 +165,7 @@ static LRESULT pwdlogin_window_proc(HWND hWnd, UINT message, WPARAM wParam, LPAR
     {
         case MSG_CREATE:
             {
-                printf("2222 hwnd id is : %x\n",hWnd);
+                printf("2222 hwnd id is : %p\n",hWnd);
                 HWND pwdlogin_window_hWnd = CreateWindowEx(CTRL_BUTTON,
                         "222222",
                         WS_CHILD | WS_VISIBLE ,  
@@ -151,7 +177,6 @@ static LRESULT pwdlogin_window_proc(HWND hWnd, UINT message, WPARAM wParam, LPAR
             }
         case MSG_CLOSE:
             DestroyMainWindow (hWnd);
-            MainWindowThreadCleanup (hWnd);
             break ;
     }
 
@@ -162,7 +187,7 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
     switch (message) {
         case MSG_CREATE:
-            printf("111111 hwnd id is : %x\n",hWnd);
+            printf("111111 hwnd id is : %p\n",hWnd);
             hWnd = CreateWindowEx(CTRL_BUTTON,
                     "11111111111",
                     WS_CHILD | WS_VISIBLE ,  
@@ -174,7 +199,6 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             if(100 == wParam)
             {	
 
-                HWND    hWndParent = GetParent(hWnd);
                 DLGTEMPLATE stDlg;
                 memset(&stDlg, 0, sizeof(stDlg));
                 stDlg.dwStyle = WS_VISIBLE | WS_CAPTION | WS_BORDER;
@@ -183,7 +207,7 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                 stDlg.y = 0;
                 stDlg.w = 200;
                 stDlg.h = 200;
-                stDlg.caption = "";
+                stDlg.caption = "Win1";
                 CreateMainWindowIndirectParam(&stDlg, hWnd, pwdlogin_window_proc, 0);
             }
             break;
@@ -217,7 +241,7 @@ int MiniGUIMain (int argc, const char* argv[])
     CreateInfo.dwAddData = 0;
     CreateInfo.hHosting = HWND_DESKTOP;
     hMainWnd = CreateMainWindow (&CreateInfo);
-    printf("    HWND hMainWnd id is : %x \n",hMainWnd);
+    printf("    HWND hMainWnd id is : %p \n",hMainWnd);
     if (hMainWnd == HWND_INVALID)
         return -1;
     ShowWindow(hMainWnd, SW_SHOWNORMAL);
