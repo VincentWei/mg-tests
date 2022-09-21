@@ -83,6 +83,7 @@ static LRESULT pwdlogin_ime_next_proc(HWND hWnd, UINT message, WPARAM wParam, LP
 
         case MSG_CLOSE:
             DestroyMainWindow (hWnd);
+            MainWindowCleanup (hWnd);
             break ;
     }
 
@@ -130,6 +131,7 @@ static LRESULT pwdlogin_ime_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
             }
         case MSG_CLOSE:
             DestroyMainWindow (hWnd);
+            MainWindowCleanup (hWnd);
             break ;
 
     }
@@ -177,6 +179,7 @@ static LRESULT pwdlogin_window_proc(HWND hWnd, UINT message, WPARAM wParam, LPAR
             }
         case MSG_CLOSE:
             DestroyMainWindow (hWnd);
+            MainWindowCleanup (hWnd);
             break ;
     }
 
