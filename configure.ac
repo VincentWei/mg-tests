@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.60)
-AC_INIT(mg-tests, 5.0.8)
+AC_INIT(mg-tests, 5.0.10)
 AC_CONFIG_SRCDIR(src/helloworld.c)
 
 dnl ========================================================================
