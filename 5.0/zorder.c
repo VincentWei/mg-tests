@@ -293,7 +293,7 @@ static int check_zorder_by_apis (void)
     HWND tm_api = GetNextMainWindow (HWND_NULL);    // tm: topmost
     HWND bm_api = HWND_NULL;                        // bm: bottommost
     HWND next = HWND_NULL;
-    
+
     _WRN_PRINTF ("the topmost window got by APIs: %p (%s)\n",
             tm_api, GetWindowCaption (tm_api));
 

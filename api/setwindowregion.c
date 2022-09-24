@@ -11,7 +11,24 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 /*
-** helloworld.c: Sample program for MiniGUI.
+**  This test program set region of a main window by calling SetWindowRegion.
+**
+**  The following APIs are covered:
+**
+**      CreateMainWindow
+**      DestroyMainWindow
+**      GetWindowRect
+**      InitFreeClipRectList
+**      InitClipRgn
+**      InitCircleRegion
+**      SetWindowRegion
+**      EmptyClipRgn
+**      DestroyFreeClipRectList
+**      MainWindowCleanup
+**      PostQuitMessage
+**      PostMessage
+**      SetTimer
+**      KillTimer
 **
 ** Copyright (C) 2019 FMSoft (http://www.fmsoft.cn).
 **
@@ -96,14 +113,22 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
     switch (message) {
         case MSG_CREATE:
             make_welcome_text ();
-            SetTimer (hWnd, 100, 200);
+            SetTimer (hWnd, 100, 20);
             break;
 
-        case MSG_TIMER:
+        case MSG_TIMER: {
+            static int count;
+
+            count++;
+            if (count == 10)
+                PostMessage(hWnd, MSG_CLOSE, 0, 0);
+
+            _MG_PRINTF("Updating window\n");
             sprintf (msg_text, HL_ST_TIMER, (PVOID)GetTickCount ());
             InvalidateRect (hWnd, &msg_rc, TRUE);
             break;
-            
+        }
+
         case MSG_LBUTTONDOWN:
             strcpy (msg_text, HL_ST_LBD);
             InvalidateRect (hWnd, &msg_rc, TRUE);
@@ -197,15 +222,14 @@ int MiniGUIMain (int argc, const char* argv[])
     HWND hMainWnd;
     MAINWINCREATE CreateInfo;
 
-    RECT rc_scr = GetScreenRect();
+    _MG_PRINTF("Starting test SetWindowRegion()...\n");
 
+    RECT rc_scr = GetScreenRect();
     _MG_PRINTF("Screen rect: %d, %d, %d, %d\n",
             rc_scr.left, rc_scr.top,
             rc_scr.right, rc_scr.bottom);
 
-#ifdef _MGRM_PROCESSES
-    JoinLayer(NAME_DEF_LAYER , "helloworld" , 0 , 0);
-#endif
+    JoinLayer(NAME_DEF_LAYER , "setwindowregion" , 0 , 0);
 
     CreateInfo.dwStyle = 
         WS_VISIBLE | WS_BORDER | WS_CAPTION;
@@ -225,8 +249,10 @@ int MiniGUIMain (int argc, const char* argv[])
 
     hMainWnd = CreateMainWindow (&CreateInfo);
 
-    if (hMainWnd == HWND_INVALID)
+    if (hMainWnd == HWND_INVALID) {
+        exit(1);
         return -1;
+    }
 
     ShowWindow (hMainWnd, SW_SHOWNORMAL);
 
@@ -237,12 +263,11 @@ int MiniGUIMain (int argc, const char* argv[])
         DispatchMessage(&Msg);
     }
 
-    MainWindowThreadCleanup (hMainWnd);
+    MainWindowCleanup (hMainWnd);
+
+    _MG_PRINTF ("Test for SetWindowRegion() passed!\n");
+    exit(0);
 
     return 0;
 }
-
-#ifdef _MGRM_THREADS
-#include <minigui/dti.c>
-#endif
 

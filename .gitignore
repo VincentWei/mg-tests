@@ -120,4 +120,9 @@ compositor/null-loop
 5.0/slotset
 5.0/enddialog
 images/showimage
+api/mginit
+api/setwindowregion
+api/movewindow
+api/enddialog
+
 
