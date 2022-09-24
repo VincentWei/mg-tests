@@ -842,6 +842,7 @@ int MiniGUIMain (int argc, const char* argv[])
         _WRN_PRINTF ("==================================\n\n");
     }
 
+    exit(0);
     return 0;
 }
 

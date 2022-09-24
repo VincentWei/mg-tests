@@ -1227,6 +1227,11 @@ int MiniGUIMain (int argc, const char* argv[])
 
     srandom (time(NULL));
 
+    gal_pixel pixel_screen = GetPixel (HDC_SCREEN, 0, 0);
+     gal_pixel pixel_window = DWORD2Pixel (HDC_SCREEN, 0xFFC08000);
+    _ERR_PRINTF ("pixel (0, 0) on screen: %08x\n", pixel_screen);
+    _ERR_PRINTF ("window pixel: %08x\n", pixel_window);
+
     if (argc > 1)
         nr_loops = atoi (argv[1]);
     if (nr_loops < 0)
@@ -1239,6 +1244,7 @@ int MiniGUIMain (int argc, const char* argv[])
         _WRN_PRINTF ("==================================\n\n");
     }
 
+    exit(0);
     return 0;
 }
 

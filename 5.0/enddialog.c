@@ -1,31 +1,3 @@
-///////////////////////////////////////////////////////////////////////////////
-//
-//                        IMPORTANT LEGAL NOTICE
-//
-// The following open source license statement does not apply to any
-// entity in the Exception List published by FMSoft.
-//
-// For more information, please visit:
-//
-// https://www.fmsoft.cn/exception-list
-//
-//////////////////////////////////////////////////////////////////////////////
-/*
-**  Test code for issue #89 (https://github.com/VincentWei/MiniGUI/issues/89)
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-*/
-
 #include <minigui/common.h>
 #include <minigui/minigui.h>
 #include <minigui/gdi.h>
@@ -33,28 +5,7 @@
 #include <minigui/control.h>
 #include <stdio.h>
 #include <string.h>
-
 HWND hMainWnd;
-static void pwdlogin_ime_next_deal(HWND hWnd, UINT dwId, WPARAM dwNc, LPARAM add_data)
-{
-    HWND hWndParent = GetParent(hWnd);
-    switch (dwId)
-    {
-        case 104:
-            do
-            { printf("close hwnd id is : %p\n",hWndParent);
-                PostMessage(hWndParent, MSG_CLOSE, 0, 0);
-            }while((hWndParent = GetHosting(hWndParent))!= hMainWnd);
-            break;
-
-        case 105:
-            printf("105\n\n");
-            BroadcastMessage(MSG_CLOSE, 0xFF, 0);
-            break;
-
-    }
-    return ;
-}
 
 static LRESULT pwdlogin_ime_next_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -64,26 +15,18 @@ static LRESULT pwdlogin_ime_next_proc(HWND hWnd, UINT message, WPARAM wParam, LP
         case MSG_CREATE:
             {
                 printf("44444444 hwnd id is : %p\n",hWnd);
-                HWND pwdlogin_ime_next_hWnd = CreateWindowEx(CTRL_BUTTON,
+                 CreateWindowEx(CTRL_BUTTON,
                         "44444444444",
                         WS_CHILD | WS_VISIBLE ,  
                         WS_EX_NONE,
                         104,
-                        50, 100, 105, 40, hWnd, 0);
-                SetNotificationCallback(pwdlogin_ime_next_hWnd, (NOTIFPROC)pwdlogin_ime_next_deal);
-                HWND pwdlogin_ime_next_111hWnd = CreateWindowEx(CTRL_BUTTON,
-                        "5555555",
-                        WS_CHILD | WS_VISIBLE ,  
-                        WS_EX_NONE,
-                        105,
-                        50, 50, 40, 40, hWnd, 0);
-                SetNotificationCallback(pwdlogin_ime_next_111hWnd, (NOTIFPROC)pwdlogin_ime_next_deal);
+                        150, 0, 40, 40, hWnd, 0);
                 break;
             }
 
         case MSG_CLOSE:
             DestroyMainWindow (hWnd);
-            MainWindowCleanup (hWnd);
+            MainWindowThreadCleanup (hWnd);
             break ;
     }
 
@@ -100,12 +43,16 @@ static void pwdlogin_ime_deal(HWND hWnd, UINT dwId, WPARAM dwNc, LPARAM add_data
             memset(&stDlg, 0, sizeof(stDlg));
             stDlg.dwStyle = WS_VISIBLE | WS_CAPTION | WS_BORDER;
             stDlg.dwExStyle = WS_EX_NONE;
-            stDlg.x = 0;
+            stDlg.x = 250;
             stDlg.y = 0;
             stDlg.w = 200;
             stDlg.h = 200;
-            stDlg.caption = "Win3";
+            stDlg.caption = "4444";
             CreateMainWindowIndirectParam(&stDlg, hWndParent, pwdlogin_ime_next_proc, 0);
+            break;
+
+        case 110:
+            SendNotifyMessage(hWndParent,MSG_CLOSE,0,0);
             break;
 
 
@@ -126,17 +73,24 @@ static LRESULT pwdlogin_ime_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
                         WS_EX_NONE,
                         102,
                         50, 100, 105, 40, hWnd, 0);
+                HWND pwdlogin_ime_hWnd2 = CreateWindowEx(CTRL_BUTTON,
+                        "=======",
+                        WS_CHILD | WS_VISIBLE ,  
+                        WS_EX_NONE,
+                        110,
+                        0, 0, 105, 40, hWnd, 0);
+                SetNotificationCallback(pwdlogin_ime_hWnd2, (NOTIFPROC)pwdlogin_ime_deal);
                 SetNotificationCallback(pwdlogin_ime_hWnd, (NOTIFPROC)pwdlogin_ime_deal);
                 break;
             }
         case MSG_CLOSE:
-            DestroyMainWindow (hWnd);
-            MainWindowCleanup (hWnd);
+            printf("MSG_CLOSE\n");
+            EndDialog(hWnd,0);
             break ;
 
     }
 
-    return DefaultMainWinProc(hWnd, message, wParam, lParam);
+    return DefaultDialogProc(hWnd, message, wParam, lParam);
 }
 static void pwdlogin_window_deal(HWND hWnd, UINT dwId, WPARAM dwNc, LPARAM add_data)
 {
@@ -153,9 +107,14 @@ static void pwdlogin_window_deal(HWND hWnd, UINT dwId, WPARAM dwNc, LPARAM add_d
             stDlg.y = 0;
             stDlg.w = 200;
             stDlg.h = 200;
-            stDlg.caption = "Win2";
-            CreateMainWindowIndirectParam(&stDlg, hWndParent, pwdlogin_ime_proc, 0);
+            stDlg.caption = "333";
+            DialogBoxIndirectParam(&stDlg, hWndParent, pwdlogin_ime_proc, 0);
             break;
+        case 120:
+
+            SendNotifyMessage(hWndParent,MSG_CLOSE,0,0);
+            break;
+
 
     }
     return ;
@@ -174,12 +133,20 @@ static LRESULT pwdlogin_window_proc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                         WS_EX_NONE,
                         101,
                         50, 100, 105, 40, hWnd, 0);
+                HWND pwdlogin_window_hWnd_1= CreateWindowEx(CTRL_BUTTON,
+                        "close",
+                        WS_CHILD | WS_VISIBLE ,  
+                        WS_EX_NONE,
+                        120,
+                        100, 50, 80, 40, hWnd, 0);
                 SetNotificationCallback(pwdlogin_window_hWnd, (NOTIFPROC)pwdlogin_window_deal);
+                SetNotificationCallback(pwdlogin_window_hWnd_1, (NOTIFPROC)pwdlogin_window_deal);
                 break;
             }
         case MSG_CLOSE:
+            printf("2222 recived close msg\n");
             DestroyMainWindow (hWnd);
-            MainWindowCleanup (hWnd);
+            MainWindowThreadCleanup (hWnd);
             break ;
     }
 
@@ -202,6 +169,7 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             if(100 == wParam)
             {	
 
+                GetParent(hWnd);
                 DLGTEMPLATE stDlg;
                 memset(&stDlg, 0, sizeof(stDlg));
                 stDlg.dwStyle = WS_VISIBLE | WS_CAPTION | WS_BORDER;
@@ -210,7 +178,7 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                 stDlg.y = 0;
                 stDlg.w = 200;
                 stDlg.h = 200;
-                stDlg.caption = "Win1";
+                stDlg.caption = "22";
                 CreateMainWindowIndirectParam(&stDlg, hWnd, pwdlogin_window_proc, 0);
             }
             break;
@@ -256,4 +224,6 @@ int MiniGUIMain (int argc, const char* argv[])
     MainWindowThreadCleanup (hMainWnd);
     return 0;
 }
-
+#ifdef _MGRM_THREADS
+#include <minigui/dti.c>
+#endif

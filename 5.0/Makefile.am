@@ -6,8 +6,8 @@ noinst_PROGRAMS = \
     virtualwindow \
     tickcount \
     zorder \
-    deadlock \
-    broadcastmessage \
+    movewindow \
+    enddialog \
     setwindowregion \
     mginit \
     $(NULLFILE)
@@ -17,7 +17,7 @@ timer_SOURCES = timer.c $(COMMFILES)
 virtualwindow_SOURCES = virtualwindow.c $(COMMFILES)
 tickcount_SOURCES = tickcount.c $(COMMFILES)
 zorder_SOURCES = zorder.c $(COMMFILES)
-deadlock_SOURCES = deadlock.c $(COMMFILES)
-broadcastmessage_SOURCES = broadcastmessage.c $(COMMFILES)
+movewindow_SOURCES = movewindow.c $(COMMFILES)
+enddialog_SOURCES = enddialog.c $(COMMFILES)
 setwindowregion_SOURCES = setwindowregion.c $(COMMFILES)
 mginit_SOURCES = mginit.c $(COMMFILES)
