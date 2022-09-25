@@ -1255,7 +1255,7 @@ int MiniGUIMain (int argc, const char* argv[])
 
 #else   /* not defined _MGSCHEMA_COMPOSITING */
 
-int MiniGUIMain (int argc, const char* argv[])
+int main(void)
 {
     _WRN_PRINTF ("This test program cannot run under compositing schema.\n");
     return 0;

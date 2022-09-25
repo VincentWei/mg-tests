@@ -174,10 +174,9 @@ int MiniGUIMain (int argc, const char* argv[])
 
 #else   /* defined _MGRM_PROCESSES */
 
-int main (int argc, const char* argv[])
+int main(void)
 {
-    _WRN_PRINTF ("This test program is the server for MiniGUI-Prcesses "
-           "runtime mode.\n"
+    _WRN_PRINTF ("This test program is the server for MiniGUI-Prcesses runmode.\n"
            "    But your MiniGUI was not configured as MiniGUI-Processes\n");
     return 0;
 }

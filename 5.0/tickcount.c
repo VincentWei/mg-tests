@@ -52,8 +52,6 @@ int test_main_entry (int nr_times, int max_sleep_us)
     int nr_errors = 0;
     int max_error = 0;
 
-    _MG_PRINTF ("size of size_t: %lu\n", sizeof (size_t));
-
     do {
         DWORD last_ticks, current_ticks;
         DWORD expected_ticks;
@@ -93,7 +91,7 @@ int test_main_entry (int nr_times, int max_sleep_us)
     return max_error;
 }
 
-#define DEF_NR_LOOPS    10
+#define DEF_NR_LOOPS    3
 #define DEF_NR_TIMES    10
 
 int MiniGUIMain (int argc, const char* argv[])
@@ -120,6 +118,8 @@ int MiniGUIMain (int argc, const char* argv[])
         if (nr_times < 0)
             nr_times = DEF_NR_TIMES;
     }
+
+    _MG_PRINTF ("size of size_t: %lu\n", sizeof (size_t));
 
     for (int i = 0; i < nr_loops; i++) {
         int max_sleep_us = random() % 0x00FFFFFFUL;

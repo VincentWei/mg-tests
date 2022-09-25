@@ -853,7 +853,7 @@ int MiniGUIMain (int argc, const char* argv[])
 
 #else   /* defined _MGHAVE_VIRTUAL_WINDOW */
 
-int MiniGUIMain (int argc, const char* argv[])
+int main(void)
 {
     _WRN_PRINTF ("Please enable virtual window.\n");
     return 0;

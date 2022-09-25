@@ -1,8 +1,5 @@
 #!/bin/bash
 
-export MG_GAL_ENGINE=dummy
-export MG_IAL_ENGINE=dummy
-
 SHOW_STDERR=${SHOW_STDERR:-0}
 USE_VALGRIND=${USE_VALGRIND:-0}
 VALGRIND="valgrind --leak-check=full --num-callers=100 --error-exitcode=1"
@@ -18,7 +15,13 @@ total_crashed=0
 test_failed=""
 test_crashed=""
 
+export MG_GAL_ENGINE=dummy
+export MG_IAL_ENGINE=dummy
+
 (cd 4.0; ./fetch-ucd-test.sh)
+(cd src; ./mginit &)
+sleep 3
+
 truncate -s 0 /var/tmp/minigui-tests.log
 
 for subdir in api 4.0 5.0; do
@@ -48,10 +51,10 @@ for subdir in api 4.0 5.0; do
             total_passed=$((total_passed + 1))
         elif test $RESULT -gt 128; then
             total_crashed=$((total_crashed + 1))
-            test_crashed="$x $test_crashed"
+            test_crashed="$subdir/$x $test_crashed"
         else
             total_failed=$((total_failed + 1))
-            test_failed="$x $test_failed"
+            test_failed="$subdir/$x $test_failed"
         fi
         echo "<< End of $subdir/$x"
         echo ""
@@ -66,7 +69,7 @@ end_time=$(date +%s)
 time=$(($end_time - $start_time))
 
 echo "#######"
-echo "# Tests run:      $total (total time $time S)"
+echo "# Tests run:      $total (total time $time second(s))"
 echo "# Passed:         $total_passed"
 echo "# Failed:         $total_failed"
 echo "# Crashed:        $total_crashed"
@@ -86,7 +89,8 @@ if test $total_crashed -ne 0; then
     done
 fi
 
+killall mginit
+
 total_not_passed=$((total_failed + total_crashed))
 exit $total_not_passed
-
 
