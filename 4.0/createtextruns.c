@@ -993,8 +993,14 @@ int MiniGUIMain (int argc, const char* argv[])
     double start_time, end_time;
     int test_mode = 0;
 
-    if (argc > 1)
-        test_mode = atoi(argv[1]);
+    if (argc > 1) {
+        if (strcmp(argv[1], "auto") == 0) {
+            test_mode = 0;
+        }
+        else {
+            test_mode = atoi(argv[1]);
+        }
+    }
 
     srandom(time(NULL));
 
@@ -1016,7 +1022,7 @@ int MiniGUIMain (int argc, const char* argv[])
 int main (int argc, const char* argv[])
 {
     _WRN_PRINTF ("To test APIs related to text runs, please use MiniGUI 4.0.0 or later, enable support for UNICODE, and enable developer mode.\n");
-    return 0;
+    return 1;
 }
 
 #endif /* checking version */

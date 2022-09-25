@@ -1179,8 +1179,14 @@ int MiniGUIMain (int argc, const char* argv[])
     double start_time, end_time;
     int test_mode = 0;
 
-    if (argc > 1)
-        test_mode = atoi(argv[1]);
+    if (argc > 1) {
+        if (strcmp(argv[1], "auto") == 0) {
+            test_mode = 0;
+        }
+        else {
+            test_mode = atoi(argv[1]);
+        }
+    }
 
     srandom(time(NULL));
 

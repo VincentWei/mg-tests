@@ -825,15 +825,20 @@ int MiniGUIMain (int argc, const char* argv[])
 
     srandom (time(NULL));
 
-    if (argc > 1)
-        nr_loops = atoi (argv[1]);
-    if (nr_loops < 0)
-        nr_loops = 10;
+    if (argc > 1 && strcmp(argv[1], "auto") == 0) {
+        // use the defaults
+    }
+    else {
+        if (argc > 1)
+            nr_loops = atoi (argv[1]);
+        if (nr_loops < 0)
+            nr_loops = 10;
 
-    if (argc > 2)
-        nr_threads = atoi (argv[2]);
-    if (nr_threads < 0)
-        nr_threads = 4;
+        if (argc > 2)
+            nr_threads = atoi (argv[2]);
+        if (nr_threads < 0)
+            nr_threads = 4;
+    }
 
     for (int i = 0; i < nr_loops; i++) {
         _WRN_PRINTF ("Starting loop %d.\n", i);

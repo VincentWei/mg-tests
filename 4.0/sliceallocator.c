@@ -588,6 +588,6 @@ int MiniGUIMain (int argc, const char* argv[])
 }
 
 #else
-#error "To test Slice Allocator, please use MiniGUI 4.0.0"
+#error "To test Slice Allocator, please use MiniGUI 4.0.0 or later"
 #endif /* checking version */
 

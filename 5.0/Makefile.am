@@ -6,7 +6,6 @@ noinst_PROGRAMS = \
     virtualwindow \
     tickcount \
     zorder \
-    mginit \
     $(NULLFILE)
 
 slotset_SOURCES = slotset.c $(COMMFILES)
@@ -14,4 +13,3 @@ timer_SOURCES = timer.c $(COMMFILES)
 virtualwindow_SOURCES = virtualwindow.c $(COMMFILES)
 tickcount_SOURCES = tickcount.c $(COMMFILES)
 zorder_SOURCES = zorder.c $(COMMFILES)
-mginit_SOURCES = mginit.c $(COMMFILES)

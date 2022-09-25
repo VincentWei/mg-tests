@@ -94,7 +94,7 @@ int test_main_entry (int nr_times, int max_sleep_us)
 }
 
 #define DEF_NR_LOOPS    10
-#define DEF_NR_TIMES    1000
+#define DEF_NR_TIMES    10
 
 int MiniGUIMain (int argc, const char* argv[])
 {
@@ -106,15 +106,20 @@ int MiniGUIMain (int argc, const char* argv[])
 
     srandom (time(NULL));
 
-    if (argc > 1)
-        nr_loops = atoi (argv[1]);
-    if (nr_loops < 0)
-        nr_loops = DEF_NR_LOOPS;
+    if (argc > 1 && strcmp(argv[1], "auto") == 0) {
+        // use the defaults
+    }
+    else {
+        if (argc > 1)
+            nr_loops = atoi (argv[1]);
+        if (nr_loops < 0)
+            nr_loops = DEF_NR_LOOPS;
 
-    if (argc > 2)
-        nr_times = atoi (argv[2]);
-    if (nr_times < 0)
-        nr_times = DEF_NR_TIMES;
+        if (argc > 2)
+            nr_times = atoi (argv[2]);
+        if (nr_times < 0)
+            nr_times = DEF_NR_TIMES;
+    }
 
     for (int i = 0; i < nr_loops; i++) {
         int max_sleep_us = random() % 0x00FFFFFFUL;
@@ -133,6 +138,7 @@ int MiniGUIMain (int argc, const char* argv[])
 
     _MG_PRINTF ("Test for GetTickCount passed; max error (%d), total times: %d\n",
             max_error, nr_loops * nr_times);
+    exit(0);
     return 0;
 }
 

@@ -56,7 +56,7 @@
 #include <minigui/window.h>
 
 #if (_MINIGUI_VERSION_CODE >= _VERSION_CODE(4,0,0)) \
-        && defined(_MGCHARSET_UNICODE)
+        && defined(_MGCHARSET_UNICODE) && defined(_MGDEVEL_MODE)
 
 #include "helpers.h"
 
@@ -1173,8 +1173,14 @@ int MiniGUIMain (int argc, const char* argv[])
     HWND hMainWnd;
 
     srandom(time(NULL));
-    if (argc > 1)
-        _auto_test_runs = atoi(argv[1]);
+    if (argc > 1) {
+        if (strcmp(argv[1], "auto") == 0) {
+            _auto_test_runs = 1000;
+        }
+        else {
+            _auto_test_runs = atoi(argv[1]);
+        }
+    }
 
 #ifdef _MGRM_PROCESSES
     const char* layer = NULL;
@@ -1192,7 +1198,9 @@ int MiniGUIMain (int argc, const char* argv[])
         printf ("JoinLayer: invalid layer handle.\n");
         exit (1);
     }
+#endif
 
+#ifndef _MGRM_THREADS
     if (!InitVectorialFonts ()) {
         printf ("InitVectorialFonts: error.\n");
         exit (2);
@@ -1236,5 +1244,11 @@ int MiniGUIMain (int argc, const char* argv[])
 
 
 #else
-#error "To test Basic Shaping Engine, please use MiniGUI 4.0.0 and enable support for UNICODE"
+
+int main (int argc, const char* argv[])
+{
+    _WRN_PRINTF ("To test basic shaping engine, please use MiniGUI 4.0.0 or later, enable support for UNICODE, and enable developer mode.\n");
+    return 1;
+}
+
 #endif /* checking version and features */

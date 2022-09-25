@@ -1232,10 +1232,15 @@ int MiniGUIMain (int argc, const char* argv[])
     _ERR_PRINTF ("pixel (0, 0) on screen: %08x\n", pixel_screen);
     _ERR_PRINTF ("window pixel: %08x\n", pixel_window);
 
-    if (argc > 1)
-        nr_loops = atoi (argv[1]);
-    if (nr_loops < 0)
-        nr_loops = 4;
+    if (argc > 1 && strcmp(argv[1], "auto") == 0) {
+        // use the defaults
+    }
+    else {
+        if (argc > 1)
+            nr_loops = atoi (argv[1]);
+        if (nr_loops < 0)
+            nr_loops = 3;
+    }
 
     for (int i = 0; i < nr_loops; i++) {
         _WRN_PRINTF ("Starting loop %d.\n", i);

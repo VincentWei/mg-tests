@@ -447,6 +447,7 @@ int MiniGUIMain (int argc, const char* argv[])
     }
 
     _MG_PRINTF ("Test for timer passed!\n");
+    exit(0);
     return 0;
 }
 
