@@ -86,5 +86,7 @@ if test $total_crashed -ne 0; then
     done
 fi
 
-exit 0
+total_not_passed=$((total_failed + total_crashed))
+exit $total_not_passed
+
 

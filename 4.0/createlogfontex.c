@@ -969,7 +969,7 @@ int MiniGUIMain (int argc, const char* argv[])
     srandom(time(NULL));
     if (argc > 1) {
         if (strcmp(argv[1], "auto") == 0) {
-            _auto_test_runs = 1000;
+            _auto_test_runs = 10;
         }
         else {
             _auto_test_runs = atoi(argv[1]);
