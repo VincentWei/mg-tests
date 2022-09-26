@@ -8,4 +8,4 @@ endif
 
 DIST_SUBDIRS = $(COMMON_SUBDIRS) compositor
 SUBDIRS = $(COMMON_SUBDIRS) $(PROCS_SUBDIRS)
-EXTRA_DIST = ltmain.sh README.md LICENSE comm-engines-freertos 
+EXTRA_DIST = ltmain.sh README.md LICENSE run-auto-tests.sh comm-engines-freertos
