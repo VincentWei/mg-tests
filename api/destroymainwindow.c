@@ -214,8 +214,12 @@ firstWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 int MiniGUIMain (int argc, const char* argv[])
 {
     MSG Msg;
-
     MAINWINCREATE CreateInfo;
+
+    _MG_PRINTF("Starting to test DestroyMainWindow()...\n");
+
+    JoinLayer(NAME_DEF_LAYER , "destroymainwindow" , 0 , 0);
+
     CreateInfo.dwStyle = WS_VISIBLE | WS_CAPTION;
     CreateInfo.dwExStyle = WS_EX_NONE;
     CreateInfo.spCaption = "The First Main Window";
