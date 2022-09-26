@@ -1221,7 +1221,7 @@ static int test_main_entry (void)
 
 int MiniGUIMain (int argc, const char* argv[])
 {
-    int nr_loops = 3;
+    int nr_loops = 1;
 
     JoinLayer (NAME_DEF_LAYER , "zorder" , 0 , 0);
 
@@ -1245,9 +1245,10 @@ int MiniGUIMain (int argc, const char* argv[])
     for (int i = 0; i < nr_loops; i++) {
         _WRN_PRINTF ("Starting loop %d.\n", i);
         if (test_main_entry ())
-            return -1;
-        _WRN_PRINTF ("==================================\n\n");
+            exit(1);
+        _WRN_PRINTF ("End of loop %d\n\n", i);
     }
+    _WRN_PRINTF ("Test for z-order passed!\n");
 
     exit(0);
     return 0;

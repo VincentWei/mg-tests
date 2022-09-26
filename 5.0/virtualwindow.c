@@ -818,7 +818,7 @@ static int test_main_entry (int nr_threads)
 
 int MiniGUIMain (int argc, const char* argv[])
 {
-    int nr_loops = 10;
+    int nr_loops = 3;
     int nr_threads = 8;
 
     JoinLayer (NAME_DEF_LAYER , "virtual window" , 0 , 0);
@@ -843,9 +843,10 @@ int MiniGUIMain (int argc, const char* argv[])
     for (int i = 0; i < nr_loops; i++) {
         _WRN_PRINTF ("Starting loop %d.\n", i);
         if (test_main_entry (nr_threads))
-            return -1;
-        _WRN_PRINTF ("==================================\n\n");
+            exit(1);
+        _WRN_PRINTF ("End of loop %d\n\n", i);
     }
+    _WRN_PRINTF ("Test for virtual window passed!\n");
 
     exit(0);
     return 0;
