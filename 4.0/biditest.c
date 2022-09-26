@@ -536,10 +536,10 @@ static int bidi_test(const char* filename)
         }
 
         line++;
-        printf("==== LINE %d ====\n", line);
+        fprintf(stderr, "==== LINE %d ====\n", line);
 
         if (parse_one_line(buff, &tc) && tc.nr_bidi_types > 0) {
-            printf("CASE: \n%s", buff);
+            fprintf(stderr, "CASE: \n%s", buff);
             // true test here
             do_test(&tc);
         }

@@ -396,12 +396,12 @@ failed:
 static BOOL print_glyph (GHANDLE ctxt, Glyph32 gv,
         const GLYPHPOS* pos, const RENDERDATA* data)
 {
-    printf("==== Glyph Info ====\n");
-    printf("CHAR INDEX     : %d\n", data->uc_index);
-    printf("UNICODE CODE   : 0x%08X\n", data->uc);
-    printf("LOGFONT        : %p\n", data->logfont);
-    printf("GLYPH VALUE    : 0x%08X\n", gv);
-    printf("POSITION       : position: (%d, %d); offset: (%d, %d),\n",
+    fprintf(stderr, "==== Glyph Info ====\n");
+    fprintf(stderr, "CHAR INDEX     : %d\n", data->uc_index);
+    fprintf(stderr, "UNICODE CODE   : 0x%08X\n", data->uc);
+    fprintf(stderr, "LOGFONT        : %p\n", data->logfont);
+    fprintf(stderr, "GLYPH VALUE    : 0x%08X\n", gv);
+    fprintf(stderr, "POSITION       : position: (%d, %d); offset: (%d, %d),\n",
             pos->x, pos->y, pos->x_off, pos->y_off);
 
     return TRUE;
@@ -634,10 +634,10 @@ static void do_test_persist(const struct test_case* tc)
         _nr_glyphs = 0;
         while ((line = LayoutNextLine(layout, line, max_extent, FALSE,
                 count_glyphs, NULL))) {
-            printf("==== Line Info for LayoutNextLine (%p) ====\n", line);
-            printf("LINE NO.:           : %d\n", i);
-            printf("MAX EXTENT     : %d\n", max_extent);
-            printf("NR OF GLYPHS   : %d\n", _nr_glyphs);
+            fprintf(stderr, "==== Line Info for LayoutNextLine (%p) ====\n", line);
+            fprintf(stderr, "LINE NO.:           : %d\n", i);
+            fprintf(stderr, "MAX EXTENT     : %d\n", max_extent);
+            fprintf(stderr, "NR OF GLYPHS   : %d\n", _nr_glyphs);
 
             _nr_glyphs = 0;
             max_extent = random() % 100;
@@ -655,10 +655,10 @@ static void do_test_persist(const struct test_case* tc)
                 exit(1);
             }
 
-            printf("==== Line Info from GetLayoutLineInfo (%p) ====\n", line);
-            printf("LINE NO.:           : %d\n", line_no);
-            printf("MAX EXTENT     : %d\n", max_extent);
-            printf("NR OF GLYPHS   : %d\n", nr_glyphs);
+            fprintf(stderr, "==== Line Info from GetLayoutLineInfo (%p) ====\n", line);
+            fprintf(stderr, "LINE NO.:           : %d\n", line_no);
+            fprintf(stderr, "MAX EXTENT     : %d\n", max_extent);
+            fprintf(stderr, "NR OF GLYPHS   : %d\n", nr_glyphs);
             line_no++;
         }
 
@@ -760,11 +760,11 @@ static void check_text_runs(TEXTRUNS* runinfo, const struct test_case* tc,
             exit(1);
         }
 
-        printf("==== Text Run %d ====\n", run);
-        printf("FONTNAME        : %s\n", fontname?fontname:"DEFAULT");
-        printf("START           : %d\n", start_index);
-        printf("LENGTH          : %d\n", length);
-        printf("LANGCODE        : %s\n", LanguageCodeToISO639s1(lang_code));
+        fprintf(stderr, "==== Text Run %d ====\n", run);
+        fprintf(stderr, "FONTNAME        : %s\n", fontname?fontname:"DEFAULT");
+        fprintf(stderr, "START           : %d\n", start_index);
+        fprintf(stderr, "LENGTH          : %d\n", length);
+        fprintf(stderr, "LANGCODE        : %s\n", LanguageCodeToISO639s1(lang_code));
 
         char script_name[5] = {};
         Uint32 script_iso = ScriptTypeToISO15924(script);
@@ -774,9 +774,9 @@ static void check_text_runs(TEXTRUNS* runinfo, const struct test_case* tc,
         script_name[2] = iso_name[1];
         script_name[3] = iso_name[0];
 
-        printf("SCRIPT          : %s\n", script_name);
-        printf("EMBEDDING LEVEL : %d\n", embedding_level);
-        printf("FLAGS           : %02x\n", flags);
+        fprintf(stderr, "SCRIPT          : %s\n", script_name);
+        fprintf(stderr, "EMBEDDING LEVEL : %d\n", embedding_level);
+        fprintf(stderr, "FLAGS           : %02x\n", flags);
 
         //if (logfont == NULL) getchar();
 
@@ -1139,8 +1139,8 @@ static int bidi_character_test(const char* filename, int test_mode)
         }
 
         line++;
-        printf("==== LINE %d ====\n", line);
-        printf("CASE: \n%s", buff);
+        fprintf(stderr, "==== LINE %d ====\n", line);
+        fprintf(stderr, "CASE: \n%s", buff);
 
         init_test_case(&tc);
         int n = parse_one_case(buff, &tc);

@@ -625,10 +625,10 @@ static void do_dump(const Uchar32* ucs, const Uint16* bos, int n,
     int i;
 
     if (bos[0] & bo_flag) {
-        printf (TOKEN_HAVE_BREAK_OPPORTUNITY);
+        fprintf(stderr, TOKEN_HAVE_BREAK_OPPORTUNITY);
     }
     else {
-        printf (TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
+        fprintf(stderr, TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
     }
 
     for (i = 0; i < n; i++) {
@@ -638,13 +638,13 @@ static void do_dump(const Uchar32* ucs, const Uint16* bos, int n,
 
         len = uc32_to_utf8(uc, utf8);
         utf8[len] = 0;
-        printf(" %s ", utf8);
+        fprintf(stderr, " %s ", utf8);
 
         if (bos[i + 1] & bo_flag) {
-            printf (TOKEN_HAVE_BREAK_OPPORTUNITY);
+            fprintf(stderr, TOKEN_HAVE_BREAK_OPPORTUNITY);
         }
         else {
-            printf (TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
+            fprintf(stderr, TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
         }
     }
 }
@@ -655,8 +655,8 @@ static inline void dump_glyphs_and_breaks(const char* text,
     int i;
     char* tmp = _utf8_str;
 
-    printf("START OF DUMPING GLYPHS AND BREAKS\n");
-    printf("==================================\n");
+    fprintf(stderr, "START OF DUMPING GLYPHS AND BREAKS\n");
+    fprintf(stderr, "==================================\n");
 
     memset(_utf8_str, 0, 5000);
     for (i = 0; i < n; i++) {
@@ -668,72 +668,72 @@ static inline void dump_glyphs_and_breaks(const char* text,
             tmp += len;
         }
 
-        printf("%04X(%s, %s)\n", uc,
+        fprintf(stderr, "%04X(%s, %s)\n", uc,
             get_general_category_name(UCharGetCategory(uc)),
             get_break_type_name(UCharGetBreakType(uc)));
     }
-    printf("\n");
+    fprintf(stderr, "\n");
 
-    printf("TEXT IN UTF-8\n");
-    printf("==================================\n");
-    printf("\n");
+    fprintf(stderr, "TEXT IN UTF-8\n");
+    fprintf(stderr, "==================================\n");
+    fprintf(stderr, "\n");
     puts(_utf8_str);
-    printf("\n");
+    fprintf(stderr, "\n");
 
-    printf("\tBOV_LB_BREAK_FLAG\n");
+    fprintf(stderr, "\tBOV_LB_BREAK_FLAG\n");
     do_dump(ucs, bos, n, BOV_LB_BREAK_FLAG);
-    printf("\n\n");
+    fprintf(stderr, "\n\n");
 
-    printf("\tBOV_WHITESPACE\n");
+    fprintf(stderr, "\tBOV_WHITESPACE\n");
     do_dump(ucs, bos, n, BOV_WHITESPACE);
-    printf("\n\n");
+    fprintf(stderr, "\n\n");
 
-    printf("\tBOV_EXPANDABLE_SPACE\n");
+    fprintf(stderr, "\tBOV_EXPANDABLE_SPACE\n");
     do_dump(ucs, bos, n, BOV_EXPANDABLE_SPACE);
-    printf("\n\n");
+    fprintf(stderr, "\n\n");
 
-    printf("\tBOV_ZERO_WIDTH\n");
+    fprintf(stderr, "\tBOV_ZERO_WIDTH\n");
     do_dump(ucs, bos, n, BOV_ZERO_WIDTH);
-    printf("\n\n");
+    fprintf(stderr, "\n\n");
 
-    printf("\tBOV_GB_CHAR_BREAK\n");
+    fprintf(stderr, "\tBOV_GB_CHAR_BREAK\n");
     do_dump(ucs, bos, n, BOV_GB_CHAR_BREAK);
-    printf("\n\n");
+    fprintf(stderr, "\n\n");
 
-    printf("\tBOV_GB_CURSOR_POS\n");
+    fprintf(stderr, "\tBOV_GB_CURSOR_POS\n");
     do_dump(ucs, bos, n, BOV_GB_CURSOR_POS);
-    printf("\n\n");
+    fprintf(stderr, "\n\n");
 
-    printf("\tBOV_GB_BACKSPACE_DEL_CH\n");
+    fprintf(stderr, "\tBOV_GB_BACKSPACE_DEL_CH\n");
     do_dump(ucs, bos, n, BOV_GB_BACKSPACE_DEL_CH);
-    printf("\n\n");
+    fprintf(stderr, "\n\n");
 
-    printf("\tBOV_WB_WORD_BOUNDARY\n");
+    fprintf(stderr, "\tBOV_WB_WORD_BOUNDARY\n");
     do_dump(ucs, bos, n, BOV_WB_WORD_BOUNDARY);
-    printf("\n\n");
+    fprintf(stderr, "\n\n");
 
-    printf("\tBOV_WB_WORD_START\n");
+    fprintf(stderr, "\tBOV_WB_WORD_START\n");
     do_dump(ucs, bos, n, BOV_WB_WORD_START);
-    printf("\n\n");
+    fprintf(stderr, "\n\n");
 
-    printf("\tBOV_WB_WORD_END\n");
+    fprintf(stderr, "\tBOV_WB_WORD_END\n");
     do_dump(ucs, bos, n, BOV_WB_WORD_END);
-    printf("\n\n");
+    fprintf(stderr, "\n\n");
 
-    printf("\tBOV_SB_SENTENCE_BOUNDARY\n");
+    fprintf(stderr, "\tBOV_SB_SENTENCE_BOUNDARY\n");
     do_dump(ucs, bos, n, BOV_SB_SENTENCE_BOUNDARY);
-    printf("\n\n");
+    fprintf(stderr, "\n\n");
 
-    printf("\tBOV_SB_SENTENCE_START\n");
+    fprintf(stderr, "\tBOV_SB_SENTENCE_START\n");
     do_dump(ucs, bos, n, BOV_SB_SENTENCE_START);
-    printf("\n\n");
+    fprintf(stderr, "\n\n");
 
-    printf("\tBOV_SB_SENTENCE_END\n");
+    fprintf(stderr, "\tBOV_SB_SENTENCE_END\n");
     do_dump(ucs, bos, n, BOV_SB_SENTENCE_END);
-    printf("\n\n");
+    fprintf(stderr, "\n\n");
 
-    printf("================================\n");
-    printf("END OF DUMPING GLYPHS AND BREAKS\n");
+    fprintf(stderr, "================================\n");
+    fprintf(stderr, "END OF DUMPING GLYPHS AND BREAKS\n");
 }
 
 
@@ -1195,14 +1195,14 @@ int MiniGUIMain (int argc, const char* argv[])
     GetLayerInfo (layer, NULL, NULL, NULL);
 
     if (JoinLayer (layer, argv[0], 0, 0) == INV_LAYER_HANDLE) {
-        printf ("JoinLayer: invalid layer handle.\n");
+        fprintf(stderr, "JoinLayer: invalid layer handle.\n");
         exit (1);
     }
 #endif
 
 #ifndef _MGRM_THREADS
     if (!InitVectorialFonts ()) {
-        printf ("InitVectorialFonts: error.\n");
+        fprintf(stderr, "InitVectorialFonts: error.\n");
         exit (2);
     }
 #endif

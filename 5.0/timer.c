@@ -312,7 +312,7 @@ TestWinProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case MSG_COMMAND:
         on_command (hWnd, wParam, lParam);
         break;
-        
+
     case MSG_IDLE:
         check_timers (hWnd, (DWORD)wParam);
         break;
@@ -323,7 +323,7 @@ TestWinProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             assert (HaveFreeTimer ());
         }
         break;
-        
+
     case MSG_DESTROY:
         clean_timers (hWnd);
         return 0;

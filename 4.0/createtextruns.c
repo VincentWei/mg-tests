@@ -489,11 +489,11 @@ static void do_test(const struct test_case* tc)
                 exit(1);
             }
 
-            printf("==== Text Run %d ====\n", run);
-            printf("FONTNAME        : %s\n", fontname?fontname:"DEFAULT");
-            printf("START           : %d\n", start_index);
-            printf("LENGTH          : %d\n", length);
-            printf("LANGCODE        : %s\n", LanguageCodeToISO639s1(lang_code));
+            fprintf(stderr, "==== Text Run %d ====\n", run);
+            fprintf(stderr, "FONTNAME        : %s\n", fontname?fontname:"DEFAULT");
+            fprintf(stderr, "START           : %d\n", start_index);
+            fprintf(stderr, "LENGTH          : %d\n", length);
+            fprintf(stderr, "LANGCODE        : %s\n", LanguageCodeToISO639s1(lang_code));
 
             char script_name[5] = {};
             Uint32 script_iso = ScriptTypeToISO15924(script);
@@ -503,9 +503,9 @@ static void do_test(const struct test_case* tc)
             script_name[2] = iso_name[1];
             script_name[3] = iso_name[0];
 
-            printf("SCRIPT          : %s\n", script_name);
-            printf("EMBEDDING LEVEL : %d\n", embedding_level);
-            printf("FLAGS           : %02x\n", flags);
+            fprintf(stderr, "SCRIPT          : %s\n", script_name);
+            fprintf(stderr, "EMBEDDING LEVEL : %d\n", embedding_level);
+            fprintf(stderr, "FLAGS           : %02x\n", flags);
 
             //if (logfont == NULL) getchar();
 
@@ -678,11 +678,11 @@ static void do_test_change_font(const struct test_case* tc)
                 exit(1);
             }
 
-            printf("==== Text Run %d ====\n", run);
-            printf("FONTNAME        : %s\n", fontname?fontname:"DEFAULT");
-            printf("START           : %d\n", start_index);
-            printf("LENGTH          : %d\n", length);
-            printf("LANGCODE        : %s\n", LanguageCodeToISO639s1(lang_code));
+            fprintf(stderr, "==== Text Run %d ====\n", run);
+            fprintf(stderr, "FONTNAME        : %s\n", fontname?fontname:"DEFAULT");
+            fprintf(stderr, "START           : %d\n", start_index);
+            fprintf(stderr, "LENGTH          : %d\n", length);
+            fprintf(stderr, "LANGCODE        : %s\n", LanguageCodeToISO639s1(lang_code));
 
             char script_name[5] = {};
             Uint32 script_iso = ScriptTypeToISO15924(script);
@@ -692,9 +692,9 @@ static void do_test_change_font(const struct test_case* tc)
             script_name[2] = iso_name[1];
             script_name[3] = iso_name[0];
 
-            printf("SCRIPT          : %s\n", script_name);
-            printf("EMBEDDING LEVEL : %d\n", embedding_level);
-            printf("FLAGS           : %02x\n", flags);
+            fprintf(stderr, "SCRIPT          : %s\n", script_name);
+            fprintf(stderr, "EMBEDDING LEVEL : %d\n", embedding_level);
+            fprintf(stderr, "FLAGS           : %02x\n", flags);
 
             //if (logfont == NULL) getchar();
 
@@ -870,11 +870,11 @@ static void do_test_change_color(const struct test_case* tc)
                 exit(1);
             }
 
-            printf("==== Text Run %d ====\n", run);
-            printf("FONTNAME        : %s\n", fontname?fontname:"DEFAULT");
-            printf("START           : %d\n", start_index);
-            printf("LENGTH          : %d\n", length);
-            printf("LANGCODE        : %s\n", LanguageCodeToISO639s1(lang_code));
+            fprintf(stderr, "==== Text Run %d ====\n", run);
+            fprintf(stderr, "FONTNAME        : %s\n", fontname?fontname:"DEFAULT");
+            fprintf(stderr, "START           : %d\n", start_index);
+            fprintf(stderr, "LENGTH          : %d\n", length);
+            fprintf(stderr, "LANGCODE        : %s\n", LanguageCodeToISO639s1(lang_code));
 
             char script_name[5] = {};
             Uint32 script_iso = ScriptTypeToISO15924(script);
@@ -884,9 +884,9 @@ static void do_test_change_color(const struct test_case* tc)
             script_name[2] = iso_name[1];
             script_name[3] = iso_name[0];
 
-            printf("SCRIPT          : %s\n", script_name);
-            printf("EMBEDDING LEVEL : %d\n", embedding_level);
-            printf("FLAGS           : %02x\n", flags);
+            fprintf(stderr, "SCRIPT          : %s\n", script_name);
+            fprintf(stderr, "EMBEDDING LEVEL : %d\n", embedding_level);
+            fprintf(stderr, "FLAGS           : %02x\n", flags);
 
             //if (logfont == NULL) getchar();
 
@@ -955,8 +955,8 @@ static int bidi_character_test(const char* filename, int test_mode)
         }
 
         line++;
-        printf("==== LINE %d ====\n", line);
-        printf("CASE: \n%s", buff);
+        fprintf(stderr, "==== LINE %d ====\n", line);
+        fprintf(stderr, "CASE: \n%s", buff);
 
         init_test_case(&tc);
         int n = parse_one_case(buff, &tc);

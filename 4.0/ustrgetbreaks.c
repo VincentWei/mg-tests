@@ -118,46 +118,46 @@ static CB_CHECK_RESULT _cb_check_result;
 static void check_result_lb(const Uchar32* ucs, const Uint8* bos, int n,
         const Uchar32* my_ucs, const Uint16* my_bos, int my_n)
 {
-    printf("TEST CASE: \n");
+    fprintf(stderr, "TEST CASE: \n");
 
     if (bos[0] == BREAK_ALLOWED) {
-        printf (TOKEN_HAVE_BREAK_OPPORTUNITY);
+        fprintf(stderr, TOKEN_HAVE_BREAK_OPPORTUNITY);
     }
     else {
-        printf (TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
+        fprintf(stderr, TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
     }
 
     for (int i = 0; i < n; i++) {
-        printf (" %04X ", ucs[i]);
+        fprintf(stderr, " %04X ", ucs[i]);
 
         if (bos[i + 1] == BREAK_ALLOWED) {
-            printf (TOKEN_HAVE_BREAK_OPPORTUNITY);
+            fprintf(stderr, TOKEN_HAVE_BREAK_OPPORTUNITY);
         }
         else {
-            printf (TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
+            fprintf(stderr, TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
         }
     }
-    printf("\n");
+    fprintf(stderr, "\n");
 
-    printf("MINIGUI: \n");
+    fprintf(stderr, "MINIGUI: \n");
     if (my_bos[0] & BOV_LB_BREAK_FLAG) {
-        printf (TOKEN_HAVE_BREAK_OPPORTUNITY);
+        fprintf(stderr, TOKEN_HAVE_BREAK_OPPORTUNITY);
     }
     else {
-        printf (TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
+        fprintf(stderr, TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
     }
 
     for (int i = 0; i < my_n; i++) {
-        printf (" %04X ", my_ucs[i]);
+        fprintf(stderr, " %04X ", my_ucs[i]);
 
         if (my_bos[i + 1] & BOV_LB_BREAK_FLAG) {
-            printf (TOKEN_HAVE_BREAK_OPPORTUNITY);
+            fprintf(stderr, TOKEN_HAVE_BREAK_OPPORTUNITY);
         }
         else {
-            printf (TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
+            fprintf(stderr, TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
         }
     }
-    printf("\n\n");
+    fprintf(stderr, "\n\n");
 
     BOOL ok = TRUE;
     if (n != my_n) {
@@ -182,46 +182,46 @@ static void check_result_lb(const Uchar32* ucs, const Uint8* bos, int n,
 static void check_result_gb(const Uchar32* ucs, const Uint8* bos, int n,
         const Uchar32* my_ucs, const Uint16* my_bos, int my_n)
 {
-    printf("TEST CASE: \n");
+    fprintf(stderr, "TEST CASE: \n");
 
     if (bos[0] == BREAK_ALLOWED) {
-        printf (TOKEN_HAVE_BREAK_OPPORTUNITY);
+        fprintf(stderr, TOKEN_HAVE_BREAK_OPPORTUNITY);
     }
     else {
-        printf (TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
+        fprintf(stderr, TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
     }
 
     for (int i = 0; i < n; i++) {
-        printf (" %04X ", ucs[i]);
+        fprintf(stderr, " %04X ", ucs[i]);
 
         if (bos[i + 1] == BREAK_ALLOWED) {
-            printf (TOKEN_HAVE_BREAK_OPPORTUNITY);
+            fprintf(stderr, TOKEN_HAVE_BREAK_OPPORTUNITY);
         }
         else {
-            printf (TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
+            fprintf(stderr, TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
         }
     }
-    printf("\n");
+    fprintf(stderr, "\n");
 
-    printf("MINIGUI: \n");
+    fprintf(stderr, "MINIGUI: \n");
     if (my_bos[0] & BOV_GB_CHAR_BREAK) {
-        printf (TOKEN_HAVE_BREAK_OPPORTUNITY);
+        fprintf(stderr, TOKEN_HAVE_BREAK_OPPORTUNITY);
     }
     else {
-        printf (TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
+        fprintf(stderr, TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
     }
 
     for (int i = 0; i < my_n; i++) {
-        printf (" %04X ", my_ucs[i]);
+        fprintf(stderr, " %04X ", my_ucs[i]);
 
         if (my_bos[i + 1] & BOV_GB_CHAR_BREAK) {
-            printf (TOKEN_HAVE_BREAK_OPPORTUNITY);
+            fprintf(stderr, TOKEN_HAVE_BREAK_OPPORTUNITY);
         }
         else {
-            printf (TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
+            fprintf(stderr, TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
         }
     }
-    printf("\n\n");
+    fprintf(stderr, "\n\n");
 
     BOOL ok = TRUE;
     if (n != my_n) {
@@ -246,46 +246,46 @@ static void check_result_gb(const Uchar32* ucs, const Uint8* bos, int n,
 static void check_result_wb(const Uchar32* ucs, const Uint8* bos, int n,
         const Uchar32* my_ucs, const Uint16* my_bos, int my_n)
 {
-    printf("TEST CASE: \n");
+    fprintf(stderr, "TEST CASE: \n");
 
     if (bos[0] == BREAK_ALLOWED) {
-        printf (TOKEN_HAVE_BREAK_OPPORTUNITY);
+        fprintf(stderr, TOKEN_HAVE_BREAK_OPPORTUNITY);
     }
     else {
-        printf (TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
+        fprintf(stderr, TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
     }
 
     for (int i = 0; i < n; i++) {
-        printf (" %04X ", ucs[i]);
+        fprintf(stderr, " %04X ", ucs[i]);
 
         if (bos[i + 1] == BREAK_ALLOWED) {
-            printf (TOKEN_HAVE_BREAK_OPPORTUNITY);
+            fprintf(stderr, TOKEN_HAVE_BREAK_OPPORTUNITY);
         }
         else {
-            printf (TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
+            fprintf(stderr, TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
         }
     }
-    printf("\n");
+    fprintf(stderr, "\n");
 
-    printf("MINIGUI: \n");
+    fprintf(stderr, "MINIGUI: \n");
     if (my_bos[0] & BOV_WB_WORD_BOUNDARY) {
-        printf (TOKEN_HAVE_BREAK_OPPORTUNITY);
+        fprintf(stderr, TOKEN_HAVE_BREAK_OPPORTUNITY);
     }
     else {
-        printf (TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
+        fprintf(stderr, TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
     }
 
     for (int i = 0; i < my_n; i++) {
-        printf (" %04X ", my_ucs[i]);
+        fprintf(stderr, " %04X ", my_ucs[i]);
 
         if (my_bos[i + 1] & BOV_WB_WORD_BOUNDARY) {
-            printf (TOKEN_HAVE_BREAK_OPPORTUNITY);
+            fprintf(stderr, TOKEN_HAVE_BREAK_OPPORTUNITY);
         }
         else {
-            printf (TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
+            fprintf(stderr, TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
         }
     }
-    printf("\n\n");
+    fprintf(stderr, "\n\n");
 
     BOOL ok = TRUE;
     if (n != my_n) {
@@ -310,46 +310,46 @@ static void check_result_wb(const Uchar32* ucs, const Uint8* bos, int n,
 static void check_result_sb(const Uchar32* ucs, const Uint8* bos, int n,
         const Uchar32* my_ucs, const Uint16* my_bos, int my_n)
 {
-    printf("TEST CASE: \n");
+    fprintf(stderr, "TEST CASE: \n");
 
     if (bos[0] == BREAK_ALLOWED) {
-        printf (TOKEN_HAVE_BREAK_OPPORTUNITY);
+        fprintf(stderr, TOKEN_HAVE_BREAK_OPPORTUNITY);
     }
     else {
-        printf (TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
+        fprintf(stderr, TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
     }
 
     for (int i = 0; i < n; i++) {
-        printf (" %04X ", ucs[i]);
+        fprintf(stderr, " %04X ", ucs[i]);
 
         if (bos[i + 1] == BREAK_ALLOWED) {
-            printf (TOKEN_HAVE_BREAK_OPPORTUNITY);
+            fprintf(stderr, TOKEN_HAVE_BREAK_OPPORTUNITY);
         }
         else {
-            printf (TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
+            fprintf(stderr, TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
         }
     }
-    printf("\n");
+    fprintf(stderr, "\n");
 
-    printf("MINIGUI: \n");
+    fprintf(stderr, "MINIGUI: \n");
     if (my_bos[0] & BOV_SB_SENTENCE_BOUNDARY) {
-        printf (TOKEN_HAVE_BREAK_OPPORTUNITY);
+        fprintf(stderr, TOKEN_HAVE_BREAK_OPPORTUNITY);
     }
     else {
-        printf (TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
+        fprintf(stderr, TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
     }
 
     for (int i = 0; i < my_n; i++) {
-        printf (" %04X ", my_ucs[i]);
+        fprintf(stderr, " %04X ", my_ucs[i]);
 
         if (my_bos[i + 1] & BOV_SB_SENTENCE_BOUNDARY) {
-            printf (TOKEN_HAVE_BREAK_OPPORTUNITY);
+            fprintf(stderr, TOKEN_HAVE_BREAK_OPPORTUNITY);
         }
         else {
-            printf (TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
+            fprintf(stderr, TOKEN_HAVE_NO_BREAK_OPPORTUNITY);
         }
     }
-    printf("\n\n");
+    fprintf(stderr, "\n\n");
 
     BOOL ok = TRUE;
     if (n != my_n) {
@@ -388,21 +388,21 @@ static int do_test(PLOGFONT lf, FILE* fp, Uint8 lbp)
         }
 
         line++;
-        printf("==== LINE %d ====\n", line);
-        printf("CASE: \n%s", buff);
+        fprintf(stderr, "==== LINE %d ====\n", line);
+        fprintf(stderr, "CASE: \n%s", buff);
 
         n = parse_one_case(buff, ucs, bos);
         if (n == 0) {
             continue;
         }
 
-        printf("CHARS: ");
+        fprintf(stderr, "CHARS: ");
         for (int i = 0; i < n; i++) {
-            printf("%04X(%s, %s) ", ucs[i],
+            fprintf(stderr, "%04X(%s, %s) ", ucs[i],
                 get_general_category_name(UCharGetCategory(ucs[i])),
                 get_break_type_name(UCharGetBreakType(ucs[i])));
         }
-        printf("\n");
+        fprintf(stderr, "\n");
 
         my_bos = NULL;
         bos_len = UStrGetBreaks(LANGCODE_unknown,

@@ -540,8 +540,8 @@ static int bidi_character_test(const char* filename)
         }
 
         line++;
-        printf("==== LINE %d ====\n", line);
-        printf("CASE: \n%s", buff);
+        fprintf(stderr, "==== LINE %d ====\n", line);
+        fprintf(stderr, "CASE: \n%s", buff);
 
         i %= NR_ALLOCATED_TEST_CASES;
 

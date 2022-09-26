@@ -535,8 +535,8 @@ static int bidi_character_test(const char* filename)
         }
 
         line++;
-        printf("==== LINE %d ====\n", line);
-        printf("CASE: \n%s", buff);
+        fprintf(stderr, "==== LINE %d ====\n", line);
+        fprintf(stderr, "CASE: \n%s", buff);
 
         init_test_case(&tc);
         int n = parse_one_case(buff, &tc);

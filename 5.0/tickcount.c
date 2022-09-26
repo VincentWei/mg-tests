@@ -93,11 +93,14 @@ int test_main_entry (int nr_times, int max_sleep_us)
 
 #define DEF_NR_LOOPS    3
 #define DEF_NR_TIMES    10
+#define MAX_SLEEP_US        0x00FFFFFF
+#define MAX_SLEEP_US_AUTO   0x0000FFFF
 
 int MiniGUIMain (int argc, const char* argv[])
 {
     int nr_loops = DEF_NR_LOOPS;    // total loops
     int nr_times = DEF_NR_TIMES;    // times per loop
+    int max_sleep_us = MAX_SLEEP_US;
     int max_error = 0;
 
     JoinLayer (NAME_DEF_LAYER , "gettickcount" , 0 , 0);
@@ -106,6 +109,7 @@ int MiniGUIMain (int argc, const char* argv[])
 
     if (argc > 1 && strcmp(argv[1], "auto") == 0) {
         // use the defaults
+        max_sleep_us = MAX_SLEEP_US_AUTO;
     }
     else {
         if (argc > 1)
@@ -117,19 +121,21 @@ int MiniGUIMain (int argc, const char* argv[])
             nr_times = atoi (argv[2]);
         if (nr_times < 0)
             nr_times = DEF_NR_TIMES;
+
+        max_sleep_us = MAX_SLEEP_US;
     }
 
     _MG_PRINTF ("size of size_t: %lu\n", sizeof (size_t));
 
     for (int i = 0; i < nr_loops; i++) {
-        int max_sleep_us = random() % 0x00FFFFFFUL;
+        int sleep_us = random() % max_sleep_us;
         int error;
-        if (max_sleep_us == 0)
-            max_sleep_us = 1;
+        if (sleep_us == 0)
+            sleep_us = 1;
 
         _WRN_PRINTF ("Starting loop %d.\n", i);
 
-        error = test_main_entry (nr_times, max_sleep_us);
+        error = test_main_entry (nr_times, sleep_us);
         if (error > max_error)
             max_error = error;
 

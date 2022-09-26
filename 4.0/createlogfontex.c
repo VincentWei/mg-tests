@@ -440,34 +440,34 @@ static void dump_logfont_info(PLOGFONT lf)
     int i;
 
     if (lf == NULL) {
-        printf("%s: Nil LOGFONT object\n",
+        fprintf(stderr, "%s: Nil LOGFONT object\n",
             __FUNCTION__);
         exit(1);
         return;
     }
 
-    printf("%s: LOGFONT (%p) information:\n",
+    fprintf(stderr, "%s: LOGFONT (%p) information:\n",
         __FUNCTION__, lf);
 
-    printf("\ttype: %s\n", lf->type);
-    printf("\tfamily: %s\n", lf->family);
-    printf("\tcharset: %s\n", lf->charset);
-    printf("\tstyle: 0x%08X\n", lf->style);
-    printf("\tsize: %d\n", lf->size);
-    printf("\trotation: %d\n", lf->rotation);
-    printf("\tascent: %d\n", lf->ascent);
-    printf("\tdescent: %d\n", lf->descent);
-    printf("\tsize_request: %d\n", lf->size_request);
+    fprintf(stderr, "\ttype: %s\n", lf->type);
+    fprintf(stderr, "\tfamily: %s\n", lf->family);
+    fprintf(stderr, "\tcharset: %s\n", lf->charset);
+    fprintf(stderr, "\tstyle: 0x%08X\n", lf->style);
+    fprintf(stderr, "\tsize: %d\n", lf->size);
+    fprintf(stderr, "\trotation: %d\n", lf->rotation);
+    fprintf(stderr, "\tascent: %d\n", lf->ascent);
+    fprintf(stderr, "\tdescent: %d\n", lf->descent);
+    fprintf(stderr, "\tsize_request: %d\n", lf->size_request);
 
     for (i = 0; i < MAXNR_DEVFONTS; i++) {
         if (lf->devfonts[i]) {
-            printf("\tDEVFONT#%d:\n", i);
-            printf("\t\tname: %s:\n", lf->devfonts[i]->name);
-            printf("\t\tscale: %d\n", lf->scales[i]);
-            printf("\t\tstyle: 0x%08X\n", lf->devfonts[i]->style);
+            fprintf(stderr, "\tDEVFONT#%d:\n", i);
+            fprintf(stderr, "\t\tname: %s:\n", lf->devfonts[i]->name);
+            fprintf(stderr, "\t\tscale: %d\n", lf->scales[i]);
+            fprintf(stderr, "\t\tstyle: 0x%08X\n", lf->devfonts[i]->style);
         }
         else {
-            printf("\t\tDEVFONT#%d: Nil\n", i);
+            fprintf(stderr, "\t\tDEVFONT#%d: Nil\n", i);
         }
     }
 }
@@ -577,7 +577,7 @@ static void run_test_case(HDC hdc)
 
     generate_font_families(lf_families);
 
-    printf("%s: calling CreateLogFontEx\n",
+    fprintf(stderr, "%s: calling CreateLogFontEx\n",
         __FUNCTION__);
     lf1 = CreateLogFontEx(
             _type_cases[_curr_type],
@@ -605,7 +605,7 @@ static void run_test_case(HDC hdc)
             _font_size,
             _charset_cases[_curr_charset]);
 
-    printf("%s: calling CreateLogFontByName(%s)\n",
+    fprintf(stderr, "%s: calling CreateLogFontByName(%s)\n",
         __FUNCTION__, lf_name);
     lf2 = CreateLogFontByName(lf_name);
     dump_logfont_info(lf2);
@@ -989,14 +989,14 @@ int MiniGUIMain (int argc, const char* argv[])
     GetLayerInfo (layer, NULL, NULL, NULL);
 
     if (JoinLayer (layer, argv[0], 0, 0) == INV_LAYER_HANDLE) {
-        printf ("JoinLayer: invalid layer handle.\n");
+        fprintf(stderr, "JoinLayer: invalid layer handle.\n");
         exit (1);
     }
 #endif
 
 #ifndef _MGRM_THREADS
     if (!InitVectorialFonts ()) {
-        printf ("InitVectorialFonts: error.\n");
+        fprintf(stderr, "InitVectorialFonts: error.\n");
         exit (2);
     }
 #endif
