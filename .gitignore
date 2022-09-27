@@ -119,6 +119,7 @@ compositor/null-loop
 5.0/setwindowregion
 5.0/slotset
 5.0/enddialog
+5.0/capture
 images/showimage
 api/mginit
 api/movewindow
