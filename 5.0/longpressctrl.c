@@ -33,19 +33,15 @@
 **      CreateWindow
 **      SetCapture
 **      ReleaseCapture
-**      GetWindowLocalData
-**      SetWindowLocalData
-**      RemoveWindowLocalData
+**      SetWindowAdditionalData2
+**      GetWindowAdditionalData2
 **      InvalidateRect
 **      PostMessage
 **      DestroyAllControls
 **      MainWindowCleanup
 **      MSG_IDLE
 **
-** capture.c: Sample program for MiniGUI Programming Guide
-**      Demo of using mouse capture
-**
-** Copyright (C) 2003 ~ 2017 FMSoft (http://www.fmsoft.cn).
+** Copyright (C) 2022 FMSoft (http://www.fmsoft.cn).
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -66,86 +62,131 @@
 #include <minigui/window.h>
 #include <minigui/control.h>
 
-#define IDC_MYBUTTON    100
-#define MSG_LBTN_LONGPRESSED        (MSG_USER + 100)
-
-#define CTRL_DATA_NAME_STATUS       "status"
-#define CTRL_DATA_NAME_DOWNTIME     "downTime"
+enum {
+    MSG_LBTN_DOWN = MSG_USER + 100,
+    MSG_LBTN_UP,
+    MSG_LBTN_LONGPRESSED,
+};
 
 #define CTRL_STATUS_NONE            0x00
 #define CTRL_STATUS_CAPTURED        0x01
 #define CTRL_STATUS_LONGPRESSED     0x02
 
+struct longpress_ctrl_head {
+    DWORD       status;
+    DWORD       downtime;
+    unsigned    ticks;  /* how many ticks to generate longpressed message */
+};
+
+static inline void initLongPressCtrlHead(struct longpress_ctrl_head *head,
+        unsigned longpress_ticks)
+{
+    assert(longpress_ticks > 50);
+
+    head->status = CTRL_STATUS_NONE;
+    head->ticks = longpress_ticks;
+}
+
+LRESULT
+longpressCtrlProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+#define IDC_MYBUTTON    100
+
 static unsigned nr_longpressed;
 
-/* a simple button control */
-static LRESULT
-mybuttonWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT
+longpressCtrlProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message) {
-    case MSG_CREATE:
-        SetWindowLocalData(hWnd, CTRL_DATA_NAME_STATUS, CTRL_STATUS_NONE, NULL);
-        break;
-
     case MSG_LBUTTONDOWN: {
-        DWORD status;
+        struct longpress_ctrl_head *head;
+        head = (struct longpress_ctrl_head *)GetWindowAdditionalData2(hWnd);
+        if (head) {
+            SetCapture(hWnd);
 
-        SetCapture(hWnd);
-
-        GetWindowLocalData(hWnd, CTRL_DATA_NAME_STATUS, &status, NULL);
-        SetWindowLocalData(hWnd, CTRL_DATA_NAME_STATUS,
-                status | CTRL_STATUS_CAPTURED, NULL);
-        SetWindowLocalData(hWnd, CTRL_DATA_NAME_DOWNTIME,
-                GetTickCount(), NULL);
-        InvalidateRect(hWnd, NULL, TRUE);
+            head->status |= CTRL_STATUS_CAPTURED;
+            head->downtime = GetTickCount();
+            PostMessage(hWnd, MSG_LBTN_DOWN, wParam, lParam);
+        }
         break;
     }
 
     case MSG_IDLE: {
-        DWORD status;
-        DWORD downtime;
-
-        GetWindowLocalData(hWnd, CTRL_DATA_NAME_STATUS, &status, NULL);
-        if (status & CTRL_STATUS_CAPTURED) {
-            GetWindowLocalData(hWnd, CTRL_DATA_NAME_DOWNTIME, &downtime, NULL);
-            if (wParam > downtime + 200) { // 2s
+        struct longpress_ctrl_head *head;
+        head = (struct longpress_ctrl_head *)GetWindowAdditionalData2(hWnd);
+        if (head && head->status & CTRL_STATUS_CAPTURED) {
+            if (wParam >= head->downtime + head->ticks) {
                 PostMessage(hWnd, MSG_LBTN_LONGPRESSED, 0, 0);
-                SetWindowLocalData(hWnd, CTRL_DATA_NAME_DOWNTIME,
-                    GetTickCount(), NULL);
-                SetWindowLocalData(hWnd, CTRL_DATA_NAME_STATUS,
-                        status | CTRL_STATUS_LONGPRESSED, NULL);
+                head->downtime = GetTickCount();
+                head->status |= CTRL_STATUS_LONGPRESSED;
             }
         }
         break;
     }
 
-    case MSG_LBUTTONUP:
-        ReleaseCapture();
-        SetWindowLocalData(hWnd, CTRL_DATA_NAME_STATUS, CTRL_STATUS_NONE, NULL);
+    case MSG_LBUTTONUP: {
+        struct longpress_ctrl_head *head;
+        head = (struct longpress_ctrl_head *)GetWindowAdditionalData2(hWnd);
+        if (head) {
+            ReleaseCapture();
+            head->status = CTRL_STATUS_NONE;
+            PostMessage(hWnd, MSG_LBTN_UP, wParam, lParam);
+        }
+        break;
+    }
+
+    default:
+        break;
+    }
+
+    return DefaultControlProc (hWnd, message, wParam, lParam);
+}
+
+struct my_ctrl_data {
+    struct longpress_ctrl_head head;
+    int foobar;
+    int bar;
+};
+
+static LRESULT
+myCtrlProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message) {
+    case MSG_CREATE: {
+        struct my_ctrl_data *data;
+        data = (struct my_ctrl_data *)calloc(1, sizeof(*data));
+        assert(data);
+        initLongPressCtrlHead(&data->head, 200); // 2s
+        SetWindowAdditionalData2(hWnd, (DWORD)data);
+        break;
+    }
+
+    case MSG_LBTN_DOWN:
         InvalidateRect(hWnd, NULL, TRUE);
-    break;
+        break;
+
+    case MSG_LBTN_UP:
+        InvalidateRect(hWnd, NULL, TRUE);
+        break;
 
     case MSG_LBTN_LONGPRESSED:
         InvalidateRect(hWnd, NULL, TRUE);
     break;
 
     case MSG_PAINT: {
-        DWORD status;
-        GetWindowLocalData(hWnd, CTRL_DATA_NAME_STATUS, &status, NULL);
+        struct my_ctrl_data *data;
+        data = (struct my_ctrl_data *)GetWindowAdditionalData2(hWnd);
 
         HDC hdc = BeginPaint (hWnd);
         SetBkMode(hdc, BM_TRANSPARENT);
-        if (status & CTRL_STATUS_LONGPRESSED) {
-            DWORD downtime;
-            GetWindowLocalData(hWnd, CTRL_DATA_NAME_DOWNTIME, &downtime, NULL);
-
+        if (data->head.status & CTRL_STATUS_LONGPRESSED) {
             char buff[512];
-            sprintf(buff, "Left button long pressed: 0x%lx", downtime);
+            sprintf(buff, "Left button long pressed: 0x%lx", data->head.downtime);
             TextOut(hdc, 10, 0, buff);
-            _MG_PRINTF("Left button long pressed: 0x%lx\n", downtime);
+            _MG_PRINTF("Left button long pressed: 0x%lx\n", data->head.downtime);
             nr_longpressed++;
         }
-        else if (status & CTRL_STATUS_CAPTURED) {
+        else if (data->head.status & CTRL_STATUS_CAPTURED) {
             TextOut(hdc, 10, 0, "Left button pressed and captured");
             _MG_PRINTF("Left button pressed and captured\n");
         }
@@ -157,20 +198,26 @@ mybuttonWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         return 0;
     }
 
-    case MSG_DESTROY:
-        RemoveWindowLocalData(hWnd, CTRL_DATA_NAME_STATUS);
-        RemoveWindowLocalData(hWnd, CTRL_DATA_NAME_DOWNTIME);
-        return 0;
+    case MSG_DESTROY: {
+        struct my_ctrl_data *data;
+        data = (struct my_ctrl_data *)GetWindowAdditionalData2(hWnd);
+        free(data);
+        break;
     }
 
-    return DefaultControlProc (hWnd, message, wParam, lParam);
+    default:
+        break;
+    }
+
+    /* use longpressCtrlProc here */
+    return longpressCtrlProc(hWnd, message, wParam, lParam);
 }
 
-static BOOL registerMyButton (void)
+static BOOL registerMyCtrl (void)
 {
     WNDCLASS WndClass;
 
-    WndClass.spClassName = "mybutton";
+    WndClass.spClassName = "myctrl";
     WndClass.dwStyle     = 0;
     WndClass.dwExStyle   = 0;
     WndClass.hCursor     = GetSystemCursor(0);
@@ -179,26 +226,26 @@ static BOOL registerMyButton (void)
 #else
     WndClass.iBkColor    = PIXEL_lightgray;
 #endif
-    WndClass.WinProc     = mybuttonWindowProc;
+    WndClass.WinProc     = myCtrlProc;
 
     return RegisterWindowClass(&WndClass);
 }
 
 /* main windoww proc */
 static LRESULT
-CaptureWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+myWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message) {
     case MSG_CREATE:
-        registerMyButton();
-        CreateWindow("mybutton", "", WS_VISIBLE | WS_CHILD, IDC_MYBUTTON,
+        registerMyCtrl();
+        CreateWindow("myctrl", "", WS_VISIBLE | WS_CHILD, IDC_MYBUTTON,
                 5, 5, 300, 200, hWnd, 0);
         break;
 
     case MSG_CLOSE:
-        DestroyAllControls (hWnd);
-        DestroyMainWindow (hWnd);
-        PostQuitMessage (hWnd);
+        DestroyAllControls(hWnd);
+        DestroyMainWindow(hWnd);
+        PostQuitMessage(hWnd);
         return 0;
     }
 
@@ -211,15 +258,15 @@ static int real_entry(int argc, const char* arg[])
     HWND hMainWnd;
     MAINWINCREATE CreateInfo;
 
-    JoinLayer(NAME_DEF_LAYER , "capture" , 0 , 0);
+    JoinLayer(NAME_DEF_LAYER , "longpressctrl" , 0 , 0);
 
     CreateInfo.dwStyle = WS_VISIBLE | WS_BORDER | WS_CAPTION;
     CreateInfo.dwExStyle = WS_EX_NONE;
-    CreateInfo.spCaption = "Capture";
+    CreateInfo.spCaption = "Control Supporting Longpress";
     CreateInfo.hMenu = 0;
     CreateInfo.hCursor = GetSystemCursor(0);
     CreateInfo.hIcon = 0;
-    CreateInfo.MainWindowProc = CaptureWinProc;
+    CreateInfo.MainWindowProc = myWinProc;
     CreateInfo.lx = 0;
     CreateInfo.ty = 0;
     CreateInfo.rx = 320;

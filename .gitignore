@@ -120,6 +120,7 @@ compositor/null-loop
 5.0/slotset
 5.0/enddialog
 5.0/capture
+5.0/longpressctrl
 images/showimage
 api/mginit
 api/movewindow
