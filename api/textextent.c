@@ -17,6 +17,8 @@
 **      GetTabbedTextExtent
 **      GetTextExtentPoint
 **      GetTabbedTextExtentPoint
+**      GetNextUChar
+**      IsUCharWide
 **
 **  The following APIs are also covered:
 **
@@ -49,10 +51,15 @@
 #include <minigui/gdi.h>
 #include <minigui/window.h>
 
-static struct test_case {
+struct test_case {
     const char *text;
     int expect;
-} normal_text_cases [] =
+};
+
+#define GLYPH_WIDTH   8
+#define GLYPH_HEIGHT  16
+
+static struct test_case normal_text_cases [] =
 {
     {
         "  MiniGUI and HVML",
@@ -63,9 +70,6 @@ static struct test_case {
         0,
     },
 };
-
-#define GLYPH_WIDTH   8
-#define GLYPH_HEIGHT  16
 
 static void test_normal_text(LOGFONT *lf)
 {
@@ -179,6 +183,130 @@ static void test_normal_text(LOGFONT *lf)
     _MG_PRINTF("Testing for GetTextExtent() and GetTextExtentPoint() passed!\n");
 }
 
+static struct test_case tabbed_text_cases [] =
+{
+    {
+        "MiniGUI",
+        0,
+    },
+    {
+        "MiniGUI（迷你龟）5.0；版权所有 2002 ~ 2022 飞漫软件",
+        0,
+    },
+};
+
+static void test_tabbed_text(LOGFONT *lf)
+{
+    _MG_PRINTF("Testing GetTabbedTextExtent(), and GetTabbedTextExtentPoint()...\n");
+
+    for (int i = 0; i < TABLESIZE(tabbed_text_cases); i++) {
+        const char *mstr = tabbed_text_cases[i].text;
+        int mstr_len = (int)strlen(mstr);
+
+        _MG_PRINTF("Call GetTabbedTextExtent for Case %d: %s\n", i, mstr);
+
+        int glyph_width_exp[mstr_len];
+        int pos_chars_exp[mstr_len];
+        int dx_chars_exp[mstr_len];
+
+        const char *mchar = mstr;
+        int left = mstr_len;
+        int nr_ucs = 0;
+        int extent_exp = 0;
+        while (left > 0) {
+            Uchar32 uc;
+            int consumed = GetNextUChar(lf, mchar, left, &uc);
+            if (consumed <= 0)
+                break;
+
+            if (IsUCharWide(uc)) {
+                glyph_width_exp[nr_ucs] = GLYPH_WIDTH * 2;
+            }
+            else
+                glyph_width_exp[nr_ucs] = GLYPH_WIDTH;
+
+            pos_chars_exp[nr_ucs] = mchar - mstr;
+            dx_chars_exp[nr_ucs] = extent_exp;
+
+            extent_exp += glyph_width_exp[nr_ucs];
+            left -= consumed;
+            mchar += consumed;
+            nr_ucs++;
+        }
+
+        SIZE sz;
+        GetTabbedTextExtent(HDC_SCREEN, mstr, mstr_len, &sz);
+        if (sz.cx != extent_exp || sz.cy != GLYPH_HEIGHT) {
+            _MG_PRINTF("Failed Case %d: expected (%d, %d), but returned (%d, %d)\n",
+                    i, extent_exp, GLYPH_HEIGHT, sz.cx, sz.cy);
+            exit(EXIT_FAILURE);
+            return;
+        }
+
+        tabbed_text_cases[i].expect = extent_exp;
+
+        int pos_chars[nr_ucs];
+        int dx_chars[nr_ucs];
+
+        _MG_PRINTF("Call GetTabbedTextExtentPoint for Case %d: %s\n", i, mstr);
+
+        for (int max_extent = tabbed_text_cases[i].expect; max_extent > 0;
+                max_extent -= (GLYPH_WIDTH >> 1)) {
+
+            _MG_PRINTF("\tmax_extent: %d\n", max_extent);
+
+            extent_exp = 0;
+            int fit_chars_exp = 0;
+            while (fit_chars_exp < nr_ucs) {
+                if (extent_exp + glyph_width_exp[fit_chars_exp] <= max_extent) {
+                    extent_exp += glyph_width_exp[fit_chars_exp];
+                    fit_chars_exp++;
+                }
+                else
+                    break;
+            }
+
+            int fit_chars;
+            int n = GetTabbedTextExtentPoint(HDC_SCREEN, mstr, mstr_len,
+                    max_extent, &fit_chars, pos_chars, dx_chars, &sz);
+            _MG_PRINTF("\tGetTextExtentPoint returned: %d\n", n);
+            if (fit_chars != fit_chars_exp) {
+                _MG_PRINTF("Failed Case %d: expected fit_chars (%d/%d), but returned (%d, %d)\n",
+                        i, fit_chars_exp, nr_ucs, fit_chars, sz.cx);
+                exit(EXIT_FAILURE);
+                return;
+            }
+
+            if (sz.cx != extent_exp || sz.cy != GLYPH_HEIGHT) {
+                _MG_PRINTF("Failed Case %d: expected (%d, %d), but returned (%d, %d)\n",
+                        i, extent_exp, GLYPH_HEIGHT, sz.cx, sz.cy);
+                exit(EXIT_FAILURE);
+                return;
+            }
+
+            for (int j = 0; j < fit_chars; j++) {
+                if (pos_chars[j] != pos_chars_exp[j]) {
+                    _MG_PRINTF("Failed Case %d: expected pos_chars[%d]: %d, but returned: %d\n",
+                            i, j, pos_chars_exp[j], pos_chars[j]);
+                    exit(EXIT_FAILURE);
+                    return;
+                }
+
+                if (dx_chars[j] != dx_chars_exp[j]) {
+                    _MG_PRINTF("Failed Case %d: expected dx_chars[%d]: %d, but returned: %d\n",
+                            i, j, dx_chars_exp[j], dx_chars[j]);
+                    exit(EXIT_FAILURE);
+                    return;
+                }
+            }
+
+        }
+
+    }
+
+    _MG_PRINTF("Testing for GetTabbedTextExtent() and GetTabbedTextExtentPoint() passed!\n");
+}
+
 #define DEVFONTFILE "/usr/local/share/minigui/res/font/unifont_160_50.upf"
 #define DEVFONTNAME "upf-unifont,SansSerif,monospace-rrncnn-8-16-ISO8859-1,ISO8859-6,ISO8859-8,UTF-8"
 
@@ -207,6 +335,7 @@ int MiniGUIMain(int argc, const char* argv[])
     LOGFONT *old_logfont = SelectFont(HDC_SCREEN, logfont);
 
     test_normal_text(logfont);
+    test_tabbed_text(logfont);
 
     SelectFont(HDC_SCREEN, old_logfont);
     DestroyLogFont(logfont);

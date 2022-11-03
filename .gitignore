@@ -129,3 +129,4 @@ api/setwindowregion
 api/destroymainwindow
 api/destroymainwindow2
 api/autosecondarydc
+api/textextent
