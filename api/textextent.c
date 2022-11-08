@@ -186,14 +186,16 @@ static void test_normal_text(LOGFONT *lf)
 static struct test_case tabbed_text_cases [] =
 {
     {
-        "MiniGUI",
+        "MiniGUI（迷你龟）",
         0,
     },
     {
-        "MiniGUI（迷你龟）5.0；版权所有 2002 ~ 2022 飞漫软件",
+        "MiniGUI（迷你龟）5.0\t版权所有\t2002 ~ 2022\t飞漫软件",
         0,
     },
 };
+
+#define UCHAR_TAB               0x0009
 
 static void test_tabbed_text(LOGFONT *lf)
 {
@@ -222,6 +224,8 @@ static void test_tabbed_text(LOGFONT *lf)
             if (IsUCharWide(uc)) {
                 glyph_width_exp[nr_ucs] = GLYPH_WIDTH * 2;
             }
+            else if (uc == UCHAR_TAB)
+                glyph_width_exp[nr_ucs] = GLYPH_WIDTH * 8;
             else
                 glyph_width_exp[nr_ucs] = GLYPH_WIDTH;
 
@@ -307,8 +311,11 @@ static void test_tabbed_text(LOGFONT *lf)
     _MG_PRINTF("Testing for GetTabbedTextExtent() and GetTabbedTextExtentPoint() passed!\n");
 }
 
-#define DEVFONTFILE "/usr/local/share/minigui/res/font/unifont_160_50.upf"
-#define DEVFONTNAME "upf-unifont,SansSerif,monospace-rrncnn-8-16-ISO8859-1,ISO8859-6,ISO8859-8,UTF-8"
+#define UPF_DEVFONTFILE "/usr/local/share/minigui/res/font/unifont_160_50.upf"
+#define UPF_DEVFONTNAME "upf-unifont,SansSerif,monospace-rrncnn-8-16-UTF-8"
+
+#define RBF_DEVFONTFILE "/usr/local/share/minigui/res/font/8x16-iso8859-1.bin"
+#define RBF_DEVFONTNAME "rbf-fixed,SansSerif,monospace-rrncnn-8-16-ISO8859-1"
 
 #define LOGFONTNAME "upf-monospace-rrncnn-U-16-UTF-8"
 
@@ -318,10 +325,16 @@ int MiniGUIMain(int argc, const char* argv[])
 
     _MG_PRINTF("Starting test %s...\n", argv[0]);
 
-    DEVFONT* devfont = NULL;
-    if ((devfont = LoadDevFontFromFile(DEVFONTNAME, DEVFONTFILE)) == NULL) {
+    DEVFONT *upf_devfont = NULL, *rbf_devfont = NULL;
+    if ((upf_devfont = LoadDevFontFromFile(UPF_DEVFONTNAME, UPF_DEVFONTFILE)) == NULL) {
         _ERR_PRINTF("%s: Failed to load devfont(%s) from %s\n",
-                __func__, DEVFONTNAME, DEVFONTFILE);
+                __func__, UPF_DEVFONTNAME, UPF_DEVFONTFILE);
+        goto failed;
+    }
+
+    if ((rbf_devfont = LoadDevFontFromFile(RBF_DEVFONTNAME, RBF_DEVFONTFILE)) == NULL) {
+        _ERR_PRINTF("%s: Failed to load devfont(%s) from %s\n",
+                __func__, RBF_DEVFONTNAME, RBF_DEVFONTFILE);
         goto failed;
     }
 
@@ -339,7 +352,8 @@ int MiniGUIMain(int argc, const char* argv[])
 
     SelectFont(HDC_SCREEN, old_logfont);
     DestroyLogFont(logfont);
-    DestroyDynamicDevFont(&devfont);
+    DestroyDynamicDevFont(&upf_devfont);
+    DestroyDynamicDevFont(&rbf_devfont);
 
     _MG_PRINTF ("%s passed!\n", argv[0]);
     exit(EXIT_SUCCESS);
@@ -348,8 +362,10 @@ int MiniGUIMain(int argc, const char* argv[])
 failed:
     if (logfont)
         DestroyLogFont(logfont);
-    if (devfont)
-        DestroyDynamicDevFont(&devfont);
+    if (upf_devfont)
+        DestroyDynamicDevFont(&upf_devfont);
+    if (rbf_devfont)
+        DestroyDynamicDevFont(&rbf_devfont);
 
     exit(EXIT_FAILURE);
     return 1;
