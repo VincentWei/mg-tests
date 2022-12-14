@@ -1,4 +1,4 @@
-COMMON_SUBDIRS = m4 src api 5.0 4.0 extra-input drm-engine comm-engines resmgr images
+COMMON_SUBDIRS = m4 src api control 5.0 4.0 extra-input drm-engine comm-engines resmgr images
 
 if MGRM_PROCESSES
 PROCS_SUBDIRS=compositor

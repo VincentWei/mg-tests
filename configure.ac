@@ -72,6 +72,7 @@ AC_OUTPUT(
     4.0/Makefile
     5.0/Makefile
     api/Makefile
+    control/Makefile
     extra-input/Makefile
     drm-engine/Makefile
     comm-engines/Makefile

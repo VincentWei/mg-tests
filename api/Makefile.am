@@ -8,6 +8,7 @@ noinst_PROGRAMS = \
     destroymainwindow2 \
     autosecondarydc \
     textextent \
+    setbkmode \
     $(NULLFILE)
 
 movewindow_SOURCES = movewindow.c $(COMMFILES)
@@ -17,3 +18,4 @@ destroymainwindow_SOURCES = destroymainwindow.c $(COMMFILES)
 destroymainwindow2_SOURCES = destroymainwindow2.c $(COMMFILES)
 autosecondarydc_SOURCES = autosecondarydc.c $(COMMFILES)
 textextent_SOURCES = textextent.c $(COMMFILES)
+setbkmode_SOURCES = setbkmode.c $(COMMFILES)
