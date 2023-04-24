@@ -130,5 +130,6 @@ api/destroymainwindow
 api/destroymainwindow2
 api/autosecondarydc
 api/textextent
+api/textextent2
 api/setbkmode
 control/edit
