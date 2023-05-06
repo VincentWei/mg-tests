@@ -9,36 +9,32 @@
 
 #define MSG_TIMER_START (0x900)
 
-static void mytime(void)
+static void mytime(const char *prefix)
 {
     struct timeval tTimeVal;
     gettimeofday(&tTimeVal, NULL);
     struct tm *tTM = localtime(&tTimeVal.tv_sec);
-    printf("%04d-%02d-%02d %02d:%02d:%02d.%03d.%03d\n\n",
+    printf("%s%04d-%02d-%02d %02d:%02d:%02d.%03ld.%03ld\n\n", prefix,
             tTM->tm_year + 1900, tTM->tm_mon + 1, tTM->tm_mday,
             tTM->tm_hour, tTM->tm_min, tTM->tm_sec,
             tTimeVal.tv_usec / 1000, tTimeVal.tv_usec % 1000);
 }
 
-void input_back_button_deal(HWND hWnd, int dwMessage, WPARAM dwParam, LPARAM lParam)
+static void input_back_button_deal(HWND hWnd, int dwMessage, WPARAM dwParam, LPARAM lParam)
 {
-    if (BN_CLICKED != dwParam)
-    {
-        return;
+    if (BN_CLICKED == dwParam) {
+        SendMessage(GetParent(hWnd),MSG_CLOSE,0,0);
     }
-
-    SendMessage(GetParent(hWnd),MSG_CLOSE,0,0);
-    return;
 }
 
 static LRESULT gui_input_window_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    HWND hWnd2;
+    static HWND button;
     switch (message)
     {
         case MSG_CREATE:
 
-            hWnd2 = CreateWindowEx(CTRL_BUTTON,
+            button = CreateWindowEx(CTRL_BUTTON,
                     "2",
                     WS_VISIBLE,
                     0,
@@ -48,18 +44,30 @@ static LRESULT gui_input_window_proc(HWND hWnd, UINT message, WPARAM wParam, LPA
                     100,
                     50,
                     hWnd,0);
-            SetNotificationCallback(hWnd2, (NOTIFPROC)input_back_button_deal);
+            SetNotificationCallback(button, (NOTIFPROC)input_back_button_deal);
             break;
+
+        case MSG_IDLE:
+        {
+            static int first = 0;
+            if (first == 0) {
+                first++;
+                NotifyParent(button, 0, BN_CLICKED);
+            }
+            break;
+        }
+
         case MSG_CLOSE:
+            mytime("MSG_CLOSE:");
             SendMessage(GetHosting(hWnd),MSG_TIMER_START,0,0);
             EndDialog(hWnd,0);
             break;
+
         default:
-            return DefaultDialogProc (hWnd, message, wParam, lParam);
             break;
     }
 
-    return 0;
+    return DefaultDialogProc (hWnd, message, wParam, lParam);
 }
 
 void input_wnd_start(HWND hwnd)
@@ -77,30 +85,26 @@ void input_wnd_start(HWND hwnd)
 
 void input_button_deal(HWND hWnd, int dwMessage, WPARAM dwParam, LPARAM lParam)
 {
-    if (BN_CLICKED != dwParam)
-    {
-        return;
+    if (BN_CLICKED == dwParam) {
+        input_wnd_start(GetParent(hWnd));
     }
-    input_wnd_start(GetParent(hWnd));
-    return ;
 }
 
 static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    static HWND button;
     HWND hwnd1;
     switch (message) {
         case MSG_CREATE:
-            hwnd1 = CreateWindowEx(CTRL_BUTTON,
+            button = CreateWindowEx(CTRL_BUTTON,
                     "1",
                     WS_VISIBLE,
                     0,
                     0,
-                    0,
-                    0,
-                    100,
-                    50,
+                    0, 0,
+                    100, 50,
                     hWnd,0);
-            SetNotificationCallback(hwnd1, (NOTIFPROC)input_button_deal);
+            SetNotificationCallback(button, (NOTIFPROC)input_button_deal);
             hwnd1 = CreateWindowEx(CTRL_STATIC,
                     "2222",
                     WS_VISIBLE,
@@ -113,15 +117,26 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                     hWnd,0);
             ShowWindow(hwnd1,SW_HIDE);
             break;
-        case MSG_TIMER_START:
 
-            mytime();
+        case MSG_IDLE:
+        {
+            static int first = 0;
+            if (first == 0) {
+                first++;
+                mytime("MSG_IDLE:");
+                NotifyParent(button, 0, BN_CLICKED);
+            }
+            break;
+        }
+
+        case MSG_TIMER_START:
+            mytime("MSG_TIMER_START:");
             printf("rec msg!!!\n\n\n");
             for (int i = 0; i <= 2000000000;i++)
             {}
             //sleep(500);
             printf("out if deal!!!\n\n\n");
-            mytime();
+            mytime("MSG_TIMER_START:");
             printf("set time!!!\n\n\n");
             if (IsTimerInstalled(hWnd, 11))
             {
@@ -131,8 +146,9 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             break;
 
         case MSG_TIMER:
-            mytime();
+            mytime("MSG_TIMER:");
             printf("timer: %d!!!\n\n\n", (int)wParam);
+            PostMessage(hWnd, MSG_CLOSE, 0, 0);
             break;
 
         case MSG_DESTROY:
