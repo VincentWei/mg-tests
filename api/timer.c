@@ -16,6 +16,7 @@
 **  The following APIs are covered:
 **
 **      CreateMainWindow
+**      GetTickCount
 **      SetTimer
 **      IsTimerInstalled
 **      KillTimer
@@ -176,6 +177,7 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
         case MSG_TIMER_START: {
             mytime("MSG_TIMER_START:");
 
+            DWORD start_tk = GetTickCount();
             time_t start = time(NULL), now;
             do {
                 for (int i = 0; i <= 2000000000; i++) {
@@ -183,7 +185,7 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                 }
 
                 now = time(NULL);
-                if (now >= (start + 3)) {
+                if (now > (start + 3)) {
                     break;
                 }
 
@@ -195,6 +197,14 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             mytime("INSTALL THE TIMER:");
             timer_installed = time(NULL);
             SetTimer(hWnd, 11, timer_interval * 100);
+
+            DWORD end_tk = GetTickCount();
+            if ((end_tk - start_tk) <= 300) {
+                _WRN_PRINTF("Failed: start tickcount: %lu; end tickcount: %lu\n",
+                        start_tk, end_tk);
+                exit(EXIT_FAILURE);
+            }
+
             break;
         }
 
