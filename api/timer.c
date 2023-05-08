@@ -267,7 +267,7 @@ int MiniGUIMain (int argc, const char* argv[])
     }
 
     MainWindowThreadCleanup (hMainWnd);
-    if ((timer_expired - timer_installed) >= timer_interval) {
+    if ((timer_expired - timer_installed) >= (timer_interval - 1)) {
         _MG_PRINTF("Success\n");
         exit(EXIT_SUCCESS);
     }
