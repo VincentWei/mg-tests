@@ -173,18 +173,30 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             break;
         }
 
-        case MSG_TIMER_START:
+        case MSG_TIMER_START: {
             mytime("MSG_TIMER_START:");
-            for (int i = 0; i <= 2000000000;i++) {
-            }
-            if (IsTimerInstalled(hWnd, 11))
-            {
+
+            time_t start = time(NULL), now;
+            do {
+                for (int i = 0; i <= 2000000000; i++) {
+                    // consume some time.
+                }
+
+                now = time(NULL);
+                if (now >= (start + 3)) {
+                    break;
+                }
+
+            } while (1);
+
+            if (IsTimerInstalled(hWnd, 11)) {
                 KillTimer(hWnd, 11);
             }
             mytime("INSTALL THE TIMER:");
             timer_installed = time(NULL);
             SetTimer(hWnd, 11, timer_interval * 100);
             break;
+        }
 
         case MSG_TIMER:
             mytime("MSG_TIMER:");
@@ -250,7 +262,7 @@ int MiniGUIMain (int argc, const char* argv[])
         exit(EXIT_SUCCESS);
     }
     else {
-        _WRN_PRINTF("Faield\n");
+        _WRN_PRINTF("Failed\n");
         exit(EXIT_FAILURE);
         return 1;
     }
