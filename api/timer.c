@@ -1,3 +1,44 @@
+///////////////////////////////////////////////////////////////////////////////
+//
+//                        IMPORTANT LEGAL NOTICE
+//
+// The following open source license statement does not apply to any
+// entity in the Exception List published by FMSoft.
+//
+// For more information, please visit:
+//
+// https://www.fmsoft.cn/exception-list
+//
+//////////////////////////////////////////////////////////////////////////////
+/*
+**  This test program is for Issue #116.
+**
+**  The following APIs are covered:
+**
+**      CreateMainWindow
+**      SetTimer
+**      IsTimerInstalled
+**      KillTimer
+**      DestroyMainWindow
+**      MainWindowCleanup
+**      PostQuitMessage
+**      PostMessage
+**
+** Copyright (C) 2023 FMSoft (http://www.fmsoft.cn).
+**
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+** You may obtain a copy of the License at
+**
+**     http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS,
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+** See the License for the specific language governing permissions and
+** limitations under the License.
+*/
+
 #include <stdio.h>
 #include <minigui/common.h>
 #include <minigui/minigui.h>
@@ -14,7 +55,7 @@ static void mytime(const char *prefix)
     struct timeval tTimeVal;
     gettimeofday(&tTimeVal, NULL);
     struct tm *tTM = localtime(&tTimeVal.tv_sec);
-    printf("%s%04d-%02d-%02d %02d:%02d:%02d.%03ld.%03ld\n\n", prefix,
+    printf("%s%04d-%02d-%02d %02d:%02d:%02d.%03ld.%03ld\n", prefix,
             tTM->tm_year + 1900, tTM->tm_mon + 1, tTM->tm_mday,
             tTM->tm_hour, tTM->tm_min, tTM->tm_sec,
             tTimeVal.tv_usec / 1000, tTimeVal.tv_usec % 1000);
@@ -23,7 +64,7 @@ static void mytime(const char *prefix)
 static void input_back_button_deal(HWND hWnd, int dwMessage, WPARAM dwParam, LPARAM lParam)
 {
     if (BN_CLICKED == dwParam) {
-        SendMessage(GetParent(hWnd),MSG_CLOSE,0,0);
+        PostMessage(GetParent(hWnd), MSG_CLOSE,0,0);
     }
 }
 
@@ -90,6 +131,9 @@ void input_button_deal(HWND hWnd, int dwMessage, WPARAM dwParam, LPARAM lParam)
     }
 }
 
+static int timer_interval = 3;
+static time_t timer_installed, timer_expired;
+
 static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     static HWND button;
@@ -131,28 +175,21 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
         case MSG_TIMER_START:
             mytime("MSG_TIMER_START:");
-            printf("rec msg!!!\n\n\n");
-            for (int i = 0; i <= 2000000000;i++)
-            {}
-            //sleep(500);
-            printf("out if deal!!!\n\n\n");
-            mytime("MSG_TIMER_START:");
-            printf("set time!!!\n\n\n");
+            for (int i = 0; i <= 2000000000;i++) {
+            }
             if (IsTimerInstalled(hWnd, 11))
             {
                 KillTimer(hWnd, 11);
             }
-            SetTimer(hWnd, 11, 200);
+            mytime("INSTALL THE TIMER:");
+            timer_installed = time(NULL);
+            SetTimer(hWnd, 11, timer_interval * 100);
             break;
 
         case MSG_TIMER:
             mytime("MSG_TIMER:");
-            printf("timer: %d!!!\n\n\n", (int)wParam);
+            timer_expired = time(NULL);
             PostMessage(hWnd, MSG_CLOSE, 0, 0);
-            break;
-
-        case MSG_DESTROY:
-            DestroyAllControls (hWnd);
             break;
 
         case MSG_CLOSE:
@@ -170,9 +207,15 @@ int MiniGUIMain (int argc, const char* argv[])
     HWND hMainWnd;
     MAINWINCREATE CreateInfo;
 
-#ifdef _MGRM_PROCESSES
-    JoinLayer(NAME_DEF_LAYER , "mycontrol" , 0 , 0);
-#endif
+    _MG_PRINTF("Starting test %s...\n", argv[0]);
+
+    if (argc > 1) {
+        timer_interval = atoi(argv[1]);
+        if (timer_interval < 2)
+            timer_interval = 2;
+    }
+
+    JoinLayer(NAME_DEF_LAYER , "timer" , 0 , 0);
 
     CreateInfo.dwStyle = WS_VISIBLE | WS_BORDER | WS_CAPTION;
     CreateInfo.dwExStyle = WS_EX_NONE;
@@ -202,9 +245,16 @@ int MiniGUIMain (int argc, const char* argv[])
     }
 
     MainWindowThreadCleanup (hMainWnd);
-
+    if ((timer_expired - timer_installed) >= timer_interval) {
+        _MG_PRINTF("Success\n");
+        exit(EXIT_SUCCESS);
+    }
+    else {
+        _WRN_PRINTF("Faield\n");
+        exit(EXIT_FAILURE);
+        return 1;
+    }
 
     return 0;
 }
-
 

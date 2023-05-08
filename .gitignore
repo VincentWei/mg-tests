@@ -132,4 +132,5 @@ api/autosecondarydc
 api/textextent
 api/textextent2
 api/setbkmode
+api/timer
 control/edit

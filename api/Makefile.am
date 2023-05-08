@@ -1,6 +1,7 @@
 EXTRA_DIST = MiniGUI.cfg
 
 noinst_PROGRAMS = \
+    timer \
     movewindow \
     enddialog \
     setwindowregion \
@@ -12,6 +13,7 @@ noinst_PROGRAMS = \
     setbkmode \
     $(NULLFILE)
 
+timer_SOURCES = timer.c $(COMMFILES)
 movewindow_SOURCES = movewindow.c $(COMMFILES)
 enddialog_SOURCES = enddialog.c $(COMMFILES)
 setwindowregion_SOURCES = setwindowregion.c $(COMMFILES)
