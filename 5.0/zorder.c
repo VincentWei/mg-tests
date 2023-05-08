@@ -610,14 +610,12 @@ static void on_test_win_moved (HWND hwnd)
     }
 }
 
-static void on_test_win_destroyed (test_info_t* info, HWND hwnd)
+static void on_test_win_destroyed (int level, HWND hwnd)
 {
-    int level = (int)GetWindowAdditionalData2 (hwnd);
-
     assert (IS_WIN_LEVEL_VALID (level));
 
-    _MG_PRINTF ("The main window (%s) is being destroyed in level (%d)\n",
-            GetWindowCaption (hwnd), level);
+    _MG_PRINTF ("The main window (%p) was destroyed in level (%d)\n",
+            hwnd, level);
 
     remove_window_in_level (level, hwnd);
 }
@@ -835,7 +833,7 @@ test_main_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
         info = (test_info_t *)GetWindowAdditionalData (hwnd);
 
         assert (info && hwnd == info->main_main_wnd);
-        on_test_win_destroyed ((test_info_t *)wparam, (HWND)lparam);
+        on_test_win_destroyed ((int)wparam, (HWND)lparam);
         info->nr_zops--;
         break;
     }
@@ -845,11 +843,12 @@ test_main_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
         info = (test_info_t *)GetWindowAdditionalData (hwnd);
 
         if (info->root_wnd != hwnd) {
-            SendMessage (info->main_main_wnd, MSG_TESTWINDESTROYED,
-                    (WPARAM)info, (LPARAM)hwnd);
+            int level = (int)GetWindowAdditionalData2 (hwnd);
             // for non root window, destroy it here
             DestroyMainWindow (hwnd);
             MainWindowCleanup (hwnd);
+            SendMessage (info->main_main_wnd, MSG_TESTWINDESTROYED,
+                    (WPARAM)level, (LPARAM)hwnd);
         }
         break;
     }
@@ -886,7 +885,7 @@ test_main_win_proc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
                 PostQuitMessage (hwnd);
             }
             else {
-                // check zorder when the main main window is idle
+                // check zorder when the main window is idle
                 // and the number of pending zorder operation is 0.
                 if (info->nr_zops == 0) {
                     static int nr_errors;
