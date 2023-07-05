@@ -505,7 +505,7 @@ int MiniGUIMain(int argc, const char* argv[])
     }
 
     LOGFONT *old_logfont = SelectFont(HDC_SCREEN, logfont);
-    SetBIDIFlags(HDC_SCREEN, BIDI_FLAG_RTL);
+    SetBIDIFlags(HDC_SCREEN, BIDI_FLAG_LEGACY);
 
     test_normal_text(logfont);
     test_tabbed_text(logfont);

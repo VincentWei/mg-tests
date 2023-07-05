@@ -107,7 +107,7 @@ static int test_draw_text(HDC hdc, PLOGFONT logfont,
         FillBox(hdc, rc.left, rc.top, rc.right, rc.bottom);
         DrawText(hdc, test_case->text, -1, &rc, DT_CENTER);
 
-        sprintf(filename, "drawtext-%s-%d.bmp", test_case->lang, i);
+        sprintf(filename, "drawtext-bidi-%s-%d.bmp", test_case->lang, i);
         SaveScreenRectContent(&rc, filename);
 
         if (compare_file_with_checked(filename)) {
@@ -160,6 +160,7 @@ int MiniGUIMain(int argc, const char* argv[])
         goto failed;
     }
 
+    SetBIDIFlags(HDC_SCREEN, BIDI_FLAG_LEGACY);
     LOGFONT *old_logfont = SelectFont(HDC_SCREEN, logfont);
 
     BOOL passed = TRUE;
