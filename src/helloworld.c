@@ -89,6 +89,7 @@ static void make_welcome_text (void)
 
 static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    static unsigned nr_times;
     HDC hdc;
 
     syskey = "";
@@ -100,10 +101,14 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             break;
 
         case MSG_TIMER:
-            sprintf (msg_text, HL_ST_TIMER, (PVOID)GetTickCount ());
-            InvalidateRect (hWnd, &msg_rc, TRUE);
+            if (nr_times++ > 10)
+                PostMessage (hWnd, MSG_CLOSE, 0, 0);
+            else {
+                sprintf (msg_text, HL_ST_TIMER, (PVOID)GetTickCount ());
+                InvalidateRect (hWnd, &msg_rc, TRUE);
+            }
             break;
-            
+
         case MSG_LBUTTONDOWN:
             strcpy (msg_text, HL_ST_LBD);
             InvalidateRect (hWnd, &msg_rc, TRUE);
