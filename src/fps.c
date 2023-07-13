@@ -73,9 +73,9 @@ int MiniGUIMain (int argc, const char* argv[])
         for (int i = 0; i < 16; i++) {
             SetBrushColor(HDC_SCREEN, SysPixelIndex[i]);
             FillBox(HDC_SCREEN, 0, 0, rc_scr.right, rc_scr.bottom);
+            SyncUpdateDC(HDC_SCREEN);
         }
     }
-    SyncUpdateDC(HDC_SCREEN);
 
     double elapsed = mgt_get_elapsed_seconds(&ts_start, NULL);
     _MG_PRINTF("Elapsed time: %f (seconds), fps: %f\n",
