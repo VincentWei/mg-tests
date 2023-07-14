@@ -54,18 +54,10 @@ double mgt_get_elapsed_seconds(const struct timespec *ts_from,
     return ds + dns * 1.0E-9;
 }
 
-int MiniGUIMain (int argc, const char* argv[])
+static RECT rc_scr;
+
+static void test_fillbox(void)
 {
-    RECT rc_scr = GetScreenRect();
-
-    _MG_PRINTF("Screen rect: %d, %d, %d, %d\n",
-            rc_scr.left, rc_scr.top,
-            rc_scr.right, rc_scr.bottom);
-
-#ifdef _MGRM_PROCESSES
-    JoinLayer(NAME_DEF_LAYER , "speed-meter" , 0 , 0);
-#endif
-
     struct timespec ts_start;
     clock_gettime(CLOCK_REALTIME, &ts_start);
 
@@ -80,6 +72,48 @@ int MiniGUIMain (int argc, const char* argv[])
     double elapsed = mgt_get_elapsed_seconds(&ts_start, NULL);
     _MG_PRINTF("Elapsed time: %f (seconds); full screen fills per second: %f\n",
             elapsed, 1600/elapsed);
+
+}
+
+static void test_bitblt(void)
+{
+    int w = RECTW(rc_scr);
+    int h = RECTH(rc_scr);
+
+    HDC memdc = CreateCompatibleDCEx(HDC_SCREEN, w, h);
+
+    struct timespec ts_start;
+    clock_gettime(CLOCK_REALTIME, &ts_start);
+
+    for (int j = 0; j < 100; j++) {
+        for (int i = 0; i < 16; i++) {
+            SetBrushColor(memdc, SysPixelIndex[i]);
+            FillBox(memdc, 0, 0, rc_scr.right, rc_scr.bottom);
+            BitBlt(memdc, 0, 0, w, h, HDC_SCREEN, 0, 0, 0);
+            SyncUpdateDC(HDC_SCREEN);
+        }
+    }
+
+    double elapsed = mgt_get_elapsed_seconds(&ts_start, NULL);
+    _MG_PRINTF("Elapsed time: %f (seconds); full screen blits per second: %f\n",
+            elapsed, 1600/elapsed);
+
+}
+
+int MiniGUIMain (int argc, const char* argv[])
+{
+    rc_scr = GetScreenRect();
+
+    _MG_PRINTF("Screen rect: %d, %d, %d, %d\n",
+            rc_scr.left, rc_scr.top,
+            rc_scr.right, rc_scr.bottom);
+
+#ifdef _MGRM_PROCESSES
+    JoinLayer(NAME_DEF_LAYER , "speed-meter" , 0 , 0);
+#endif
+
+    test_fillbox();
+    test_bitblt();
 
     return 0;
 }
