@@ -1,5 +1,5 @@
-noinst_PROGRAMS=helloworld fps mginit
+noinst_PROGRAMS=helloworld speed-meter mginit
 
 helloworld_SOURCES=helloworld.c
-fps_SOURCES=fps.c
+speed_meter_SOURCES=speed-meter.c
 mginit_SOURCES=mginit.c

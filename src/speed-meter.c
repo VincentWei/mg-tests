@@ -11,7 +11,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 /*
-** fps.c: Calculating FPS (frames per seconds).
+** speed-meter.c: Test the speed to update screen.
 **
 ** Copyright (C) 2023 FMSoft (http://www.fmsoft.cn).
 **
@@ -63,7 +63,7 @@ int MiniGUIMain (int argc, const char* argv[])
             rc_scr.right, rc_scr.bottom);
 
 #ifdef _MGRM_PROCESSES
-    JoinLayer(NAME_DEF_LAYER , "fps" , 0 , 0);
+    JoinLayer(NAME_DEF_LAYER , "speed-meter" , 0 , 0);
 #endif
 
     struct timespec ts_start;
@@ -78,7 +78,7 @@ int MiniGUIMain (int argc, const char* argv[])
     }
 
     double elapsed = mgt_get_elapsed_seconds(&ts_start, NULL);
-    _MG_PRINTF("Elapsed time: %f (seconds), fps: %f\n",
+    _MG_PRINTF("Elapsed time: %f (seconds); full screen fills per second: %f\n",
             elapsed, 1600/elapsed);
 
     return 0;
