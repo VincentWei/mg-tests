@@ -61,7 +61,7 @@ static void test_fillbox(void)
     struct timespec ts_start;
     clock_gettime(CLOCK_REALTIME, &ts_start);
 
-    for (int j = 0; j < 100; j++) {
+    for (int j = 0; j < 1000; j++) {
         for (int i = 0; i < 16; i++) {
             SetBrushColor(HDC_SCREEN, SysPixelIndex[i]);
             FillBox(HDC_SCREEN, 0, 0, rc_scr.right, rc_scr.bottom);
@@ -71,7 +71,7 @@ static void test_fillbox(void)
 
     double elapsed = mgt_get_elapsed_seconds(&ts_start, NULL);
     _MG_PRINTF("Elapsed time: %f (seconds); full screen fills per second: %f\n",
-            elapsed, 1600/elapsed);
+            elapsed, 16000/elapsed);
 
 }
 
@@ -85,7 +85,7 @@ static void test_bitblt(void)
     struct timespec ts_start;
     clock_gettime(CLOCK_REALTIME, &ts_start);
 
-    for (int j = 0; j < 100; j++) {
+    for (int j = 0; j < 1000; j++) {
         for (int i = 0; i < 16; i++) {
             SetBrushColor(memdc, SysPixelIndex[i]);
             FillBox(memdc, 0, 0, rc_scr.right, rc_scr.bottom);
@@ -96,7 +96,7 @@ static void test_bitblt(void)
 
     double elapsed = mgt_get_elapsed_seconds(&ts_start, NULL);
     _MG_PRINTF("Elapsed time: %f (seconds); full screen blits per second: %f\n",
-            elapsed, 1600/elapsed);
+            elapsed, 16000/elapsed);
 
 }
 
