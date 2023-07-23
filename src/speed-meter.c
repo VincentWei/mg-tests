@@ -98,6 +98,7 @@ static void test_bitblt(void)
     _MG_PRINTF("Elapsed time: %f (seconds); full screen blits per second: %f\n",
             elapsed, 16000/elapsed);
 
+    DeleteMemDC(memdc);
 }
 
 int MiniGUIMain (int argc, const char* argv[])
