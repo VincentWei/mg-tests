@@ -846,7 +846,7 @@ static int i915_fill_rect (DrmDriver *driver,
     return 0;
 }
 
-static int i915_copy_blit(DrmDriver *driver,
+static int i915_do_blit(DrmDriver *driver,
         DrmSurfaceBuffer* src_buf, const GAL_Rect* src_rc,
         DrmSurfaceBuffer* dst_buf, const GAL_Rect* dst_rc,
         const DrmBlitOperations *ops)
@@ -961,7 +961,7 @@ static int i915_copy_blit(DrmDriver *driver,
     return 0;
 }
 
-static CB_DRM_BLIT i915_check_blit (DrmDriver *driver,
+static int i915_check_blit (DrmDriver *driver,
         DrmSurfaceBuffer* src_buf, const GAL_Rect *srcrc,
         DrmSurfaceBuffer* dst_buf, const GAL_Rect *dstrc,
         const DrmBlitOperations *ops)
@@ -978,7 +978,7 @@ static CB_DRM_BLIT i915_check_blit (DrmDriver *driver,
             ops->alf != BLIT_ALPHA_NONE ||
             (ops->bld != COLOR_BLEND_LEGACY &&
              ops->bld != COLOR_BLEND_PD_SRC_OVER)) {
-        return NULL;
+        goto failed;
     }
 
     src_bo = ((my_surface_buffer*)src_buf)->bo;
@@ -989,11 +989,12 @@ static CB_DRM_BLIT i915_check_blit (DrmDriver *driver,
     if (src_tiling_mode == dst_tiling_mode &&
             src_swizzle_mode == dst_swizzle_mode &&
             src_buf->drm_format == dst_buf->drm_format)
-        return i915_copy_blit;
+        return 0;
 
+failed:
     _DBG_PRINTF("CANNOT blit src_buf(%p) to dst_buf(%p)\n",
             src_buf, dst_buf);
-    return NULL;
+    return -1;
 }
 
 static int i915_copy_buff(DrmDriver *driver,
@@ -1006,7 +1007,7 @@ static int i915_copy_buff(DrmDriver *driver,
         return -1;
     }
 
-    return i915_copy_blit(driver, src_buf, src_rc, dst_buf, dst_rc, NULL);
+    return i915_do_blit(driver, src_buf, src_rc, dst_buf, dst_rc, NULL);
 }
 
 DrmDriverOps* _drm_device_get_i915_driver(int device_fd)
@@ -1026,6 +1027,7 @@ DrmDriverOps* _drm_device_get_i915_driver(int device_fd)
         .destroy_buffer = i915_destroy_buffer,
         .fill_rect = i915_fill_rect,
         .check_blit = i915_check_blit,
+        .do_blit = i915_do_blit,
         .copy_buff = i915_copy_buff,
     };
 
