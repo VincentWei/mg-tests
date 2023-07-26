@@ -96,10 +96,74 @@ not_matched:
     return 1;
 }
 
+static int uc32_to_utf8(Uchar32 c, char* outbuf)
+{
+    int len = 0;
+    int first;
+    int i;
+
+    if (c < 0x80) {
+        first = 0;
+        len = 1;
+    }
+    else if (c < 0x800) {
+        first = 0xc0;
+        len = 2;
+    }
+    else if (c < 0x10000) {
+        first = 0xe0;
+        len = 3;
+    }
+    else if (c < 0x200000) {
+        first = 0xf0;
+        len = 4;
+    }
+    else if (c < 0x4000000) {
+        first = 0xf8;
+        len = 5;
+    }
+    else {
+        first = 0xfc;
+        len = 6;
+    }
+
+    if (outbuf) {
+        for (i = len - 1; i > 0; --i) {
+            outbuf[i] = (c & 0x3f) | 0x80;
+            c >>= 6;
+        }
+        outbuf[0] = c | first;
+    }
+
+    return len;
+}
+
 static int test_draw_text(HDC hdc, PLOGFONT logfont,
         const struct test_case *test_case)
 {
     RECT rc = {0, 0, 100, 200};
+
+    const char *mchar = test_case->text;
+    int left = strlen(mchar);
+    int nr_ucs = 0;
+    while (left > 0) {
+        Uchar32 uc;
+        int consumed = GetNextUChar(logfont, mchar, left, &uc);
+        if (consumed <= 0)
+            break;
+
+        char utf8[16];
+        utf8[uc32_to_utf8(uc, utf8)] = 0;
+
+        UCharGeneralCategory gc = UCharGetCategory(uc);
+        UCharBreakType bt = UCharGetBreakType(uc);
+        printf("Char #%d `%s` (0x%04x): gc (%d), bt (%d)\n",
+                nr_ucs, utf8, uc, gc, bt);
+
+        nr_ucs++;
+        mchar += consumed;
+        left -= consumed;
+    }
 
     for (int i = 0; i < 10; i++) {
         char filename[32];
@@ -122,6 +186,7 @@ static int test_draw_text(HDC hdc, PLOGFONT logfont,
 }
 
 static struct test_case test_cases[] = {
+    { "thai", "วันเสาร์" },
     { "korean", "비밀번호 재설정 기능이 잠겼습니다.....30A1분 후 시도하십시오." },
     { "chinese", "飞漫软件是中国最早基于自主开发的开源软件进行商业化运营的基础软件企业。飞漫软件现主持着两大开源项目：MiniGUI 广泛应用于 IoT 智能设备及实时嵌入式系统，为 IoT 智能设备和嵌入式系统提供 GUI 及交互实现；HybridOS 是飞漫软件发起的一个的开源协作项目，其目标是为物联网设备和云计算环境打造一个全新的操作系统。" },
 };
@@ -160,6 +225,7 @@ int MiniGUIMain(int argc, const char* argv[])
         goto failed;
     }
 
+    SetBkMode(HDC_SCREEN, BM_TRANSPARENT);
     LOGFONT *old_logfont = SelectFont(HDC_SCREEN, logfont);
 
     BOOL passed = TRUE;
