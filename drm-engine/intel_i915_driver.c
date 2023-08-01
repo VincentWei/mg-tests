@@ -669,7 +669,8 @@ static DrmSurfaceBuffer* i915_create_buffer_from_prime_fd (DrmDriver *driver,
     drm_intel_bo *bo;
     my_surface_buffer *buffer;
 
-    if (check_format_size(size, drm_format, hdr_size, width, height, pitch)) {
+    if (drm_format &&
+            check_format_size(size, drm_format, hdr_size, width, height, pitch)) {
         _ERR_PRINTF("DRM>i915: bad surface parameters for prime fd %d: "
                 "whole size: %lu, header size: %u, %u x %u, pitch: %u\n",
                 prime_fd, (unsigned long)size, hdr_size, width, height, pitch);

@@ -149,13 +149,12 @@ static void test_normal_text(LOGFONT *lf)
         while (left > 0) {
             Uchar32 uc = AChar2UChar(lf, achars[ach]);
 
-#if 0
-            if (UCharIsArabicVowel(uc)) {
+            if (0 && UCharIsArabicVowel(uc)) {
+                _MG_PRINTF("UChar %x is an Arabic vowel\n", uc);
                 glyph_width_exp[ach] = 0;
             }
-            else
-#endif
-            if (IsUCharZeroWidth(uc)) {
+            else if (IsUCharZeroWidth(uc)) {
+                _MG_PRINTF("UChar %x is zero width\n", uc);
                 glyph_width_exp[ach] = 0;
             }
             else if (IsUCharWide(uc) || uc == UCHAR_LF) {
@@ -306,14 +305,13 @@ static SIZE get_tabbed_achars_extent(LOGFONT *lf,
 
         Uchar32 uc = AChar2UChar(lf, achars[ach]);
         int adv_x = 0, adv_y = 0;
-#if 0
-        if (UCharIsArabicVowel(uc)) {
+        if (0 && UCharIsArabicVowel(uc)) {
+            _MG_PRINTF("UChar %x is an Arabic vowel\n", uc);
             adv_x = 0;
             adv_y = 0;
         }
-        else 
-#endif
-        if (IsUCharZeroWidth(uc)) {
+        else if (IsUCharZeroWidth(uc)) {
+            _MG_PRINTF("UChar %x is zero width\n", uc);
             adv_x = 0;
             adv_y = 0;
         }

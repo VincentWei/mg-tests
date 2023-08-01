@@ -172,7 +172,10 @@ static int test_draw_text(HDC hdc, PLOGFONT logfont,
         DrawText(hdc, test_case->text, -1, &rc, DT_CENTER);
 
         sprintf(filename, "drawtext-%s-%d.bmp", test_case->lang, i);
-        SaveScreenRectContent(&rc, filename);
+        if (!SaveScreenRectContent(&rc, filename)) {
+            _WRN_PRINTF("Failed SaveScreenRectContent(%s); quit\n", filename);
+            return 0;
+        }
 
         if (compare_file_with_checked(filename)) {
             printf("Not matched case: %s\n", filename);
