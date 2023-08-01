@@ -356,8 +356,11 @@ static void i915_destroy_driver (DrmDriver *driver)
     free (driver);
 }
 
-static void i915_flush_driver (DrmDriver *driver)
+static void i915_flush (DrmDriver *driver, DrmSurfaceBuffer *buffer,
+        const GAL_Rect *dirty_rect)
 {
+    (void)buffer;
+    (void)dirty_rect;
     intel_batchbuffer_emit_mi_flush(driver);
 }
 
@@ -500,7 +503,7 @@ static DrmSurfaceBuffer* i915_create_buffer (DrmDriver *driver,
     buffer->base.height = height;
     buffer->base.pitch = pitch;
     buffer->base.offset = nr_hdr_lines * pitch;
-    buffer->base.buff = NULL;
+    buffer->base.vaddr = NULL;
 
     _DBG_PRINTF ("Allocate GEM object for surface buffer: "
             "width (%d), height (%d), (pitch: %d), size (%lu), offset (%ld)\n",
@@ -700,7 +703,7 @@ static uint8_t* i915_map_buffer (DrmDriver *driver,
     my_surface_buffer *my_buffer = (my_surface_buffer *)buffer;
 
     assert (my_buffer != NULL);
-    assert (my_buffer->base.buff == NULL);
+    assert (my_buffer->base.vaddr == NULL);
 
     if (buffer->scanout) {
         drm_intel_gem_bo_map_gtt (my_buffer->bo);
@@ -709,8 +712,8 @@ static uint8_t* i915_map_buffer (DrmDriver *driver,
         drm_intel_bo_map (my_buffer->bo, 1);
     }
 
-    my_buffer->base.buff = my_buffer->bo->virtual;
-    return my_buffer->base.buff;
+    my_buffer->base.vaddr = my_buffer->bo->virtual;
+    return my_buffer->base.vaddr;
 }
 
 static void i915_unmap_buffer (DrmDriver *driver,
@@ -719,14 +722,14 @@ static void i915_unmap_buffer (DrmDriver *driver,
     (void)driver;
     my_surface_buffer *my_buffer = (my_surface_buffer *)buffer;
     assert (my_buffer != NULL);
-    assert (my_buffer->base.buff != NULL);
+    assert (my_buffer->base.vaddr != NULL);
 
     if (buffer->scanout)
         drm_intel_gem_bo_unmap_gtt (my_buffer->bo);
     else
         drm_intel_bo_unmap (my_buffer->bo);
 
-    my_buffer->base.buff = NULL;
+    my_buffer->base.vaddr = NULL;
 }
 
 static void i915_destroy_buffer (DrmDriver *driver,
@@ -735,7 +738,7 @@ static void i915_destroy_buffer (DrmDriver *driver,
     my_surface_buffer *my_buffer = (my_surface_buffer *)buffer;
     assert (my_buffer != NULL);
 
-    if (my_buffer->base.buff) {
+    if (my_buffer->base.vaddr) {
         if (buffer->scanout)
             drm_intel_gem_bo_unmap_gtt (my_buffer->bo);
         else
@@ -1017,7 +1020,7 @@ DrmDriverOps* _drm_device_get_i915_driver(int device_fd)
     static DrmDriverOps i915_driver = {
         .create_driver = i915_create_driver,
         .destroy_driver = i915_destroy_driver,
-        .flush_driver = i915_flush_driver,
+        .flush = i915_flush,
         .create_buffer = i915_create_buffer,
         .create_buffer_from_handle = i915_create_buffer_from_handle,
         .create_buffer_from_name = i915_create_buffer_from_name,

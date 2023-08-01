@@ -75,7 +75,7 @@ static void test_fillbox(void)
 
 }
 
-static void test_bitblt(void)
+static inline void test_bitblt(void)
 {
     int w = RECTW(rc_scr);
     int h = RECTH(rc_scr);
