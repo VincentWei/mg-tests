@@ -20,7 +20,7 @@
 **      LoadDevFontFromFile
 **      CreateLogFontByName
 **      SelectFont
-**      DestroyLogFont;
+**      DestroyLogFont
 **      DestroyDynamicDevFont
 **
 ** Copyright (C) 2023 FMSoft (http://www.fmsoft.cn).
@@ -171,7 +171,7 @@ static int test_draw_text(HDC hdc, PLOGFONT logfont,
         FillBox(hdc, rc.left, rc.top, rc.right, rc.bottom);
         DrawText(hdc, test_case->text, -1, &rc, DT_CENTER);
 
-        sprintf(filename, "drawtext-%s-%d.bmp", test_case->lang, i);
+        sprintf(filename, "drawtext-ttf-%s-%d.bmp", test_case->lang, i);
         remove(filename);
         if (!SaveScreenRectContent(&rc, filename)) {
             _WRN_PRINTF("Failed SaveScreenRectContent(%s); quit\n", filename);
@@ -190,18 +190,18 @@ static int test_draw_text(HDC hdc, PLOGFONT logfont,
 }
 
 static struct test_case test_cases[] = {
-    { "thai", "วันเสาร์" },
+    { "thai", "ยืนยันตัวตนผ่านใบหน้า" },
     { "korean", "비밀번호 재설정 기능이 잠겼습니다.....30A1분 후 시도하십시오." },
     { "chinese", "飞漫软件是中国最早基于自主开发的开源软件进行商业化运营的基础软件企业。飞漫软件现主持着两大开源项目：MiniGUI 广泛应用于 IoT 智能设备及实时嵌入式系统，为 IoT 智能设备和嵌入式系统提供 GUI 及交互实现；HybridOS 是飞漫软件发起的一个的开源协作项目，其目标是为物联网设备和云计算环境打造一个全新的操作系统。" },
 };
 
-#define UPF_DEVFONTFILE "/usr/local/share/minigui/res/font/unifont_160_50.upf"
-#define UPF_DEVFONTNAME "upf-unifont,SansSerif,monospace-rrncnn-8-16-UTF-8"
+#define TTF_DEVFONTFILE "/usr/local/share/minigui/res/font/unifont-15.0.06.otf"
+#define TTF_DEVFONTNAME "ttf-unifont,SansSerif-rrncnn-*-16-UTF-8"
 
 #define RBF_DEVFONTFILE "/usr/local/share/minigui/res/font/8x16-iso8859-1.bin"
 #define RBF_DEVFONTNAME "rbf-fixed,SansSerif,monospace-rrncnn-8-16-ISO8859-1"
 
-#define LOGFONTNAME "upf-monospace-rrncnn-U-16-UTF-8"
+#define LOGFONTNAME "ttf-SansSerif-rrncnn-U-16-UTF-8"
 
 int MiniGUIMain(int argc, const char* argv[])
 {
@@ -210,9 +210,9 @@ int MiniGUIMain(int argc, const char* argv[])
     _MG_PRINTF("Starting test %s...\n", argv[0]);
 
     DEVFONT *upf_devfont = NULL, *rbf_devfont = NULL;
-    if ((upf_devfont = LoadDevFontFromFile(UPF_DEVFONTNAME, UPF_DEVFONTFILE)) == NULL) {
+    if ((upf_devfont = LoadDevFontFromFile(TTF_DEVFONTNAME, TTF_DEVFONTFILE)) == NULL) {
         _ERR_PRINTF("%s: Failed to load devfont(%s) from %s\n",
-                __func__, UPF_DEVFONTNAME, UPF_DEVFONTFILE);
+                __func__, TTF_DEVFONTNAME, TTF_DEVFONTFILE);
         goto failed;
     }
 
