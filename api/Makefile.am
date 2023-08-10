@@ -12,6 +12,7 @@ noinst_PROGRAMS = \
     textextent2 \
     setbkmode \
     drawtext \
+    drawtext_ttf \
     drawtext_bidi \
     $(NULLFILE)
 
@@ -26,4 +27,5 @@ textextent_SOURCES = textextent.c $(COMMFILES)
 textextent2_SOURCES = textextent2.c $(COMMFILES)
 setbkmode_SOURCES = setbkmode.c $(COMMFILES)
 drawtext_SOURCES = drawtext.c $(COMMFILES)
+drawtext_ttf_SOURCES = drawtext-ttf.c $(COMMFILES)
 drawtext_bidi_SOURCES = drawtext-bidi.c $(COMMFILES)

@@ -134,5 +134,6 @@ api/textextent2
 api/setbkmode
 api/timer
 api/drawtext
+api/drawtext_ttf
 api/drawtext_bidi
 control/edit
