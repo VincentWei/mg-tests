@@ -190,6 +190,7 @@ static int test_draw_text(HDC hdc, PLOGFONT logfont,
 }
 
 static struct test_case test_cases[] = {
+    { "vietnamese", "Xóa dữ liệu Cắm ổ USB flash." },
     { "thai", "ยืนยันตัวตนผ่านใบหน้า" },
     { "korean", "비밀번호 재설정 기능이 잠겼습니다.....30A1분 후 시도하십시오." },
     { "chinese", "飞漫软件是中国最早基于自主开发的开源软件进行商业化运营的基础软件企业。飞漫软件现主持着两大开源项目：MiniGUI 广泛应用于 IoT 智能设备及实时嵌入式系统，为 IoT 智能设备和嵌入式系统提供 GUI 及交互实现；HybridOS 是飞漫软件发起的一个的开源协作项目，其目标是为物联网设备和云计算环境打造一个全新的操作系统。" },
