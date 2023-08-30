@@ -39,7 +39,7 @@
 #define REQID_PRODUCER_NAMED_READY  (MAX_SYS_REQID + 1)
 #define REQID_PRODUCER_CLWIN_READY  (MAX_SYS_REQID + 2)
 #define SHARED_SURFACE_READY        "ready"
-#define SHARED_SURFACE_NAME         "wallpaper"
+#define SHARED_SURFACE_NAME         "background"
 #define CONSUMER_ARG_PATTERN        "%s %d %p"
 
 struct producer_clwin_info {

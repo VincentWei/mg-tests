@@ -146,7 +146,10 @@ static int my_event_hook (PMSG msg)
     if (msg->message == MSG_KEYDOWN) {
         switch (msg->wParam) {
         case SCANCODE_ESCAPE:
-            if (nr_clients == 1 && pid_producer_named) {
+            if (nr_clients == 0) {
+                SendNotifyMessage (HWND_DESKTOP, MSG_ENDSESSION, 0, 0);
+            }
+            else if (nr_clients == 1 && pid_producer_named) {
                 kill(pid_producer_named, SIGINT);
                 pid_producer_named = 0;
             }

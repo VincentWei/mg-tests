@@ -124,7 +124,7 @@ int MiniGUIMain (int argc, const char* argv[])
             GetGDCapability (HDC_SCREEN, GDCAP_AMASK));
 
     if (ssurf == NULL) {
-        _ERR_PRINTF("Failed to create a shared surface by name: %sln", name);
+        _ERR_PRINTF("Failed to create a shared surface by name: %s\n", name);
         exit(EXIT_FAILURE);
     }
 

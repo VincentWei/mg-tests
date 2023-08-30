@@ -28,186 +28,145 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #define _DEBUG
+
 #include <minigui/common.h>
-#include <minigui/minigui.h>
-#include <minigui/gdi.h>
-#include <minigui/window.h>
 
-#define HL_ST_CAP       "Hello World!"
-#define HL_ST_NOMES     "No messageso far."
-#define HL_ST_TIMER     "Timer expired, current tick count: %p."
-#define HL_ST_LBD       "The left button pressed."
-#define HL_ST_LBU       "The left button released."
-#define HL_ST_RBD       "The right button pressed."
-#define HL_ST_RBU       "The right button released."
-#define HL_ST_SYS       "sys"
-#define HL_ST_KEYD      "The %d %s key pressed %d times."
-#define HL_ST_KEYLONG   "=======The %d key pressed over a long term"
-#define HL_ST_KEYALWAY  "=======The %d key pressed always"
-#define HL_ST_KEYU      "The %d key released"
+#ifdef _MGSCHEMA_COMPOSITING
+#include "global.h"
 
-static char welcome_text [512];
-static char msg_text [256];
-static RECT welcome_rc = {10, 100, 600, 400};
-static RECT msg_rc = {10, 100, 600, 400};
+static HDC memdc_named, memdc_clwin;
+static HSURF ssurf_named, ssurf_clwin;
 
-static const char* syskey = "";
-
-static int last_key = -1;
-static int last_key_count = 0;
-
-static void make_welcome_text (void)
-{
-    const char* sys_charset = GetSysCharset (TRUE);
-    const char* format;
-
-    if (sys_charset == NULL)
-        sys_charset = GetSysCharset (FALSE);
-
-    SetRect (&welcome_rc,  10, 10, g_rcScr.right - 10, g_rcScr.bottom / 2 - 10);
-    SetRect (&msg_rc, 10, welcome_rc.bottom + 10, g_rcScr.right - 10, g_rcScr.bottom - 20);
-
-    if (strcmp (sys_charset, FONT_CHARSET_GB2312_0) == 0 
-            || strcmp (sys_charset, FONT_CHARSET_GBK) == 0
-            || strcmp (sys_charset, FONT_CHARSET_GB18030_0) == 0) {
-        format = "欢迎来到 MiniGUI 的世界! 如果您能看到该文本, 则说明 MiniGUI Version %d.%d.%d 可在该硬件上运行!";
-    }
-    else if (strcmp (sys_charset, FONT_CHARSET_BIG5) == 0) {
-        format = "欢迎来到 MiniGUI 的世界! 如果您能看到该文本, 则说明 MiniGUI Version %d.%d.%d 可在该硬件上运行!";
-    }
-    else {
-        format = "Welcome to the world of MiniGUI. \nIf you can see this text, MiniGUI Version %d.%d.%d can run on this hardware board.";
-    }
-
-    sprintf (welcome_text, format, MINIGUI_MAJOR_VERSION, MINIGUI_MINOR_VERSION, MINIGUI_MICRO_VERSION);
-
-    strcpy (msg_text, HL_ST_NOMES);
-}
-
-static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+static LRESULT ConsumerWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HDC hdc;
-
-    syskey = "";
+    RECT rc;
 
     switch (message) {
         case MSG_CREATE:
-            make_welcome_text ();
-            SetTimer (hWnd, 100, 100);
+            SetTimer(hWnd, 100, 2);
             break;
 
         case MSG_TIMER:
-            sprintf (msg_text, HL_ST_TIMER, (PVOID)GetTickCount ());
-            InvalidateRect (hWnd, &msg_rc, TRUE);
-            break;
-            
-        case MSG_LBUTTONDOWN:
-            strcpy (msg_text, HL_ST_LBD);
-            InvalidateRect (hWnd, &msg_rc, TRUE);
-            break;
-
-        case MSG_LBUTTONUP:
-            strcpy (msg_text, HL_ST_LBU);
-            InvalidateRect (hWnd, &msg_rc, TRUE);
-            break;
-
-        case MSG_RBUTTONDOWN:
-            strcpy (msg_text, HL_ST_RBD);
-            InvalidateRect (hWnd, &msg_rc, TRUE);
-            break;
-
-        case MSG_RBUTTONUP:
-            strcpy (msg_text, HL_ST_RBU);
-            InvalidateRect (hWnd, &msg_rc, TRUE);
+            InvalidateRect(hWnd, NULL, TRUE);
             break;
 
         case MSG_PAINT:
-            hdc = BeginPaint (hWnd);
-            DrawText (hdc, welcome_text, -1, &welcome_rc, DT_LEFT | DT_WORDBREAK);
-            DrawText (hdc, msg_text, -1, &msg_rc, DT_LEFT | DT_WORDBREAK);
-            EndPaint (hWnd, hdc);
-            return 0;
-
-        case MSG_SYSKEYDOWN:
-            syskey = HL_ST_SYS;
-        case MSG_KEYDOWN:
-            if(last_key == wParam)
-                last_key_count++;
-            else
-            {
-                last_key = wParam;
-                last_key_count = 1;
-            }
-            sprintf (msg_text, HL_ST_KEYD, 
-                            (int)wParam, syskey, last_key_count);
-            InvalidateRect (hWnd, &msg_rc, TRUE);
-            return 0;
-
-        case MSG_KEYLONGPRESS:
-            sprintf (msg_text, HL_ST_KEYLONG, (int)wParam);
-            InvalidateRect (hWnd, &msg_rc, TRUE);
-            break;
-
-        case MSG_KEYALWAYSPRESS:
-            sprintf (msg_text, HL_ST_KEYALWAY, (int)wParam);
-            InvalidateRect (hWnd, &msg_rc, TRUE);
-            break;
-
-        case MSG_KEYUP:
-            sprintf (msg_text, HL_ST_KEYU, (int)wParam);
-            InvalidateRect (hWnd, &msg_rc, TRUE);
+            hdc = BeginPaint(hWnd);
+            GetClientRect(hWnd, &rc);
+            StretchBlt(memdc_named, 0, 0, 0, 0, hdc, 0, 0, RECTW(rc), RECTH(rc), 0);
+            SetMemDCAlpha(memdc_clwin, MEMDC_FLAG_SRCALPHA, GetTickCount() % 256);
+            BitBlt(memdc_clwin, 0, 0, 0, 0, hdc, 0, 0, 0);
+            EndPaint(hWnd, hdc);
             return 0;
 
         case MSG_CLOSE:
-            KillTimer (hWnd, 100);
-            DestroyMainWindow (hWnd);
-            PostQuitMessage (hWnd);
+            KillTimer(hWnd, 100);
+            DestroyMainWindow(hWnd);
+            PostQuitMessage(hWnd);
             return 0;
     }
 
     return DefaultMainWinProc(hWnd, message, wParam, lParam);
 }
 
-int MiniGUIMain (int argc, const char* argv[])
+int MiniGUIMain(int argc, const char* argv[])
 {
     MSG Msg;
     HWND hMainWnd;
     MAINWINCREATE CreateInfo;
 
-#ifdef _MGRM_PROCESSES
-    JoinLayer(NAME_TOPMOST_LAYER , "helloworld" , 0 , 0);
-#endif
+    JoinLayer(NAME_TOPMOST_LAYER , "consumer" , 0 , 0);
 
-    _DBG_PRINTF("Screen rect: %d, %d, %d, %d\n",
-        g_rcScr.left, g_rcScr.top,
-        g_rcScr.right, g_rcScr.bottom);
+    if (argc > 1) {
+        char name[MAX_NAME + 1];
+        int cli;
+        HWND hwnd;
 
-    CreateInfo.dwStyle = 
+        if (sscanf(argv[1], CONSUMER_ARG_PATTERN, name, &cli, &hwnd) != 3) {
+            _ERR_PRINTF("BAD_ARG: %s\n", argv[1]);
+            exit(EXIT_FAILURE);
+        }
+
+        int fd_named, fd_clwin;
+        size_t sz_named, sz_clwin;
+        DWORD flags_named, flags_clwin;
+        fd_named = GetSharedSurfaceFDByName(name, &sz_named, &flags_named);
+        if (fd_named < 0) {
+            _ERR_PRINTF("FAILED_CALL: GetSharedSurfaceFDByName(%s)\n", name);
+            exit(EXIT_FAILURE);
+        }
+
+        ssurf_named = AttachToSharedSurface(NULL, fd_named, sz_named, flags_named);
+        if (ssurf_named == NULL) {
+            _ERR_PRINTF("FAILED_CALL: AttachToSharedSurface(%d)\n", fd_named);
+            exit(EXIT_FAILURE);
+        }
+
+        _MG_PRINTF("Attached to a sharee surface: %p, %d, %lu, %lx\n",
+                ssurf_named, fd_named,
+                (unsigned long)sz_named, (unsigned long)flags_named);
+        close(fd_named);
+
+        fd_clwin = GetSharedSurfaceFDByClientWindow(cli, hwnd,
+                &sz_clwin, &flags_clwin);
+        if (fd_clwin < 0) {
+            _ERR_PRINTF("FAILED_CALL: GetSharedSurfaceFDByName(%s)\n", name);
+            exit(EXIT_FAILURE);
+        }
+
+        ssurf_clwin = AttachToSharedSurface(NULL, fd_clwin, sz_clwin, flags_clwin);
+        if (ssurf_clwin == NULL) {
+            _ERR_PRINTF("FAILED_CALL: AttachToSharedSurface(%d)\n", fd_clwin);
+            exit(EXIT_FAILURE);
+        }
+
+        _MG_PRINTF("Attached to a sharee surface: %p, %d, %lu, %lx\n",
+                ssurf_clwin, fd_clwin,
+                (unsigned long)sz_clwin, (unsigned long)flags_clwin);
+        close(fd_clwin);
+
+        memdc_named = CreateMemDCFromSurface(ssurf_named);
+        if (memdc_named == HDC_INVALID) {
+            _ERR_PRINTF("FAILED_CALL: CreateMemDCFromSurface(%p)\n", ssurf_named);
+            exit(EXIT_FAILURE);
+        }
+
+        memdc_clwin = CreateMemDCFromSurface(ssurf_clwin);
+        if (memdc_clwin == HDC_INVALID) {
+            _ERR_PRINTF("FAILED_CALL: CreateMemDCFromSurface(%p)\n", ssurf_clwin);
+            exit(EXIT_FAILURE);
+        }
+
+    }
+    else {
+        _ERR_PRINTF("MISSED_ARG: %d\n", argc);
+        exit(EXIT_FAILURE);
+    }
+
+    CreateInfo.dwStyle =
         WS_VISIBLE | WS_BORDER | WS_CAPTION;
-    CreateInfo.dwExStyle = WS_EX_AUTOPOSITION;
-    CreateInfo.spCaption = HL_ST_CAP;
+    CreateInfo.dwExStyle = WS_EX_WINTYPE_HIGHER;
+    CreateInfo.spCaption = "Consumer of shared surfaces";
     CreateInfo.hMenu = 0;
     CreateInfo.hCursor = GetSystemCursor(0);
     CreateInfo.hIcon = 0;
-    CreateInfo.MainWindowProc = HelloWinProc;
+    CreateInfo.MainWindowProc = ConsumerWinProc;
     CreateInfo.lx = 0;
     CreateInfo.ty = 0;
-    CreateInfo.rx = g_rcScr.right;
-    CreateInfo.by = g_rcScr.bottom;
+    CreateInfo.rx = 640;
+    CreateInfo.by = 400;
     CreateInfo.iBkColor = COLOR_black;
     CreateInfo.dwAddData = 0;
     CreateInfo.hHosting = HWND_DESKTOP;
-    
-    //hMainWnd = CreateMainWindow (&CreateInfo);
-    hMainWnd = CreateMainWindowEx2 (&CreateInfo, 0, NULL, NULL,
-            ST_PIXEL_ARGB8888,
-            MakeRGBA (0, 0, 0, 0x80),
-            CT_ALPHAPIXEL, COLOR_BLEND_PD_SRC_OVER);
-    
-    if (hMainWnd == HWND_INVALID)
-        return -1;
+
+    hMainWnd = CreateMainWindow(&CreateInfo);
+    if (hMainWnd == HWND_INVALID) {
+        exit(EXIT_FAILURE);
+    }
 
     ShowWindow(hMainWnd, SW_SHOWNORMAL);
 
@@ -216,12 +175,25 @@ int MiniGUIMain (int argc, const char* argv[])
         DispatchMessage(&Msg);
     }
 
-    MainWindowThreadCleanup (hMainWnd);
+    MainWindowThreadCleanup(hMainWnd);
 
-    return 0;
+    DeleteMemDC(memdc_named);
+    DetachFromSharedSurface(ssurf_named);
+
+    DeleteMemDC(memdc_clwin);
+    DetachFromSharedSurface(ssurf_clwin);
+
+    return EXIT_SUCCESS;
 }
 
-#ifdef _MGRM_THREADS
-#include <minigui/dti.c>
-#endif
+#else  /* defined _MGSCHEMA_COMPOSITING */
+
+int main(int argc, const char* argv[])
+{
+    _WRN_PRINTF ("This test program is a client for compositing schema."
+           "But your MiniGUI was not configured as compositing schema.\n");
+    return EXIT_SUCCESS;
+}
+
+#endif  /* not defined _MGSCHEMA_COMPOSITING */
 
