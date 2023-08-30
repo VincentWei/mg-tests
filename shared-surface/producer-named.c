@@ -10,10 +10,10 @@
 // https://www.fmsoft.cn/exception-list
 //
 //////////////////////////////////////////////////////////////////////////////
-/* 
-** wallpaper-dynamic.c: a daynamic wallpaper renderer.
+/*
+** producer-surface.c: a shared surface producer.
 **
-** Copyright (C) 2019 ~ 2020 FMSoft (http://www.fmsoft.cn).
+** Copyright (C) 2023 FMSoft (http://www.fmsoft.cn).
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -32,6 +32,8 @@
 #include <string.h>
 
 #include <minigui/common.h>
+
+#ifdef _MGSCHEMA_COMPOSITING
 #include <minigui/minigui.h>
 #include <minigui/gdi.h>
 #include <minigui/window.h>
@@ -41,32 +43,32 @@ static BOOL not_alloc_bmp_buff (void* context, BITMAP* bmp)
     return FALSE;
 }
 
-static int load_wallpaper (HDC hdc, const char* filename, double scale)
+static int paint_wallpaper(HDC hdc, const char* filename, double scale)
 {
     BITMAP bmp;
     MG_RWops* area = NULL;
     int ret = 0;
 
-    if (!(area = MGUI_RWFromFile (filename, "rb"))) {
+    if (!(area = MGUI_RWFromFile(filename, "rb"))) {
         _ERR_PRINTF("Bad wallpaper file\n");
         ret = -1;
         goto ret;
     }
 
     // Get the bitmap width and height by calling LoadBitmapEx2
-    LoadBitmapEx2 (HDC_SCREEN, &bmp, area, "jpg", not_alloc_bmp_buff, NULL);
+    LoadBitmapEx2 (hdc, &bmp, area, "jpg", not_alloc_bmp_buff, NULL);
 
     if (bmp.bmWidth > 0 && bmp.bmHeight > 0) {
         int x, y, w, h;
         static int wp_w = 0, wp_h = 0;
 
         if (wp_w == 0) {
-            wp_w = (int)GetGDCapability (hdc, GDCAP_HPIXEL);
-            wp_h = (int)GetGDCapability (hdc, GDCAP_VPIXEL);
+            wp_w = (int)GetGDCapability(hdc, GDCAP_HPIXEL);
+            wp_h = (int)GetGDCapability(hdc, GDCAP_VPIXEL);
         }
 
-        w = (int) (bmp.bmWidth * scale);
-        h = (int) (bmp.bmHeight * scale);
+        w = (int)(bmp.bmWidth * scale);
+        h = (int)(bmp.bmHeight * scale);
 
         x = (wp_w - w) >> 1;
         y = (wp_h - h) >> 1;
@@ -74,8 +76,8 @@ static int load_wallpaper (HDC hdc, const char* filename, double scale)
         MGUI_RWseek (area, SEEK_SET, 0);
         _DBG_PRINTF("calling StretchPaintImageEx with x(%d), y(%d), w(%d), h(%d)\n",
                 x, y, w, h);
-        StretchPaintImageEx (hdc, x, y, w, h, area, "jpg");
-        SyncUpdateDC (hdc);
+        StretchPaintImageEx(hdc, x, y, w, h, area, "jpg");
+        SyncUpdateDC(hdc);
     }
     else {
         _ERR_PRINTF("Failed to get the size of wallpaper bitmap\n");
@@ -85,7 +87,7 @@ static int load_wallpaper (HDC hdc, const char* filename, double scale)
 
 ret:
     if (area)
-        MGUI_RWclose (area);
+        MGUI_RWclose(area);
 
     return ret;
 }
@@ -98,28 +100,49 @@ int MiniGUIMain (int argc, const char* argv[])
     double step = 0.1;
     MSG msg;
     RECT rc_scr = GetScreenRect();
-    DWORD old_tick_count;
 
     _MG_PRINTF("Screen rect: %d, %d, %d, %d\n",
             rc_scr.left, rc_scr.top,
             rc_scr.right, rc_scr.bottom);
 
-    _MG_PRINTF("Wallpaper pattern size: %d, %d\n",
+    JoinLayer(NAME_DEF_LAYER , "producer-surface" , 0 , 0);
+
+    HSURF ssurf = CreateSharedSurface(NULL,
+            "shared-surface", MEMDC_FLAG_HWSURFACE,
             GetGDCapability (HDC_SCREEN, GDCAP_HPIXEL),
-            GetGDCapability (HDC_SCREEN, GDCAP_VPIXEL));
+            GetGDCapability (HDC_SCREEN, GDCAP_VPIXEL),
+            GetGDCapability (HDC_SCREEN, GDCAP_DEPTH),
+            GetGDCapability (HDC_SCREEN, GDCAP_RMASK),
+            GetGDCapability (HDC_SCREEN, GDCAP_GMASK),
+            GetGDCapability (HDC_SCREEN, GDCAP_BMASK),
+            GetGDCapability (HDC_SCREEN, GDCAP_AMASK));
+    if (ssurf == NULL) {
+        _ERR_PRINTF("Failed to create a shared surface\n");
+        exit(EXIT_FAILURE);
+    }
 
-    JoinLayer(NAME_DEF_LAYER , "wallpaper" , 0 , 0);
+    HDC memdc = CreateMemDCFromSurface(ssurf);
+    if (memdc == HDC_INVALID) {
+        _ERR_PRINTF("Failed to create memdc for the shared surface\n");
+        exit(EXIT_FAILURE);
+    }
 
-    if (load_wallpaper (HDC_SCREEN, WALLPAPER_FILE, scale) < 0)
-        exit (1);
+    if (paint_wallpaper(memdc, WALLPAPER_FILE, scale) < 0) {
+        _ERR_PRINTF("Failed to load wallpaper\n");
+        exit(EXIT_FAILURE);
+    }
 
-    old_tick_count = GetTickCount ();
+    DWORD old_tick_count, org_tick_count;
+    old_tick_count = org_tick_count = GetTickCount();
 
     /* this is a trick in order that GetMessage can return fast */
-    SetTimer (HWND_DESKTOP, (LINT)&old_tick_count, 2);
+    SetTimer(HWND_DESKTOP, (LINT)&old_tick_count, 2);
 
     while (GetMessage (&msg, HWND_DESKTOP)) {
         DWORD curr_tick_count = GetTickCount ();
+        if (curr_tick_count > org_tick_count + 10000)
+            break;
+
         if (curr_tick_count > old_tick_count + 2) {
             scale += step;
             if (scale > 2.0) {
@@ -130,20 +153,31 @@ int MiniGUIMain (int argc, const char* argv[])
             }
 
             _DBG_PRINTF("It is time to load another wallpaper.\n");
-            if (load_wallpaper (HDC_SCREEN, WALLPAPER_FILE, scale) < 0)
-                exit (1);
+            if (paint_wallpaper(memdc, WALLPAPER_FILE, scale) < 0)
+                exit(EXIT_FAILURE);
             old_tick_count = curr_tick_count;
         }
 
         DispatchMessage (&msg);
     }
 
+    DeleteMemDC(memdc);
+    DestroySharedSurface(ssurf);
+
     SendMessage (HWND_DESKTOP, MSG_ENDSESSION, 0, 0);
 
+    exit(EXIT_SUCCESS);
     return 0;
 }
 
-#ifdef _MGRM_THREADS
-#include <minigui/dti.c>
-#endif
+#else  /* defined _MGSCHEMA_COMPOSITING */
+
+int main(int argc, const char* argv[])
+{
+    _WRN_PRINTF ("This test program is a client for compositing schema."
+           "But your MiniGUI was not configured as compositing schema.\n");
+    return EXIT_SUCCESS;
+}
+
+#endif  /* not defined _MGSCHEMA_COMPOSITING */
 

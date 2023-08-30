@@ -137,8 +137,8 @@ api/timer
 api/drawtext
 api/drawtext_bidi
 control/edit
-shared-surface/consumer
 shared-surface/mginit
-shared-surface/producer-surface
-shared-surface/producer-window
+shared-surface/producer-named
+shared-surface/producer-clwin
+shared-surface/consumer
 
