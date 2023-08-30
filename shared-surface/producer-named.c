@@ -11,7 +11,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 /*
-** producer-surface.c: a shared surface producer.
+** producer-named.c: a name-based shared surface producer.
 **
 ** Copyright (C) 2023 FMSoft (http://www.fmsoft.cn).
 **
@@ -34,9 +34,7 @@
 #include <minigui/common.h>
 
 #ifdef _MGSCHEMA_COMPOSITING
-#include <minigui/minigui.h>
-#include <minigui/gdi.h>
-#include <minigui/window.h>
+#include "global.h"
 
 static BOOL not_alloc_bmp_buff (void* context, BITMAP* bmp)
 {
@@ -107,8 +105,16 @@ int MiniGUIMain (int argc, const char* argv[])
 
     JoinLayer(NAME_DEF_LAYER , "producer-surface" , 0 , 0);
 
+    const char *name = NULL;
+    if (argc > 1) {
+        name = argv[1];
+    }
+    else {
+        name = SHARED_SURFACE_NAME;
+    }
+
     HSURF ssurf = CreateSharedSurface(NULL,
-            "shared-surface", MEMDC_FLAG_HWSURFACE,
+            name, MEMDC_FLAG_HWSURFACE,
             GetGDCapability (HDC_SCREEN, GDCAP_HPIXEL),
             GetGDCapability (HDC_SCREEN, GDCAP_VPIXEL),
             GetGDCapability (HDC_SCREEN, GDCAP_DEPTH),
@@ -116,8 +122,9 @@ int MiniGUIMain (int argc, const char* argv[])
             GetGDCapability (HDC_SCREEN, GDCAP_GMASK),
             GetGDCapability (HDC_SCREEN, GDCAP_BMASK),
             GetGDCapability (HDC_SCREEN, GDCAP_AMASK));
+
     if (ssurf == NULL) {
-        _ERR_PRINTF("Failed to create a shared surface\n");
+        _ERR_PRINTF("Failed to create a shared surface by name: %sln", name);
         exit(EXIT_FAILURE);
     }
 
@@ -129,6 +136,23 @@ int MiniGUIMain (int argc, const char* argv[])
 
     if (paint_wallpaper(memdc, WALLPAPER_FILE, scale) < 0) {
         _ERR_PRINTF("Failed to load wallpaper\n");
+        exit(EXIT_FAILURE);
+    }
+
+    REQUEST req = {
+        REQID_PRODUCER_NAMED_READY,
+        SHARED_SURFACE_READY,
+        sizeof(SHARED_SURFACE_READY)
+    };
+
+    int result;
+    if (ClientRequest(&req, &result, sizeof(int))) {
+        _ERR_PRINTF("BAD_REQUEST: %d\n", REQID_PRODUCER_NAMED_READY);
+        exit(EXIT_FAILURE);
+    }
+
+    if (result) {
+        _ERR_PRINTF("FAILED_REQUEST: %d\n", REQID_PRODUCER_NAMED_READY);
         exit(EXIT_FAILURE);
     }
 

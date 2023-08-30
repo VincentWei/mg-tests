@@ -11,9 +11,9 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 /*
-** Flying-GUIs - Another MiniGUI demo...
+** producer-clwin.c: a window-based shared surface producer.
 **
-** Copyright (C) 2003 ~ 2020 FMSoft (http://www.fmsoft.cn).
+** Copyright (C) 2023 FMSoft (http://www.fmsoft.cn).
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -38,9 +38,9 @@
 #include <math.h>
 
 #include <minigui/common.h>
-#include <minigui/minigui.h>
-#include <minigui/gdi.h>
-#include <minigui/window.h>
+
+#ifdef _MGSCHEMA_COMPOSITING
+#include "global.h"
 
 #include <mgeff/mgeff.h>
 
@@ -521,13 +521,34 @@ int MiniGUIMain (int argc, const char* argv[])
     MSG Msg;
     HWND hMainWnd;
 
-#ifdef _MGRM_PROCESSES
-    JoinLayer(NAME_DEF_LAYER , "producer-window" , 0 , 0);
-#endif
+    int cli_id;
+    JoinLayerEx(NAME_DEF_LAYER , "producer-clwin", 0, 0, &cli_id);
 
     hMainWnd = create_flying_window (HWND_DESKTOP);
     if (hMainWnd == HWND_INVALID) {
         return -1;
+    }
+
+    struct producer_clwin_info {
+        int     cli;
+        HWND    hwnd;
+    } producer_clwin_info = { cli_id, hMainWnd };
+
+    REQUEST req = {
+        REQID_PRODUCER_CLWIN_READY,
+        &producer_clwin_info,
+        sizeof(producer_clwin_info)
+    };
+
+    int result;
+    if (ClientRequest(&req, &result, sizeof(int))) {
+        _ERR_PRINTF("BAD_REQUEST: %d\n", REQID_PRODUCER_CLWIN_READY);
+        exit(EXIT_FAILURE);
+    }
+
+    if (result) {
+        _ERR_PRINTF("FAILED_REQUEST: %d\n", REQID_PRODUCER_CLWIN_READY);
+        exit(EXIT_FAILURE);
     }
 
     ShowWindow(hMainWnd, SW_SHOWNORMAL);
@@ -592,3 +613,15 @@ static char *banner[46] = {
 
 NULL
 };
+
+#else  /* defined _MGSCHEMA_COMPOSITING */
+
+int main(int argc, const char* argv[])
+{
+    _WRN_PRINTF ("This test program is a client for compositing schema."
+           "But your MiniGUI was not configured as compositing schema.\n");
+    return EXIT_SUCCESS;
+}
+
+#endif  /* not defined _MGSCHEMA_COMPOSITING */
+

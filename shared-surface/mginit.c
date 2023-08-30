@@ -26,6 +26,8 @@
 ** limitations under the License.
 */
 
+#undef NDEBUG
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,6 +36,7 @@
 #include <time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <assert.h>
 
 #include <minigui/common.h>
 
@@ -87,6 +90,9 @@ static int on_producer_clwin_ready(int cli, int clifd, void* buff, size_t len)
     int ret_value = 0;
 
     struct producer_clwin_info *info = (struct producer_clwin_info *)buff;
+
+    assert(cli == info->cli);
+
     int ret = snprintf(arg, sizeof(arg), CONSUMER_ARG_PATTERN, SHARED_SURFACE_NAME,
             info->cli, info->hwnd);
     if (ret <= 0 || (size_t)ret >= sizeof(arg)) {
