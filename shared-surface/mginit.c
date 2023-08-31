@@ -49,6 +49,10 @@ static pid_t pid_producer_named = 0;
 static pid_t pid_producer_clwin = 0;
 static pid_t pid_consumer = 0;
 
+static int cli_producer_named = 0;
+static int cli_producer_clwin = 0;
+static int cli_consumer = 0;
+
 static pid_t exec_app(const char* file_name, const char* app_name,
         const char *extra_arg)
 {
@@ -109,9 +113,29 @@ static void on_new_del_client (int op, int cli)
 {
     if (op == LCO_NEW_CLIENT) {
         nr_clients ++;
+        if (mgClients[cli].pid == pid_producer_named)
+            cli_producer_named = cli;
+        else if (mgClients[cli].pid == pid_producer_clwin)
+            cli_producer_clwin = cli;
+        else if (mgClients[cli].pid == pid_consumer)
+            cli_consumer = cli;
+
         _MG_PRINTF ("A new client: %d.\n", mgClients[cli].pid);
     }
     else if (op == LCO_DEL_CLIENT) {
+        if (cli == cli_consumer) {
+            _MG_PRINTF ("Consumer quitted.\n");
+            /* Notify the producers to quit */
+            MSG msg;
+
+            msg.hwnd = HWND_NULL;
+            msg.message = MSG_ENDSESSION;
+            msg.wParam = 0;
+            msg.lParam = 0;
+            Send2Client(&msg, pid_producer_named);
+            Send2Client(&msg, pid_producer_clwin);
+        }
+
         _MG_PRINTF ("A client left: %d.\n", mgClients[cli].pid);
         nr_clients --;
         if (nr_clients == 0) {
@@ -148,10 +172,6 @@ static int my_event_hook (PMSG msg)
         case SCANCODE_ESCAPE:
             if (nr_clients == 0) {
                 SendNotifyMessage (HWND_DESKTOP, MSG_ENDSESSION, 0, 0);
-            }
-            else if (nr_clients == 1 && pid_producer_named) {
-                kill(pid_producer_named, SIGINT);
-                pid_producer_named = 0;
             }
             break;
 
@@ -199,7 +219,7 @@ int MiniGUIMain(int argc, const char* argv[])
     RegisterRequestHandler(REQID_PRODUCER_NAMED_READY, on_producer_named_ready);
     RegisterRequestHandler(REQID_PRODUCER_CLWIN_READY, on_producer_clwin_ready);
     pid_producer_named =
-        exec_app("./producer-named", "producer-named", "wallpaper");
+        exec_app("./producer-named", "producer-named", SHARED_SURFACE_NAME);
 
     old_tick_count = GetTickCount();
     while (GetMessage(&msg, HWND_DESKTOP)) {

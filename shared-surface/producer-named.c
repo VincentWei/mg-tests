@@ -115,13 +115,9 @@ int MiniGUIMain (int argc, const char* argv[])
 
     HSURF ssurf = CreateSharedSurface(NULL,
             name, MEMDC_FLAG_HWSURFACE,
-            GetGDCapability (HDC_SCREEN, GDCAP_HPIXEL),
-            GetGDCapability (HDC_SCREEN, GDCAP_VPIXEL),
-            GetGDCapability (HDC_SCREEN, GDCAP_DEPTH),
-            GetGDCapability (HDC_SCREEN, GDCAP_RMASK),
-            GetGDCapability (HDC_SCREEN, GDCAP_GMASK),
-            GetGDCapability (HDC_SCREEN, GDCAP_BMASK),
-            GetGDCapability (HDC_SCREEN, GDCAP_AMASK));
+            PRODUCER_NAMED_WIDTH,
+            PRODUCER_NAMED_HEIGHT,
+            32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
 
     if (ssurf == NULL) {
         _ERR_PRINTF("Failed to create a shared surface by name: %s\n", name);
@@ -164,9 +160,6 @@ int MiniGUIMain (int argc, const char* argv[])
 
     while (GetMessage (&msg, HWND_DESKTOP)) {
         DWORD curr_tick_count = GetTickCount ();
-        if (curr_tick_count > org_tick_count + 10000)
-            break;
-
         if (curr_tick_count > old_tick_count + 2) {
             scale += step;
             if (scale > 2.0) {

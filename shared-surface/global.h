@@ -42,6 +42,14 @@
 #define SHARED_SURFACE_NAME         "background"
 #define CONSUMER_ARG_PATTERN        "%s %d %p"
 
+#define PRODUCER_NAMED_WIDTH        800
+#define PRODUCER_NAMED_HEIGHT       600
+#define PRODUCER_CLWIN_WIDTH        320
+#define PRODUCER_CLWIN_HEIGHT       200
+
+#define CONSUMER_WIDTH              640
+#define CONSUMER_HEIGHT             400
+
 struct producer_clwin_info {
     int     cli;
     HWND    hwnd;

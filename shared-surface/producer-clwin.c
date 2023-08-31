@@ -47,8 +47,8 @@
 /* 16.16 fixed number */
 #define fixed  int32_t
 
-#define DEFAULT_WIDTH   320
-#define DEFAULT_HEIGHT  200
+#define DEFAULT_WIDTH   PRODUCER_CLWIN_WIDTH
+#define DEFAULT_HEIGHT  PRODUCER_CLWIN_HEIGHT
 
 #define DEFAULT_GENTIME      200   /* msec */
 #define DEFAULT_MAXSIZE      100   /* percent */
@@ -481,14 +481,14 @@ static LRESULT FlyingGUIWinProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 static void InitCreateInfo (PMAINWINCREATE pCreateInfo)
 {
     pCreateInfo->dwStyle = WS_VISIBLE;
-    pCreateInfo->dwExStyle = WS_EX_TOPMOST;
+    pCreateInfo->dwExStyle = 0;
     pCreateInfo->spCaption = "Flying GUI";
     pCreateInfo->hMenu = 0;
     pCreateInfo->hCursor = GetSystemCursor (0);
     pCreateInfo->hIcon = 0;
     pCreateInfo->MainWindowProc = FlyingGUIWinProc;
-    pCreateInfo->lx = DEFAULT_WIDTH;
-    pCreateInfo->ty = DEFAULT_HEIGHT;
+    pCreateInfo->lx = 0;
+    pCreateInfo->ty = 0;
     pCreateInfo->rx = pCreateInfo->lx + DEFAULT_WIDTH;
     pCreateInfo->by = pCreateInfo->ty + DEFAULT_HEIGHT;
     pCreateInfo->iBkColor = COLOR_black;

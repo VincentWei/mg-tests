@@ -26,9 +26,12 @@
 ** limitations under the License.
 */
 
+#undef NDEBUG
+
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <assert.h>
 
 #define _DEBUG
 
@@ -39,11 +42,60 @@
 
 static HDC memdc_named, memdc_clwin;
 static HSURF ssurf_named, ssurf_clwin;
+static unsigned int dirty_age_named, dirty_age_clwin;
+
+static void composite_shared_surfaces(HWND hwnd, HDC hdc)
+{
+    static BOOL alpha_upward = TRUE;
+
+    HSURF surf;
+
+    surf = GetSurfaceFromDC(memdc_named);
+    assert(surf == ssurf_named);
+
+    surf = GetSurfaceFromDC(memdc_clwin);
+    assert(surf == ssurf_clwin);
+
+
+    RECT rc;
+    GetClientRect(hwnd, &rc);
+
+    int dst_w = RECTW(rc);
+    int dst_h = RECTH(rc);
+
+    LockSharedSurface(ssurf_named, &dirty_age_named, NULL, NULL);
+    StretchBlt(memdc_named, 0, 0, 0, 0, hdc, 0, 0, dst_w, dst_h, 0);
+    UnlockSharedSurface(ssurf_named, TRUE);
+
+    Uint8 alpha = GetTickCount() % 256;
+    if (!alpha_upward)
+        alpha = 255 - alpha;
+
+    SetMemDCAlpha(memdc_clwin, MEMDC_FLAG_SRCALPHA, alpha);
+
+    if (alpha == 255)
+        alpha_upward = FALSE;
+    else if (alpha == 0)
+        alpha_upward = TRUE;
+
+    SetMemDCColorKey(memdc_clwin, MEMDC_FLAG_SRCCOLORKEY,
+            RGBA2Pixel(memdc_clwin, 0, 0, 0, 0xFF));
+
+    int src_w = (int)GetGDCapability(memdc_clwin, GDCAP_HPIXEL);
+    int src_h = (int)GetGDCapability(memdc_clwin, GDCAP_VPIXEL);
+
+    assert(src_w == PRODUCER_CLWIN_WIDTH);
+    assert(src_h == PRODUCER_CLWIN_HEIGHT);
+
+    LockSharedSurface(ssurf_clwin, &dirty_age_clwin, NULL, NULL);
+    BitBlt(memdc_clwin, 0, 0, 0, 0,
+            hdc, (dst_w - src_w) / 2, (dst_h - src_h) / 2, 0);
+    UnlockSharedSurface(ssurf_clwin, FALSE);
+}
 
 static LRESULT ConsumerWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HDC hdc;
-    RECT rc;
 
     switch (message) {
         case MSG_CREATE:
@@ -51,15 +103,12 @@ static LRESULT ConsumerWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
             break;
 
         case MSG_TIMER:
-            InvalidateRect(hWnd, NULL, TRUE);
+            InvalidateRect(hWnd, NULL, FALSE);
             break;
 
         case MSG_PAINT:
             hdc = BeginPaint(hWnd);
-            GetClientRect(hWnd, &rc);
-            StretchBlt(memdc_named, 0, 0, 0, 0, hdc, 0, 0, RECTW(rc), RECTH(rc), 0);
-            SetMemDCAlpha(memdc_clwin, MEMDC_FLAG_SRCALPHA, GetTickCount() % 256);
-            BitBlt(memdc_clwin, 0, 0, 0, 0, hdc, 0, 0, 0);
+            composite_shared_surfaces(hWnd, hdc);
             EndPaint(hWnd, hdc);
             return 0;
 
@@ -100,13 +149,31 @@ int MiniGUIMain(int argc, const char* argv[])
             exit(EXIT_FAILURE);
         }
 
+        _MG_PRINTF("Got a file desrciptor for the named sharee surface: %d\n", fd_named);
+
         ssurf_named = AttachToSharedSurface(NULL, fd_named, sz_named, flags_named);
         if (ssurf_named == NULL) {
             _ERR_PRINTF("FAILED_CALL: AttachToSharedSurface(%d)\n", fd_named);
             exit(EXIT_FAILURE);
         }
 
-        _MG_PRINTF("Attached to a sharee surface: %p, %d, %lu, %lx\n",
+        const char *my_name;
+        SIZE sz;
+        int pitch;
+        size_t map_size;
+        off_t pixels_off;
+
+        my_name = GetSharedSurfaceInfo(ssurf_named, NULL, &sz,
+                &pitch, &map_size, &pixels_off);
+        _MG_PRINTF("pitch of %p: %d; width: %d\n", ssurf_named, pitch, sz.cx);
+        assert(strcmp(my_name, name) == 0);
+        assert(sz.cx == PRODUCER_NAMED_WIDTH);
+        assert(sz.cy == PRODUCER_NAMED_HEIGHT);
+        assert(pitch >= (PRODUCER_NAMED_WIDTH * 4));
+        assert(map_size > (PRODUCER_NAMED_WIDTH * 4 * PRODUCER_NAMED_HEIGHT));
+        assert(pixels_off > 0);
+
+        _MG_PRINTF("Attached to a shared surface: %p, %d, %lu, %lx\n",
                 ssurf_named, fd_named,
                 (unsigned long)sz_named, (unsigned long)flags_named);
         close(fd_named);
@@ -118,11 +185,24 @@ int MiniGUIMain(int argc, const char* argv[])
             exit(EXIT_FAILURE);
         }
 
+        _MG_PRINTF("Got fd of a shared surface: %d, %lu, %lx\n",
+                fd_clwin,
+                (unsigned long)sz_clwin, (unsigned long)flags_clwin);
+
         ssurf_clwin = AttachToSharedSurface(NULL, fd_clwin, sz_clwin, flags_clwin);
         if (ssurf_clwin == NULL) {
             _ERR_PRINTF("FAILED_CALL: AttachToSharedSurface(%d)\n", fd_clwin);
             exit(EXIT_FAILURE);
         }
+
+        my_name = GetSharedSurfaceInfo(ssurf_clwin, NULL, &sz,
+                &pitch, &map_size, &pixels_off);
+        assert(strcmp(my_name, "") == 0);
+        assert(sz.cx == PRODUCER_CLWIN_WIDTH);
+        assert(sz.cy == PRODUCER_CLWIN_HEIGHT);
+        assert(pitch >= (PRODUCER_CLWIN_WIDTH * 4));
+        assert(map_size > (PRODUCER_CLWIN_WIDTH * 4 * PRODUCER_CLWIN_HEIGHT));
+        assert(pixels_off > 0);
 
         _MG_PRINTF("Attached to a sharee surface: %p, %d, %lu, %lx\n",
                 ssurf_clwin, fd_clwin,
@@ -155,10 +235,10 @@ int MiniGUIMain(int argc, const char* argv[])
     CreateInfo.hCursor = GetSystemCursor(0);
     CreateInfo.hIcon = 0;
     CreateInfo.MainWindowProc = ConsumerWinProc;
-    CreateInfo.lx = 0;
-    CreateInfo.ty = 0;
-    CreateInfo.rx = 640;
-    CreateInfo.by = 400;
+    CreateInfo.lx = PRODUCER_CLWIN_WIDTH;
+    CreateInfo.ty = PRODUCER_CLWIN_HEIGHT;
+    CreateInfo.rx = PRODUCER_CLWIN_WIDTH + CONSUMER_WIDTH;
+    CreateInfo.by = PRODUCER_CLWIN_HEIGHT + CONSUMER_HEIGHT;
     CreateInfo.iBkColor = COLOR_black;
     CreateInfo.dwAddData = 0;
     CreateInfo.hHosting = HWND_DESKTOP;
