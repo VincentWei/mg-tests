@@ -178,6 +178,8 @@ int MiniGUIMain (int argc, const char* argv[])
         DispatchMessage (&msg);
     }
 
+    _MG_PRINTF("Quitting...\n");
+
     DeleteMemDC(memdc);
     DestroySharedSurface(ssurf);
 

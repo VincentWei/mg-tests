@@ -466,13 +466,11 @@ static LRESULT FlyingGUIWinProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 
     case MSG_CLOSE:
         KillTimer (hWnd, 100);
+        TermFlyingGUI (hWnd);
         DestroyMainWindow (hWnd);
-        MainWindowThreadCleanup (hWnd);
+        PostQuitMessage (hWnd);
         return 0;
 
-    case MSG_DESTROY:
-        TermFlyingGUI (hWnd);
-        return 0;
     }
 
     return DefaultMainWinProc(hWnd, message, wParam, lParam);
@@ -554,6 +552,10 @@ int MiniGUIMain (int argc, const char* argv[])
     ShowWindow(hMainWnd, SW_SHOWNORMAL);
     SetActiveWindow(hMainWnd);
     while (GetMessage(&Msg, hMainWnd)) {
+        if (Msg.hwnd == HWND_DESKTOP && Msg.message == MSG_ENDSESSION) {
+            _MG_PRINTF("Got MSG_ENDSESSION\n");
+            SendNotifyMessage(hMainWnd, MSG_CLOSE, 0, 0);
+        }
         TranslateMessage(&Msg);
         DispatchMessage(&Msg);
     }

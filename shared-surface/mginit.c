@@ -132,8 +132,8 @@ static void on_new_del_client (int op, int cli)
             msg.message = MSG_ENDSESSION;
             msg.wParam = 0;
             msg.lParam = 0;
-            Send2Client(&msg, pid_producer_named);
-            Send2Client(&msg, pid_producer_clwin);
+            Send2Client(&msg, cli_producer_named);
+            Send2Client(&msg, cli_producer_clwin);
         }
 
         _MG_PRINTF ("A client left: %d.\n", mgClients[cli].pid);
