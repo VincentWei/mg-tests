@@ -65,7 +65,7 @@ static void composite_shared_surfaces(HWND hwnd, HDC hdc)
 
     LockSharedSurface(ssurf_named, &dirty_age_named, NULL, NULL);
     StretchBlt(memdc_named, 0, 0, 0, 0, hdc, 0, 0, dst_w, dst_h, 0);
-    UnlockSharedSurface(ssurf_named, TRUE);
+    UnlockSharedSurface(ssurf_named);
 
     Uint8 alpha = GetTickCount() % 256;
     if (!alpha_upward)
@@ -90,7 +90,7 @@ static void composite_shared_surfaces(HWND hwnd, HDC hdc)
     LockSharedSurface(ssurf_clwin, &dirty_age_clwin, NULL, NULL);
     BitBlt(memdc_clwin, 0, 0, 0, 0,
             hdc, (dst_w - src_w) / 2, (dst_h - src_h) / 2, 0);
-    UnlockSharedSurface(ssurf_clwin, FALSE);
+    UnlockSharedSurface(ssurf_clwin);
 }
 
 static LRESULT ConsumerWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
