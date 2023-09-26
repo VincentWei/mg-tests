@@ -93,6 +93,15 @@ static void composite_shared_surfaces(HWND hwnd, HDC hdc)
     UnlockSharedSurface(ssurf_clwin);
 }
 
+static void on_timer(HWND hWnd)
+{
+    /* Only repaint if any shared surface changed */
+    if (TestIfSharedSurfaceChanged(ssurf_named, dirty_age_named) ||
+            TestIfSharedSurfaceChanged(ssurf_clwin, dirty_age_clwin)) {
+        InvalidateRect(hWnd, NULL, FALSE);
+    }
+}
+
 static LRESULT ConsumerWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HDC hdc;
@@ -103,7 +112,7 @@ static LRESULT ConsumerWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
             break;
 
         case MSG_TIMER:
-            InvalidateRect(hWnd, NULL, FALSE);
+            on_timer(hWnd);
             break;
 
         case MSG_PAINT:
