@@ -187,7 +187,7 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
         case MSG_TIMER:
             nr_expired++;
-            mytime("TIMER EXPIRED:");
+            // mytime("TIMER EXPIRED:");
             if (nr_expired >= 99) {
                 clock_gettime(CLOCK_MONOTONIC, &ts_stop);
                 KillTimer(hWnd, 11);
