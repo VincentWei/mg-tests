@@ -1,6 +1,7 @@
 EXTRA_DIST = MiniGUI.cfg
 
 noinst_PROGRAMS = \
+    timer_10ms \
     timer \
     movewindow \
     enddialog \
@@ -16,6 +17,7 @@ noinst_PROGRAMS = \
     drawtext_bidi \
     $(NULLFILE)
 
+timer_10ms_SOURCES = timer_10ms.c $(COMMFILES)
 timer_SOURCES = timer.c $(COMMFILES)
 movewindow_SOURCES = movewindow.c $(COMMFILES)
 enddialog_SOURCES = enddialog.c $(COMMFILES)
