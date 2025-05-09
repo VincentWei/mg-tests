@@ -12,6 +12,8 @@ noinst_PROGRAMS = \
     textextent \
     textextent2 \
     setbkmode \
+    drawtext \
+    drawtext_bidi \
     $(NULLFILE)
 
 timer_10ms_SOURCES = timer_10ms.c $(COMMFILES)
@@ -25,3 +27,5 @@ autosecondarydc_SOURCES = autosecondarydc.c $(COMMFILES)
 textextent_SOURCES = textextent.c $(COMMFILES)
 textextent2_SOURCES = textextent2.c $(COMMFILES)
 setbkmode_SOURCES = setbkmode.c $(COMMFILES)
+drawtext_SOURCES = drawtext.c $(COMMFILES)
+drawtext_bidi_SOURCES = drawtext-bidi.c $(COMMFILES)
