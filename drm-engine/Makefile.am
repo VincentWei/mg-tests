@@ -13,6 +13,6 @@ lib_LTLIBRARIES = libtestdrmdriver.la
 libtestdrmdriver_la_SOURCES = intel_i915_driver.c intel_batchbuffer.h intel_context.h intel_reg.h \
                               intel_chipset.c intel_chipset.h i915_pciids.h
 
-libtestdrmdriver_la_LIBADD = -ldrm_intel
+libtestdrmdriver_la_LIBADD = $(DRMDRV_LIBADD)
 
 libtestdrmdriver_la_LDFLAGS = -release 0.1 -version-info 0:1:0

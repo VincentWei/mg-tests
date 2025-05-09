@@ -47,9 +47,12 @@ PKG_CHECK_MODULES(DRMINTEL, [libdrm_intel >= 2.4], video_drm_intel="yes",
     video_drm_intel="no; the test code requires libdrm_intel 2.4+")
 if test "x$video_drm_intel" = "xyes"; then
     CPPFLAGS="$CPPFLAGS -DHAVE_DRM_INTEL"
+    DRMDRV_LIBADD="-ldrm_intel"
 else
+    DRMDRV_LIBADD=""
     AC_MSG_WARN([$video_drm_intel])
 fi
+AC_SUBST(DRMDRV_LIBADD)
 
 AC_CHECK_DECLS(_MGRM_PROCESSES, runmode_procs="yes", foo=bar, [#include <minigui/common.h>])
 
