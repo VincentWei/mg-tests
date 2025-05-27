@@ -1,6 +1,7 @@
 EXTRA_DIST = MiniGUI.cfg
 
 noinst_PROGRAMS = \
+    caret \
     timer_10ms \
     timer \
     movewindow \
@@ -17,6 +18,7 @@ noinst_PROGRAMS = \
     drawtext_bidi \
     $(NULLFILE)
 
+caret_SOURCES = caret.c $(COMMFILES)
 timer_10ms_SOURCES = timer_10ms.c $(COMMFILES)
 timer_SOURCES = timer.c $(COMMFILES)
 movewindow_SOURCES = movewindow.c $(COMMFILES)

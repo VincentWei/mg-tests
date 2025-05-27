@@ -188,7 +188,7 @@ static LRESULT HelloWinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
         case MSG_TIMER:
             nr_expired++;
             // mytime("TIMER EXPIRED:");
-            if (nr_expired >= 99) {
+            if (nr_expired >= 990) {
                 clock_gettime(CLOCK_MONOTONIC, &ts_stop);
                 KillTimer(hWnd, 11);
                 mytime("KILL THE TIMER:");
@@ -263,7 +263,7 @@ int MiniGUIMain (int argc, const char* argv[])
 
     double total = calc_elapsed_seconds(&ts_start, &ts_stop);
     _MG_PRINTF("Totally elapsed time: %f\n", total);
-    if (total > 1.0 && total < 1.2) {
+    if (total > 10.0 && total < 12.0) {
         _MG_PRINTF("Success\n");
         exit(EXIT_SUCCESS);
     }

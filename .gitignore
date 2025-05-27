@@ -133,11 +133,12 @@ api/autosecondarydc
 api/textextent
 api/textextent2
 api/setbkmode
-api/timer
-api/timer_10ms
 api/drawtext
 api/drawtext_ttf
 api/drawtext_bidi
+api/timer
+api/timer_10ms
+api/caret
 control/edit
 shared-surface/mginit
 shared-surface/producer-named
